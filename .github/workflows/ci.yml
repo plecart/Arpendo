@@ -66,7 +66,7 @@ jobs:
 
       # Versions d'actions tenues à jour par Dependabot (cadrage §13.11).
       - name: Setup uv + Python
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           # Épinglage provisoire : au scaffold de `api/`, c'est `api/.python-version` qui devient
           # la source unique — `setup-uv` le lit automatiquement. Retirer cette ligne À CE
