@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add :*)",
+      "Bash(git commit :*)",
+      "Bash(git checkout :*)",
+      "Bash(git switch :*)",
+      "Bash(git branch :*)",
+      "Bash(git worktree :*)",
+      "Bash(git fetch :*)",
+      "Bash(git status)",
+      "Bash(git diff :*)",
+      "Bash(git log :*)",
+      "Bash(git show :*)",
+      "Bash(git stash :*)",
+      "Bash(git init)",
+      "Bash(git remote :*)",
+      "Bash(git push)",
+      "Bash(git push :*)",
+      "Bash(git rebase :*)",
+      "Bash(git merge :*)",
+      "Bash(gh issue :*)",
+      "Bash(gh pr :*)",
+      "Bash(gh label :*)",
+      "Bash(gh api repos/:*)",
+      "Bash(gh repo create :*)",
+      "Bash(gh repo view :*)",
+      "Bash(gh workflow :*)",
+      "Bash(gh run :*)",
+      "Bash(npx skills :*)"
+    ],
+    "deny": [
+      "Bash(git push --force :*)",
+      "Bash(git push -f :*)"
+    ]
+  }
+}

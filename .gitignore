@@ -1,0 +1,47 @@
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+*.swp
+
+# Secrets — jamais dans le dépôt (cadrage §13.10)
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+android/key.properties
+*.pem
+
+# Flutter / Dart
+# `pubspec.lock` est VOLONTAIREMENT versionné : c'est une application, pas une lib
+# (cadrage §13.11, « fichiers de verrouillage commités »).
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+coverage/
+doc/api/
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/debug/
+android/app/profile/
+android/app/release/
+*.apk
+*.aab
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+*.ipa

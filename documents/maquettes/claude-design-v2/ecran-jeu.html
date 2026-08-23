@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#F6F4EF;font-family:Roboto,Arial,sans-serif}
+a{color:#123D1E}a:hover{color:#052D11}
+@keyframes flotte{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-3.5%)}}
+@keyframes delta{0%,3%{opacity:0;transform:translateY(4px)}7%,34%{opacity:1;transform:translateY(0)}42%,100%{opacity:0;transform:translateY(0)}}
+</style></helmet>
+
+<div style="display:flex;flex-wrap:wrap;gap:56px 48px;align-items:flex-start;padding:48px 56px;max-width:1500px">
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">JEU · ÉTAT NOMINAL · 360 × 800 dp</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#E9E7E1;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);font-variant-numeric:tabular-nums">
+  <img src="carte-jeu.svg" alt="" style="position:absolute;left:0;top:0;width:360px;height:800px;display:block"/>
+  <img src="marqueur-carte.svg" alt="" style="position:absolute;left:50%;top:370px;width:30px;height:56px;animation:flotte 2.4s ease-in-out infinite"/>
+
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#1A1D18">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:6px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:8px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:10px;background:#1A1D18"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #1A1D18;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#1A1D18"></i></span>
+    </span>
+  </div>
+
+  <div style="position:absolute;left:0;top:40px;width:360px;height:56px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 4px 0 16px;background:#FDFBF6;border-bottom:1px solid #C7C3B5;box-shadow:0 1px 2px rgba(26,29,24,.10)">
+    <svg width="24" height="26" viewBox="0 0 24 26" style="display:block;flex:none"><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="#3B6DF4"/><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+    <div style="position:relative;display:flex;align-items:baseline;gap:3px;white-space:nowrap">
+      <span style="font:600 18px/24px Roboto,sans-serif;color:#1A1D18">124</span><span style="font:400 11px/16px Roboto,sans-serif;color:#5C6157">hex</span><span style="font:400 11px/16px Roboto,sans-serif;color:#C7C3B5;padding:0 2px">·</span><span style="font:600 18px/24px Roboto,sans-serif;color:#1A1D18">12 400</span><span style="font:400 11px/16px Roboto,sans-serif;color:#5C6157">pts</span>
+      <sc-if value="{{ showDelta }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;right:-2px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:2px;height:22px;padding:0 7px 0 5px;border-radius:999px;background:#F1EDE2;border:1px solid rgba(26,29,24,.18);animation:delta 8s ease-in-out infinite"><svg width="9" height="11" viewBox="0 0 10 12" style="display:block"><path d="M5 1 L5 10 M1.5 6.5 L5 10.5 L8.5 6.5" fill="none" stroke="#1A1D18" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font:500 11px/16px Roboto,sans-serif;color:#1A1D18">200</span></span></sc-if>
+    </div>
+    <span style="margin-left:auto;font:500 13px/20px Roboto,sans-serif;color:#1A1D18;white-space:nowrap">2 j 04 h</span>
+    <span style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex:none" aria-label="Paramètres"><svg width="24" height="24" viewBox="0 0 24 24" style="display:block"><path d="M19.2 12.0L22.4 12.0M17.1 17.1L19.4 19.4M12.0 19.2L12.0 22.4M6.9 17.1L4.6 19.4M4.8 12.0L1.6 12.0M6.9 6.9L4.6 4.6M12.0 4.8L12.0 1.6M17.1 6.9L19.4 4.6" fill="none" stroke="#1A1D18" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="12" r="6.6" fill="#FDFBF6" stroke="#1A1D18" stroke-width="1.5"/><circle cx="12" cy="12" r="2.9" fill="none" stroke="#1A1D18" stroke-width="1.5"/></svg></span>
+    <img src="regle.svg" alt="" style="position:absolute;left:0;bottom:0;width:360px;height:6px;display:block"/>
+  </div>
+
+  <div style="position:absolute;left:16px;bottom:68px;width:250px;display:flex;flex-direction:column;align-items:flex-start;gap:3px">
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px;opacity:.45">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <i style="display:block;width:10px;height:10px;border-radius:999px;background:#A6841D;flex:none"></i>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alice a pris 5 tuiles à Bob.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px;opacity:.7">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#EB31A5"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Chloé rejoint la partie.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#A6841D"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bob passe en tête.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alice dépasse 250 tuiles.</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">2 min</span>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ showRecentrer }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:999px;background:#FDFBF6;border:1px solid rgba(26,29,24,.22);box-shadow:0 3px 6px rgba(26,29,24,.16);display:flex;align-items:center;justify-content:center">
+    <svg width="26" height="26" viewBox="0 0 26 26" style="display:block"><circle cx="13" cy="13" r="7.4" fill="none" stroke="#123D1E" stroke-width="1.6"/><circle cx="13" cy="13" r="2.2" fill="#123D1E"/><path d="M13 1.6 L13 5 M13 21 L13 24.4 M1.6 13 L5 13 M21 13 L24.4 13" stroke="#123D1E" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </div>
+  </sc-if>
+
+  <div style="position:absolute;right:16px;bottom:32px;width:56px;height:56px;border-radius:999px;background:#123D1E;border:1px solid rgba(26,29,24,.28);box-shadow:0 3px 6px rgba(26,29,24,.20);display:flex;align-items:center;justify-content:center">
+    <svg width="26" height="26" viewBox="0 0 26 26" style="display:block"><path d="M5 18.5 L5 8.5 M11 18.5 L11 4.5 M17 18.5 L17 11.5 M3 22 L23 22" stroke="#FDFBF6" stroke-width="2" stroke-linecap="round"/></svg>
+  </div>
+  <i style="position:absolute;left:50%;transform:translateX(-50%);bottom:9px;display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25"></i>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#9CA096;letter-spacing:.06em">JEU · MODE SOMBRE · lightPreset night</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#101310;border:1px solid #3A403A;box-shadow:0 2px 10px rgba(237,234,224,.10);font-variant-numeric:tabular-nums">
+  <img src="carte-jeu-sombre.svg" alt="" style="position:absolute;left:0;top:0;width:360px;height:800px;display:block"/>
+  <img src="marqueur-carte.svg" alt="" style="position:absolute;left:50%;top:370px;width:30px;height:56px;animation:flotte 2.4s ease-in-out infinite"/>
+
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#EDEAE0">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#EDEAE0"></i><i style="display:block;width:2.5px;height:6px;background:#EDEAE0"></i><i style="display:block;width:2.5px;height:8px;background:#EDEAE0"></i><i style="display:block;width:2.5px;height:10px;background:#EDEAE0"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #EDEAE0;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#EDEAE0"></i></span>
+    </span>
+  </div>
+
+  <div style="position:absolute;left:0;top:40px;width:360px;height:56px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 4px 0 16px;background:#1A1E1A;border-bottom:1px solid #3A403A;box-shadow:0 1px 2px rgba(237,234,224,.10)">
+    <svg width="24" height="26" viewBox="0 0 24 26" style="display:block;flex:none"><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="#3B6DF4"/><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="none" stroke="#EDEAE0" stroke-opacity=".25"/></svg>
+    <div style="position:relative;display:flex;align-items:baseline;gap:3px;white-space:nowrap">
+      <span style="font:600 18px/24px Roboto,sans-serif;color:#EDEAE0">124</span><span style="font:400 11px/16px Roboto,sans-serif;color:#9CA096">hex</span><span style="font:400 11px/16px Roboto,sans-serif;color:#3A403A;padding:0 2px">·</span><span style="font:600 18px/24px Roboto,sans-serif;color:#EDEAE0">12 400</span><span style="font:400 11px/16px Roboto,sans-serif;color:#9CA096">pts</span>
+      <sc-if value="{{ showDelta }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;right:-2px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;gap:2px;height:22px;padding:0 7px 0 5px;border-radius:999px;background:#101310;border:1px solid rgba(237,234,224,.18);animation:delta 8s ease-in-out infinite"><svg width="9" height="11" viewBox="0 0 10 12" style="display:block"><path d="M5 1 L5 10 M1.5 6.5 L5 10.5 L8.5 6.5" fill="none" stroke="#EDEAE0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font:500 11px/16px Roboto,sans-serif;color:#EDEAE0">200</span></span></sc-if>
+    </div>
+    <span style="margin-left:auto;font:500 13px/20px Roboto,sans-serif;color:#EDEAE0;white-space:nowrap">2 j 04 h</span>
+    <span style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex:none" aria-label="Paramètres"><svg width="24" height="24" viewBox="0 0 24 24" style="display:block"><path d="M19.2 12.0L22.4 12.0M17.1 17.1L19.4 19.4M12.0 19.2L12.0 22.4M6.9 17.1L4.6 19.4M4.8 12.0L1.6 12.0M6.9 6.9L4.6 4.6M12.0 4.8L12.0 1.6M17.1 6.9L19.4 4.6" fill="none" stroke="#EDEAE0" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="12" r="6.6" fill="#1A1E1A" stroke="#EDEAE0" stroke-width="1.5"/><circle cx="12" cy="12" r="2.9" fill="none" stroke="#EDEAE0" stroke-width="1.5"/></svg></span>
+    <img src="regle.svg" alt="" style="position:absolute;left:0;bottom:0;width:360px;height:6px;display:block"/>
+  </div>
+
+  <div style="position:absolute;left:16px;bottom:68px;width:250px;display:flex;flex-direction:column;align-items:flex-start;gap:3px">
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px;opacity:.45">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#EDEAE0" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#1A1E1A;border:1px solid rgba(237,234,224,.18)">
+        <i style="display:block;width:10px;height:10px;border-radius:999px;background:#A6841D;flex:none"></i>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#EDEAE0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alice a pris 5 tuiles à Bob.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px;opacity:.7">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#EB31A5"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#EDEAE0" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#1A1E1A;border:1px solid rgba(237,234,224,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#EDEAE0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Chloé rejoint la partie.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#A6841D"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#EDEAE0" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#1A1E1A;border:1px solid rgba(237,234,224,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#EDEAE0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bob passe en tête.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#EDEAE0" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#1A1E1A;border:1px solid rgba(237,234,224,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#EDEAE0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alice dépasse 250 tuiles.</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#9CA096;flex:none">2 min</span>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ showRecentrer }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:999px;background:#1A1E1A;border:1px solid rgba(237,234,224,.22);box-shadow:0 3px 6px rgba(237,234,224,.16);display:flex;align-items:center;justify-content:center">
+    <svg width="26" height="26" viewBox="0 0 26 26" style="display:block"><circle cx="13" cy="13" r="7.4" fill="none" stroke="#C9F7BE" stroke-width="1.6"/><circle cx="13" cy="13" r="2.2" fill="#C9F7BE"/><path d="M13 1.6 L13 5 M13 21 L13 24.4 M1.6 13 L5 13 M21 13 L24.4 13" stroke="#C9F7BE" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </div>
+  </sc-if>
+
+  <div style="position:absolute;right:16px;bottom:32px;width:56px;height:56px;border-radius:999px;background:#C9F7BE;border:1px solid rgba(237,234,224,.28);box-shadow:0 3px 6px rgba(237,234,224,.20);display:flex;align-items:center;justify-content:center">
+    <svg width="26" height="26" viewBox="0 0 26 26" style="display:block"><path d="M5 18.5 L5 8.5 M11 18.5 L11 4.5 M17 18.5 L17 11.5 M3 22 L23 22" stroke="#1A1E1A" stroke-width="2" stroke-linecap="round"/></svg>
+  </div>
+  <i style="position:absolute;left:50%;transform:translateX(-50%);bottom:9px;display:block;width:108px;height:4px;border-radius:2px;background:#EDEAE0;opacity:.25"></i>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">JEU · TUILE ADVERSE EN DÉLAI DE REPRISE</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#E9E7E1;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);font-variant-numeric:tabular-nums">
+  <img src="carte-jeu-cooldown.svg" alt="" style="position:absolute;left:0;top:0;width:360px;height:800px;display:block"/>
+  <svg width="360" height="800" viewBox="0 0 360 800" style="position:absolute;left:0;top:0;display:block"><polygon points="258.6,378 294.6,398.8 294.6,440.4 258.6,461.2 222.6,440.4 222.6,398.8" transform="rotate(-13 258.6 419.6)" fill="#FDFBF6" fill-opacity=".22" stroke="#1A1D18" stroke-width="2" stroke-dasharray="7 5" stroke-linejoin="round"/></svg>
+  <img src="marqueur-carte.svg" alt="" style="position:absolute;left:50%;top:370px;width:30px;height:56px;animation:flotte 2.4s ease-in-out infinite"/>
+
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#1A1D18">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:6px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:8px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:10px;background:#1A1D18"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #1A1D18;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#1A1D18"></i></span>
+    </span>
+  </div>
+
+  <div style="position:absolute;left:0;top:40px;width:360px;height:56px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 4px 0 16px;background:#FDFBF6;border-bottom:1px solid #C7C3B5;box-shadow:0 1px 2px rgba(26,29,24,.10)">
+    <svg width="24" height="26" viewBox="0 0 24 26" style="display:block;flex:none"><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="#3B6DF4"/><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+    <div style="position:relative;display:flex;align-items:baseline;gap:3px;white-space:nowrap">
+      <span style="font:600 18px/24px Roboto,sans-serif;color:#1A1D18">124</span><span style="font:400 11px/16px Roboto,sans-serif;color:#5C6157">hex</span><span style="font:400 11px/16px Roboto,sans-serif;color:#C7C3B5;padding:0 2px">·</span><span style="font:600 18px/24px Roboto,sans-serif;color:#1A1D18">12 400</span><span style="font:400 11px/16px Roboto,sans-serif;color:#5C6157">pts</span>
+      
+    </div>
+    <span style="margin-left:auto;font:500 13px/20px Roboto,sans-serif;color:#1A1D18;white-space:nowrap">2 j 04 h</span>
+    <span style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex:none" aria-label="Paramètres"><svg width="24" height="24" viewBox="0 0 24 24" style="display:block"><path d="M19.2 12.0L22.4 12.0M17.1 17.1L19.4 19.4M12.0 19.2L12.0 22.4M6.9 17.1L4.6 19.4M4.8 12.0L1.6 12.0M6.9 6.9L4.6 4.6M12.0 4.8L12.0 1.6M17.1 6.9L19.4 4.6" fill="none" stroke="#1A1D18" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="12" r="6.6" fill="#FDFBF6" stroke="#1A1D18" stroke-width="1.5"/><circle cx="12" cy="12" r="2.9" fill="none" stroke="#1A1D18" stroke-width="1.5"/></svg></span>
+    <img src="regle.svg" alt="" style="position:absolute;left:0;bottom:0;width:360px;height:6px;display:block"/>
+  </div>
+
+  <div style="position:absolute;left:16px;top:104px;width:328px;height:56px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:16px;background:#FDFBF6;border:1px solid rgba(26,29,24,.22);box-shadow:0 1px 2px rgba(26,29,24,.12)">
+    <svg width="32" height="32" viewBox="0 0 32 32" style="display:block;flex:none"><circle cx="16" cy="16" r="13" fill="none" stroke="#C7C3B5" stroke-width="2.5"/><circle cx="16" cy="16" r="13" fill="none" stroke="#123D1E" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="22 82" transform="rotate(-90 16 16)"/><circle cx="16" cy="16" r="3.4" fill="#007559"/></svg>
+    <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+      <span style="font:500 14px/18px Roboto,sans-serif;color:#1A1D18">Cette tuile est à Alice.</span>
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;white-space:nowrap">Tu pourras la reprendre dans 1 min 12 s.</span>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:16px;bottom:68px;width:250px;display:flex;flex-direction:column;align-items:flex-start;gap:3px">
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px;opacity:.45">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#EB31A5"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Chloé rejoint la partie.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px;opacity:.7">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#A6841D"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bob passe en tête.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alice dépasse 250 tuiles.</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:5px;max-width:250px">
+      <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;align-items:center;gap:5px;min-width:0;box-sizing:border-box;padding:5px 9px;border-radius:8px 8px 8px 2px;background:#FDFBF6;border:1px solid rgba(26,29,24,.18)">
+        <i style="display:block;width:10px;height:10px;border-radius:999px;background:#3B6DF4;flex:none"></i>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#1A1D18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alice t'a pris 2 tuiles.</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">1 min</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:999px;background:#FDFBF6;border:1px solid rgba(26,29,24,.22);box-shadow:0 3px 6px rgba(26,29,24,.16);display:flex;align-items:center;justify-content:center">
+    <svg width="26" height="26" viewBox="0 0 26 26" style="display:block"><circle cx="13" cy="13" r="7.4" fill="none" stroke="#123D1E" stroke-width="1.6"/><circle cx="13" cy="13" r="2.2" fill="#123D1E"/><path d="M13 1.6 L13 5 M13 21 L13 24.4 M1.6 13 L5 13 M21 13 L24.4 13" stroke="#123D1E" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </div>
+  <div style="position:absolute;right:16px;bottom:32px;width:56px;height:56px;border-radius:999px;background:#123D1E;border:1px solid rgba(26,29,24,.28);box-shadow:0 3px 6px rgba(26,29,24,.20);display:flex;align-items:center;justify-content:center">
+    <svg width="26" height="26" viewBox="0 0 26 26" style="display:block"><path d="M5 18.5 L5 8.5 M11 18.5 L11 4.5 M17 18.5 L17 11.5 M3 22 L23 22" stroke="#FDFBF6" stroke-width="2" stroke-linecap="round"/></svg>
+  </div>
+  <i style="position:absolute;left:50%;transform:translateX(-50%);bottom:9px;display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25"></i>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">PARTIE · JOUEURS · OUVERT PAR LE BOUTON D'ACTION</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#E9E7E1;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);font-variant-numeric:tabular-nums">
+  <img src="carte-jeu.svg" alt="" style="position:absolute;left:0;top:0;width:360px;height:800px;display:block"/>
+  <div style="position:absolute;left:0;top:0;width:360px;height:800px;background:rgba(26,29,24,.4)"></div>
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#FDFBF6">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:6px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:8px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:10px;background:#FDFBF6"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #FDFBF6;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#FDFBF6"></i></span>
+    </span>
+  </div>
+
+  <div style="position:absolute;left:0;bottom:0;width:360px;height:736px;box-sizing:border-box;background:#FDFBF6;border-top:1px solid #C7C3B5;border-radius:28px 28px 0 0;box-shadow:0 -6px 16px rgba(26,29,24,.18);display:flex;flex-direction:column;align-items:center;padding-top:8px">
+    <i style="display:block;width:32px;height:4px;border-radius:2px;background:#C7C3B5"></i>
+
+    <div style="margin-top:8px;width:100%;display:flex;border-bottom:1px solid #C7C3B5">
+      <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -2px 0 #123D1E"><span style="font:500 14px/20px Roboto,sans-serif;color:#123D1E">Joueurs</span></div>
+      <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center"><span style="font:500 14px/20px Roboto,sans-serif;color:#5C6157">Inviter</span></div>
+      <div style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-left:1px solid #C7C3B5">
+        <svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><path d="M2 6.5 H20 M2 15.5 H20" stroke="#1A1D18" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="6.5" r="2.6" fill="#FDFBF6" stroke="#1A1D18" stroke-width="1.7"/><circle cx="14.5" cy="15.5" r="2.6" fill="#FDFBF6" stroke="#1A1D18" stroke-width="1.7"/></svg>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px">
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;white-space:nowrap">5 joueurs · fin dans 2 j 04 h</span>
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">hex · pts</span>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="16" height="18" viewBox="0 0 16 18" style="display:block;flex:none"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Alice</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">dernière capture il y a 2 h</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;white-space:nowrap">
+        <span style="font:500 16px/20px Roboto,sans-serif;color:#1A1D18">312 hex</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">31 200 pts</span>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="16" height="18" viewBox="0 0 16 18" style="display:block;flex:none"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#A6841D"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Bob</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">dernière capture il y a 40 min</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;white-space:nowrap">
+        <span style="font:500 16px/20px Roboto,sans-serif;color:#1A1D18">268 hex</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">26 800 pts</span>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5;background:#E8EFE9">
+      <svg width="16" height="18" viewBox="0 0 16 18" style="display:block;flex:none"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#3B6DF4"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font:600 16px/20px Roboto,sans-serif;color:#1A1D18">Théo (toi)</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">dernière capture il y a 6 min</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;white-space:nowrap">
+        <span style="font:600 16px/20px Roboto,sans-serif;color:#1A1D18">124 hex</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">12 400 pts</span>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="16" height="18" viewBox="0 0 16 18" style="display:block;flex:none"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#EB31A5"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Chloé</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">dernière capture il y a 3 h</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;white-space:nowrap">
+        <span style="font:500 16px/20px Roboto,sans-serif;color:#1A1D18">96 hex</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">9 600 pts</span>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5;border-bottom:1px solid #C7C3B5">
+      <svg width="16" height="18" viewBox="0 0 16 18" style="display:block;flex:none"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#56C4CA"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Nour</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">dernière capture hier</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;white-space:nowrap">
+        <span style="font:500 16px/20px Roboto,sans-serif;color:#1A1D18">41 hex</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">4 100 pts</span>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;padding:16px">
+    </div>
+    <span style="flex:1"></span>
+    <i style="display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25;margin-bottom:9px"></i>
+  </div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">PARTIE · INVITER</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#E9E7E1;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);font-variant-numeric:tabular-nums">
+  <img src="carte-jeu.svg" alt="" style="position:absolute;left:0;top:0;width:360px;height:800px;display:block"/>
+  <div style="position:absolute;left:0;top:0;width:360px;height:800px;background:rgba(26,29,24,.4)"></div>
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#FDFBF6">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:6px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:8px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:10px;background:#FDFBF6"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #FDFBF6;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#FDFBF6"></i></span>
+    </span>
+  </div>
+  <div style="position:absolute;left:0;bottom:0;width:360px;height:736px;box-sizing:border-box;background:#FDFBF6;border-top:1px solid #C7C3B5;border-radius:28px 28px 0 0;box-shadow:0 -6px 16px rgba(26,29,24,.18);display:flex;flex-direction:column;align-items:center;padding-top:8px">
+    <i style="display:block;width:32px;height:4px;border-radius:2px;background:#C7C3B5"></i>
+
+    <div style="margin-top:8px;width:100%;display:flex;border-bottom:1px solid #C7C3B5">
+      <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center"><span style="font:500 14px/20px Roboto,sans-serif;color:#5C6157">Joueurs</span></div>
+      <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 -2px 0 #123D1E"><span style="font:500 14px/20px Roboto,sans-serif;color:#123D1E">Inviter</span></div>
+      <div style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-left:1px solid #C7C3B5">
+        <svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><path d="M2 6.5 H20 M2 15.5 H20" stroke="#1A1D18" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="6.5" r="2.6" fill="#FDFBF6" stroke="#1A1D18" stroke-width="1.7"/><circle cx="14.5" cy="15.5" r="2.6" fill="#FDFBF6" stroke="#1A1D18" stroke-width="1.7"/></svg>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;padding:24px 16px 0;display:flex;flex-direction:column;gap:8px">
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">Code de la partie</span>
+      <div style="height:64px;border:1px solid #C7C3B5;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#F1EDE2">
+        <span style="font:500 20px/26px 'Roboto Mono',monospace;letter-spacing:4px;color:#1A1D18">K7MQ4P</span>
+      </div>
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">Il reste valable jusqu'à la fin de la partie. Toute personne qui l'a peut rejoindre.</span>
+    </div>
+    <div style="width:100%;box-sizing:border-box;padding:24px 16px 0;display:flex;flex-direction:column;gap:8px">
+      <div style="height:56px;border-radius:8px;background:#123D1E;display:flex;align-items:center;justify-content:center;gap:10px">
+        <svg width="20" height="20" viewBox="0 0 20 20" style="display:block"><rect x="6.5" y="6.5" width="10" height="12" rx="2" fill="none" stroke="#FDFBF6" stroke-width="1.7"/><path d="M13 3.5 H4.5 A1 1 0 0 0 3.5 4.5 V14" fill="none" stroke="#FDFBF6" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span style="font:500 14px/20px Roboto,sans-serif;color:#FDFBF6">Copier le code</span>
+      </div>
+      <div style="height:56px;border-radius:8px;border:1px solid #C7C3B5;display:flex;align-items:center;justify-content:center;gap:10px">
+        <svg width="20" height="20" viewBox="0 0 20 20" style="display:block"><circle cx="14.5" cy="4.5" r="2.6" fill="none" stroke="#123D1E" stroke-width="1.7"/><circle cx="5" cy="10" r="2.6" fill="none" stroke="#123D1E" stroke-width="1.7"/><circle cx="14.5" cy="15.5" r="2.6" fill="none" stroke="#123D1E" stroke-width="1.7"/><path d="M7.4 8.7 L12.1 5.8 M7.4 11.3 L12.1 14.2" stroke="#123D1E" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span style="font:500 14px/20px Roboto,sans-serif;color:#123D1E">Partager</span>
+      </div>
+    </div>
+    <span style="flex:1"></span>
+    <i style="display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25;margin-bottom:9px"></i>
+  </div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">ACCUEIL · REJOINDRE OU CRÉER (APRÈS CONNEXION)</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#F1EDE2;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);display:flex;flex-direction:column;font-variant-numeric:tabular-nums">
+  <div style="height:40px;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:#1A1D18">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:6px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:8px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:10px;background:#1A1D18"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #1A1D18;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#1A1D18"></i></span>
+    </span>
+  </div>
+  <div style="height:56px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;box-sizing:border-box">
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+      <svg width="22" height="22" viewBox="0 0 22 22" style="display:block"><path d="M2 6.5 H20 M2 15.5 H20" stroke="#1A1D18" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="6.5" r="2.6" fill="#F1EDE2" stroke="#1A1D18" stroke-width="1.7"/><circle cx="14.5" cy="15.5" r="2.6" fill="#F1EDE2" stroke="#1A1D18" stroke-width="1.7"/></svg>
+    </span>
+  </div>
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;align-items:center">
+    <img src="signe-arpendo.svg" alt="Arpendo" style="display:block;width:80px;height:80px"/>
+    <div style="margin-top:12px;font:500 34px/34px Roboto,sans-serif;letter-spacing:.5px;color:#123D1E">Arpendo</div>
+    <div style="margin-top:8px;font:400 16px/24px Roboto,sans-serif;color:#5C6157">prends du terrain</div>
+  </div>
+  <div style="padding:40px 16px 0;display:flex;flex-direction:column;gap:12px">
+    <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">Code de partie</span>
+    <div style="height:48px;border-bottom:1px solid #C7C3B5;display:flex;align-items:center;gap:2px">
+      <span style="font:500 20px/26px 'Roboto Mono',monospace;letter-spacing:4px;color:#1A1D18">K7MQ4P</span>
+    </div>
+    <div style="height:56px;border-radius:8px;background:#123D1E;display:flex;align-items:center;justify-content:center">
+      <span style="font:500 14px/20px Roboto,sans-serif;color:#FDFBF6">Rejoindre</span>
+    </div>
+  </div>
+  <div style="padding:32px 16px 0;display:flex;align-items:center;gap:12px">
+    <i style="flex:1;height:1px;background:#C7C3B5"></i>
+    <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">ou</span>
+    <i style="flex:1;height:1px;background:#C7C3B5"></i>
+  </div>
+  <div style="padding:24px 16px 0;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">Durée de la partie</span>
+      <span style="font:500 16px/20px Roboto,sans-serif;color:#1A1D18">24 h</span>
+    </div>
+    <div style="position:relative;height:28px">
+      <i style="position:absolute;top:13px;left:0;width:100%;height:2px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:13px;left:0;width:57.14%;height:2px;background:#123D1E"></i>
+      <i style="position:absolute;top:7px;left:0;width:1px;height:14px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:7px;left:14.28%;width:1px;height:14px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:7px;left:28.57%;width:1px;height:14px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:7px;left:42.85%;width:1px;height:14px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:7px;left:57.14%;width:1px;height:14px;background:#123D1E"></i>
+      <i style="position:absolute;top:7px;left:71.42%;width:1px;height:14px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:7px;left:85.71%;width:1px;height:14px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:7px;right:0;width:1px;height:14px;background:#C7C3B5"></i>
+      <i style="position:absolute;top:4px;left:57.14%;margin-left:-11px;width:22px;height:22px;border-radius:999px;background:#FDFBF6;border:1px solid #123D1E;box-shadow:0 1px 2px rgba(26,29,24,.20)"></i>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">30 min</span>
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">1 mois</span>
+    </div>
+    <div style="margin-top:6px;height:56px;border-radius:8px;background:#FDFBF6;border:1px solid #123D1E;display:flex;align-items:center;justify-content:center">
+      <span style="font:500 14px/20px Roboto,sans-serif;color:#123D1E">Créer une partie</span>
+    </div>
+  </div>
+  <span style="flex:1"></span>
+  <i style="display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25;margin:0 auto 9px"></i>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">CONNEXION</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#F1EDE2;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);display:flex;flex-direction:column;align-items:center">
+  <div style="height:40px;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:#1A1D18">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:6px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:8px;background:#1A1D18"></i><i style="display:block;width:2.5px;height:10px;background:#1A1D18"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #1A1D18;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#1A1D18"></i></span>
+    </span>
+  </div>
+  <div style="margin-top:172px;display:flex;flex-direction:column;align-items:center">
+    <img src="signe-arpendo.svg" alt="Arpendo" style="display:block;width:96px;height:96px"/>
+    <div style="margin-top:12px;font:500 34px/34px Roboto,sans-serif;letter-spacing:.5px;color:#123D1E">Arpendo</div>
+    <div style="margin-top:8px;font:400 16px/24px Roboto,sans-serif;color:#5C6157">prends du terrain</div>
+  </div>
+  <span style="flex:1"></span>
+  <div style="width:100%;box-sizing:border-box;padding:0 16px;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <div style="width:100%;height:56px;box-sizing:border-box;border-radius:8px;background:#FFFFFF;border:1px solid #747775;display:flex;align-items:center;justify-content:center;gap:12px">
+      <span title="Emplacement du logo Google officiel, 18 dp" style="width:18px;height:18px;border-radius:2px;border:1px dashed #C7C3B5;background:#F1EDE2;display:block"></span>
+      <span style="font:500 14px/20px Roboto,sans-serif;letter-spacing:.15px;color:#1F1F1F">Se connecter avec Google</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <span style="height:48px;display:flex;align-items:center;padding:0 8px;font:400 12px/16px Roboto,sans-serif;color:#5C6157">Politique de confidentialité</span>
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#C7C3B5">·</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 8px;font:400 12px/16px Roboto,sans-serif;color:#5C6157">CGU</span>
+    </div>
+    <i style="display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25;margin-bottom:9px"></i>
+  </div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">JOURNAL · MODALE, DEPUIS LA PILE D'ACTIVITÉ</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#E9E7E1;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);font-variant-numeric:tabular-nums">
+  <img src="carte-jeu.svg" alt="" style="position:absolute;left:0;top:0;width:360px;height:800px;display:block"/>
+  <div style="position:absolute;left:0;top:0;width:360px;height:800px;background:rgba(26,29,24,.4)"></div>
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#FDFBF6">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:6px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:8px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:10px;background:#FDFBF6"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #FDFBF6;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#FDFBF6"></i></span>
+    </span>
+  </div>
+  <div style="position:absolute;left:0;top:40px;width:360px;height:56px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 4px 0 16px;background:#FDFBF6;border-bottom:1px solid #C7C3B5;box-shadow:0 1px 2px rgba(26,29,24,.10)">
+    <svg width="24" height="26" viewBox="0 0 24 26" style="display:block;flex:none"><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="#3B6DF4"/><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+    <div style="position:relative;display:flex;align-items:baseline;gap:3px;white-space:nowrap">
+      <span style="font:600 18px/24px Roboto,sans-serif;color:#1A1D18">124</span><span style="font:400 11px/16px Roboto,sans-serif;color:#5C6157">hex</span><span style="font:400 11px/16px Roboto,sans-serif;color:#C7C3B5;padding:0 2px">·</span><span style="font:600 18px/24px Roboto,sans-serif;color:#1A1D18">12 400</span><span style="font:400 11px/16px Roboto,sans-serif;color:#5C6157">pts</span>
+      
+    </div>
+    <span style="margin-left:auto;font:500 13px/20px Roboto,sans-serif;color:#1A1D18;white-space:nowrap">2 j 04 h</span>
+    <span style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex:none" aria-label="Paramètres"><svg width="24" height="24" viewBox="0 0 24 24" style="display:block"><path d="M19.2 12.0L22.4 12.0M17.1 17.1L19.4 19.4M12.0 19.2L12.0 22.4M6.9 17.1L4.6 19.4M4.8 12.0L1.6 12.0M6.9 6.9L4.6 4.6M12.0 4.8L12.0 1.6M17.1 6.9L19.4 4.6" fill="none" stroke="#1A1D18" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="12" r="6.6" fill="#FDFBF6" stroke="#1A1D18" stroke-width="1.5"/><circle cx="12" cy="12" r="2.9" fill="none" stroke="#1A1D18" stroke-width="1.5"/></svg></span>
+    <img src="regle.svg" alt="" style="position:absolute;left:0;bottom:0;width:360px;height:6px;display:block"/>
+  </div>
+
+  <div style="position:absolute;left:16px;top:112px;width:328px;height:648px;box-sizing:border-box;background:#FDFBF6;border:1px solid rgba(26,29,24,.22);border-radius:28px;box-shadow:0 6px 20px rgba(26,29,24,.28);display:flex;flex-direction:column;overflow:hidden">
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;border-bottom:1px solid #C7C3B5">
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <span style="font:600 20px/26px Roboto,sans-serif;color:#1A1D18">Journal</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">depuis le début de la partie</span>
+      </div>
+      <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none">
+        <svg width="20" height="20" viewBox="0 0 20 20" style="display:block"><path d="M4.5 4.5 L15.5 15.5 M15.5 4.5 L4.5 15.5" stroke="#1A1D18" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span>
+    </div>
+    <div style="width:100%;box-sizing:border-box;padding:16px 16px 0;display:flex;flex-direction:column;gap:6px">
+      <span style="font:500 12px/16px Roboto,sans-serif;color:#5C6157;letter-spacing:.06em;padding-bottom:2px">AUJOURD'HUI</span>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#F1EDE2;border:1px solid #C7C3B5">
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Alice a pris 5 tuiles à Bob.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">11:38 · dans ta région</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#F1EDE2;border:1px solid #C7C3B5">
+          <i style="display:block;width:10px;height:10px;border-radius:999px;background:#3B6DF4;flex:none"></i>
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Alice t'a pris 2 tuiles.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">11:12 · près de toi</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#3B6DF4"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#E8EFE9;border:1px solid #C7C3B5">
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Tu as pris 3 tuiles à Alice.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">10:54 · près de toi</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#A6841D"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#F1EDE2;border:1px solid #C7C3B5">
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Bob passe en tête.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">09:20 · loin</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#EB31A5"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#F1EDE2;border:1px solid #C7C3B5">
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Chloé rejoint la partie.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">08:47 · loin</span>
+        </div>
+      </div>
+      <span style="font:500 12px/16px Roboto,sans-serif;color:#5C6157;letter-spacing:.06em;padding:10px 0 2px">HIER</span>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#007559"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#F1EDE2;border:1px solid #C7C3B5">
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Alice dépasse 250 tuiles.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">22:10 · dans ta région</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#3B6DF4"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#E8EFE9;border:1px solid #C7C3B5">
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Tu as pris 6 tuiles à Nour.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">19:32 · près de toi</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:6px;opacity:.65">
+        <svg width="14" height="16" viewBox="0 0 16 18" style="display:block;flex:none;margin-bottom:3px"><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="#56C4CA"/><polygon points="8,.8 15.1,4.9 15.1,13.1 8,17.2 .9,13.1 .9,4.9" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+        <div style="display:flex;align-items:center;gap:8px;box-sizing:border-box;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#F1EDE2;border:1px solid #C7C3B5">
+          <span style="font:400 14px/18px Roboto,sans-serif;color:#1A1D18">Nour rejoint la partie.</span>
+          <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157;flex:none">17:00 · loin</span>
+        </div>
+      </div>
+    </div>
+    <i style="position:absolute;right:6px;top:96px;width:3px;height:260px;border-radius:2px;background:#1A1D18;opacity:.18"></i>
+  </div>
+  <i style="position:absolute;left:50%;transform:translateX(-50%);bottom:9px;display:block;width:108px;height:4px;border-radius:2px;background:#FDFBF6;opacity:.6"></i>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">PARAMÈTRES · MODALE, DEPUIS LA PARTIE</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#E9E7E1;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);font-variant-numeric:tabular-nums">
+  <img src="carte-jeu.svg" alt="" style="position:absolute;left:0;top:0;width:360px;height:800px;display:block"/>
+  <div style="position:absolute;left:0;top:0;width:360px;height:800px;background:rgba(26,29,24,.4)"></div>
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#FDFBF6">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:6px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:8px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:10px;background:#FDFBF6"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #FDFBF6;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#FDFBF6"></i></span>
+    </span>
+  </div>
+  <div style="position:absolute;left:0;bottom:0;width:360px;box-sizing:border-box;background:#FDFBF6;border-top:1px solid #C7C3B5;border-radius:28px 28px 0 0;box-shadow:0 -6px 16px rgba(26,29,24,.18);display:flex;flex-direction:column;align-items:center;padding-top:8px">
+    <i style="display:block;width:32px;height:4px;border-radius:2px;background:#C7C3B5"></i>
+    <div style="width:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:16px 16px 20px">
+      <svg width="24" height="26" viewBox="0 0 24 26" style="display:block;flex:none"><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="#3B6DF4"/><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+        <span style="font:600 16px/20px Roboto,sans-serif;color:#1A1D18">Théo</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">theo@gmail.com</span>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <span style="position:relative;display:block;width:20px;height:20px;flex:none">
+        <svg width="20" height="20" viewBox="0 0 20 20" style="display:block"><path d="M10 17.4 C10 17.4 15.6 12.4 15.6 8.2 A5.6 5.6 0 0 0 4.4 8.2 C4.4 12.4 10 17.4 10 17.4 Z" fill="none" stroke="#1A1D18" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10" cy="8.2" r="2" fill="#1A1D18"/></svg>
+        <i style="position:absolute;right:-2px;top:-2px;width:8px;height:8px;border-radius:999px;background:#7A4F00;border:1px solid #FDFBF6"></i>
+      </span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Permissions</span>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;flex:none"><path d="M5 13 L13 5 M6.6 5 H13 V11.4" fill="none" stroke="#5C6157" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="20" height="20" viewBox="0 0 20 20" style="display:block;flex:none"><circle cx="10" cy="10" r="7.6" fill="none" stroke="#1A1D18" stroke-width="1.6"/><path d="M10 5.4 V10 L13.4 12" fill="none" stroke="#1A1D18" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span style="flex:1;font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Historique des parties</span>
+      <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;flex:none"><path d="M6.5 3.5 L12 9 L6.5 14.5" fill="none" stroke="#5C6157" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;padding:14px 16px 12px;border-top:1px solid #C7C3B5">
+      <span style="font:500 11px/16px Roboto,sans-serif;color:#5C6157;letter-spacing:.06em;text-transform:uppercase">Informations</span>
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">Version 1.0.0</span>
+      <span style="display:flex;align-items:center;gap:7px"><span style="font:400 13px/18px Roboto,sans-serif;color:#123D1E;text-decoration:underline">Politique de confidentialité</span><span style="font:400 13px/18px Roboto,sans-serif;color:#C7C3B5">·</span><span style="font:400 13px/18px Roboto,sans-serif;color:#123D1E;text-decoration:underline">CGU</span></span>
+      <span style="font:400 13px/18px Roboto,sans-serif;color:#123D1E;text-decoration:underline">Supprimer mon compte depuis le web</span>
+    </div>
+    <div style="width:100%;box-sizing:border-box;padding:18px 16px 6px;border-top:1px solid #C7C3B5;margin-top:12px"><span style="font:500 11px/16px Roboto,sans-serif;color:#5C6157;letter-spacing:.06em;text-transform:uppercase">Cette partie</span></div>
+    <div style="width:100%;box-sizing:border-box;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="20" height="20" viewBox="0 0 20 20" style="display:block;flex:none"><path d="M10 2.6 V11 M5.4 5.4 A6.4 6.4 0 1 0 14.6 5.4" fill="none" stroke="#B3261E" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span style="flex:1;font:500 16px/20px Roboto,sans-serif;color:#B3261E">Quitter la partie</span>
+    </div>
+    
+    <i style="display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25;margin:4px 0 9px"></i>
+  </div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">PARAMÈTRES · MODALE, AU MENU (HORS PARTIE)</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#F1EDE2;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10);font-variant-numeric:tabular-nums">
+  <div style="position:absolute;left:0;top:0;width:360px;height:800px;background:rgba(26,29,24,.4)"></div>
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#FDFBF6">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:6px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:8px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:10px;background:#FDFBF6"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #FDFBF6;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#FDFBF6"></i></span>
+    </span>
+  </div>
+  <div style="position:absolute;left:0;bottom:0;width:360px;box-sizing:border-box;background:#FDFBF6;border-top:1px solid #C7C3B5;border-radius:28px 28px 0 0;box-shadow:0 -6px 16px rgba(26,29,24,.18);display:flex;flex-direction:column;align-items:center;padding-top:8px">
+    <i style="display:block;width:32px;height:4px;border-radius:2px;background:#C7C3B5"></i>
+    <div style="width:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:16px 16px 20px">
+      <svg width="24" height="26" viewBox="0 0 24 26" style="display:block;flex:none"><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="#3B6DF4"/><polygon points="12,1 22.4,7 22.4,19 12,25 1.6,19 1.6,7" fill="none" stroke="#1A1D18" stroke-opacity=".25"/></svg>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+        <span style="font:600 16px/20px Roboto,sans-serif;color:#1A1D18">Théo</span>
+        <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">theo@gmail.com</span>
+      </div>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:64px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <span style="position:relative;display:block;width:20px;height:20px;flex:none">
+        <svg width="20" height="20" viewBox="0 0 20 20" style="display:block"><path d="M10 17.4 C10 17.4 15.6 12.4 15.6 8.2 A5.6 5.6 0 0 0 4.4 8.2 C4.4 12.4 10 17.4 10 17.4 Z" fill="none" stroke="#1A1D18" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10" cy="8.2" r="2" fill="#1A1D18"/></svg>
+        <i style="position:absolute;right:-2px;top:-2px;width:8px;height:8px;border-radius:999px;background:#7A4F00;border:1px solid #FDFBF6"></i>
+      </span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+        <span style="font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Permissions</span>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;flex:none"><path d="M5 13 L13 5 M6.6 5 H13 V11.4" fill="none" stroke="#5C6157" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="20" height="20" viewBox="0 0 20 20" style="display:block;flex:none"><circle cx="10" cy="10" r="7.6" fill="none" stroke="#1A1D18" stroke-width="1.6"/><path d="M10 5.4 V10 L13.4 12" fill="none" stroke="#1A1D18" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span style="flex:1;font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Historique des parties</span>
+      <svg width="18" height="18" viewBox="0 0 18 18" style="display:block;flex:none"><path d="M6.5 3.5 L12 9 L6.5 14.5" fill="none" stroke="#5C6157" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;padding:14px 16px 12px;border-top:1px solid #C7C3B5">
+      <span style="font:500 11px/16px Roboto,sans-serif;color:#5C6157;letter-spacing:.06em;text-transform:uppercase">Informations</span>
+      <span style="font:400 12px/16px Roboto,sans-serif;color:#5C6157">Version 1.0.0</span>
+      <span style="display:flex;align-items:center;gap:7px"><span style="font:400 13px/18px Roboto,sans-serif;color:#123D1E;text-decoration:underline">Politique de confidentialité</span><span style="font:400 13px/18px Roboto,sans-serif;color:#C7C3B5">·</span><span style="font:400 13px/18px Roboto,sans-serif;color:#123D1E;text-decoration:underline">CGU</span></span>
+      <span style="font:400 13px/18px Roboto,sans-serif;color:#123D1E;text-decoration:underline">Supprimer mon compte depuis le web</span>
+    </div>
+    <div style="width:100%;box-sizing:border-box;padding:18px 16px 6px;border-top:1px solid #C7C3B5;margin-top:12px"><span style="font:500 11px/16px Roboto,sans-serif;color:#5C6157;letter-spacing:.06em;text-transform:uppercase">Ce compte</span></div>
+    <div style="width:100%;box-sizing:border-box;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="20" height="20" viewBox="0 0 20 20" style="display:block;flex:none"><path d="M12 3.4 H15.4 A1 1 0 0 1 16.4 4.4 V15.6 A1 1 0 0 1 15.4 16.6 H12 M9.4 13.4 L12.6 10 L9.4 6.6 M12.6 10 H3.6" fill="none" stroke="#1A1D18" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="flex:1;font:400 16px/20px Roboto,sans-serif;color:#1A1D18">Se déconnecter de Google</span>
+    </div>
+    <div style="width:100%;box-sizing:border-box;height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #C7C3B5">
+      <svg width="20" height="20" viewBox="0 0 20 20" style="display:block;flex:none"><path d="M4.4 5.6 H15.6 M8 5.6 V3.6 H12 V5.6 M6 5.6 L6.8 16.4 H13.2 L14 5.6" fill="none" stroke="#B3261E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="flex:1;font:500 16px/20px Roboto,sans-serif;color:#B3261E">Supprimer mon compte</span>
+    </div>
+    
+    <i style="display:block;width:108px;height:4px;border-radius:2px;background:#1A1D18;opacity:.25;margin:4px 0 9px"></i>
+  </div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font:400 11px/1.4 'Roboto Mono',monospace;color:#5C6157;letter-spacing:.06em">ENTRÉE EN PARTIE · NON ANNULABLE</div>
+<div style="position:relative;width:360px;height:800px;overflow:hidden;background:#F1EDE2;border:1px solid #C7C3B5;box-shadow:0 2px 10px rgba(26,29,24,.10)">
+  <div style="position:absolute;left:0;top:0;width:360px;height:800px;background:rgba(26,29,24,.4)"></div>
+  <div style="position:absolute;left:0;top:0;width:360px;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;color:#FDFBF6">
+    <span style="font:500 12px/16px Roboto,sans-serif">11:42</span>
+    <span style="display:flex;align-items:flex-end;gap:5px">
+      <span style="display:flex;align-items:flex-end;gap:1.5px"><i style="display:block;width:2.5px;height:4px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:6px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:8px;background:#FDFBF6"></i><i style="display:block;width:2.5px;height:10px;background:#FDFBF6"></i></span>
+      <span style="display:block;width:16px;height:9px;border:1px solid #FDFBF6;border-radius:2px;padding:1.5px;box-sizing:border-box"><i style="display:block;width:70%;height:100%;background:#FDFBF6"></i></span>
+    </span>
+  </div>
+  <div style="position:absolute;left:16px;top:56px;width:328px;height:688px;box-sizing:border-box;background:#FDFBF6;border:1px solid rgba(26,29,24,.22);border-radius:28px;box-shadow:0 6px 20px rgba(26,29,24,.28);display:flex;flex-direction:column;overflow:hidden">
+    <div style="position:relative;height:196px;background:#7A4F00;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <svg width="328" height="196" viewBox="0 0 328 196" style="position:absolute;left:0;top:0;display:block;opacity:.22"><g fill="none" stroke="#FDFBF6" stroke-width="2"><polygon points="20,-14 52,4 52,40 20,58 -12,40 -12,4"/><polygon points="84,22 116,40 116,76 84,94 52,76 52,40"/><polygon points="20,58 52,76 52,112 20,130 -12,112 -12,76"/><polygon points="84,94 116,112 116,148 84,166 52,148 52,112"/><polygon points="20,130 52,148 52,184 20,202 -12,184 -12,148"/><polygon points="276,-14 308,4 308,40 276,58 244,40 244,4"/><polygon points="340,22 372,40 372,76 340,94 308,76 308,40"/><polygon points="276,58 308,76 308,112 276,130 244,112 244,76"/><polygon points="340,94 372,112 372,148 340,166 308,148 308,112"/><polygon points="276,130 308,148 308,184 276,202 244,184 244,148"/></g></svg>
+      <svg width="104" height="116" viewBox="0 0 104 116" style="display:block;position:relative"><polygon points="52,4 96,30 96,82 52,108 8,82 8,30" fill="#FDFBF6"/><polygon points="52,4 96,30 96,82 52,108 8,82 8,30" fill="none" stroke="#1A1D18" stroke-opacity=".25" stroke-width="2"/><path d="M52 34 V62" stroke="#7A4F00" stroke-width="6" stroke-linecap="round"/><circle cx="52" cy="78" r="4.6" fill="#7A4F00"/></svg>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;padding:24px">
+      <span style="font:700 30px/34px Roboto,sans-serif;letter-spacing:-.4px;color:#1A1D18">Joue prudemment</span>
+      <span style="margin-top:14px;font:400 16px/24px Roboto,sans-serif;color:#1A1D18;text-wrap:pretty">Arpendo se joue dans la rue. Regarde autour de toi, pas ton téléphone. Ne joue pas au volant. Certains lieux ne sont pas des terrains de jeu : respecte les propriétés privées, les établissements scolaires et les lieux de soin.</span>
+      <span style="flex:1"></span>
+      <div style="height:56px;border-radius:8px;background:#123D1E;border:1px solid rgba(26,29,24,.28);display:flex;align-items:center;justify-content:center;gap:8px">
+        <span style="font:700 16px/20px Roboto,sans-serif;letter-spacing:.3px;color:#FDFBF6">J'ai compris</span>
+        <svg width="18" height="18" viewBox="0 0 18 18" style="display:block"><path d="M3 9.4 L7 13 L15 4.6" fill="none" stroke="#FDFBF6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+  <i style="position:absolute;left:50%;transform:translateX(-50%);bottom:9px;display:block;width:108px;height:4px;border-radius:2px;background:#FDFBF6;opacity:.6"></i>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showDelta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;États transitoires&quot;},&quot;showRecentrer&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;États transitoires&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      showDelta: this.props.showDelta ?? true,
+      showRecentrer: this.props.showRecentrer ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>

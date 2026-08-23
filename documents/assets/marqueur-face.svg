@@ -1,0 +1,23 @@
+<svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Marqueur du joueur, vue de face, posé sur une tuile de sa propre couleur">
+  <!-- La tuile de fond est le cas le plus défavorable : le joueur se tient sur SA couleur.
+       Ici le bleu joueur #3B6DF4. La coque claire et le liseré sont ce qui le détache. -->
+  <defs>
+    <clipPath id="capsule">
+      <rect x="36" y="18" width="48" height="86" rx="24"/>
+    </clipPath>
+  </defs>
+  <path d="M60 6 L104 31 L104 81 L60 106 L16 81 L16 31 Z" fill="#3B6DF4" opacity="0.9"/>
+  <path d="M60 6 L104 31 L104 81 L60 106 L16 81 L16 31 Z" fill="none"
+        stroke="#1A1D18" stroke-opacity="0.25" stroke-width="1.5"/>
+  <ellipse cx="60" cy="116" rx="21" ry="5.5" fill="#1A1D18" opacity="0.18"/>
+  <g clip-path="url(#capsule)">
+    <rect x="36" y="18" width="48" height="86" fill="#FDFBF6"/>
+    <rect x="36" y="66" width="48" height="38" fill="#3B6DF4"/>
+  </g>
+  <rect x="36" y="18" width="48" height="86" rx="24" fill="none"
+        stroke="#1A1D18" stroke-width="3"/>
+  <!-- sommet aplati sur 6 px : point d'ancrage `socket_top` des accessoires post-MVP -->
+  <line x1="52" y1="19.5" x2="68" y2="19.5" stroke="#1A1D18"
+        stroke-width="1" opacity="0.35"/>
+</svg>
