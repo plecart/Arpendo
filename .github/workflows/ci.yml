@@ -84,7 +84,7 @@ jobs:
           pub-cache: true
 
       - name: Setup just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Install
         run: just install
