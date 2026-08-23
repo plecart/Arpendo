@@ -23,6 +23,22 @@ justification ; les rouvrir sans raison coûte plus que ce qu'elle rapporte.
 
 ---
 
+## Prérequis
+
+| Outil | Rôle | Vérifier |
+|---|---|---|
+| [`uv`](https://docs.astral.sh/uv/) | Paquets **et** version de Python (3.13) | `uv --version` |
+| [`just`](https://just.systems/) | Lanceur des commandes du projet | `just --list` |
+| [`fvm`](https://fvm.app/) | SDK Flutter à la version épinglée dans `.fvmrc` | `fvm flutter doctor` |
+| Docker Desktop | Services locaux (`just up`) | `docker compose version` |
+| Chaîne Android | Build de l'app | `fvm flutter doctor` sans erreur |
+
+**Ne jamais appeler `flutter` ou `dart` directement** : toujours via `just` ou `fvm`, sinon
+c'est le SDK global de la machine qui répond et l'épinglage ne sert à rien. Le détail des
+versions est dans `.claude/pipeline.config.md`.
+
+---
+
 ## L'état du projet
 
 | Phase | État |
@@ -115,8 +131,8 @@ ils existent pour éviter qu'une décision close soit rouverte sans élément no
 
 ## Ce qui n'existe pas encore
 
-- **Aucun code.** Le projet est entièrement documentaire à ce stade.
-- **Pas de dépôt git.** À initialiser avant la première ligne de code.
+- **Aucun code applicatif.** `api/`, `worker/` et `app/` n'existent pas encore : le dépôt ne
+  contient que la documentation et la pipeline de développement.
 - **Pas de fichier de jetons machine.** Toutes les valeurs sont décidées mais vivent dans des
   tableaux de prose. Un `tokens.json` ou un thème Dart vaudrait plus qu'une maquette au moment
   d'écrire le code.

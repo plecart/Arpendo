@@ -4,12 +4,24 @@
 #
 # Monorepo : `api/` + `worker/` en Python (uv), `app/` en Flutter.
 
+# Version du SDK Flutter : `.fvmrc` à la racine en est la source unique, dans TOUS les
+# environnements. Seul le *fournisseur* diffère, parce que le besoin diffère : en local, FVM isole
+# cette version des autres projets de la machine ; en CI, le runner est jetable et dédié, donc
+# `subosito/flutter-action` lit le même `.fvmrc` et met `flutter` sur le PATH sans couche FVM.
+# D'où ces deux variables : `fvm` par défaut — le cas qui a besoin d'isolation — surchargées par
+# le workflow via FLUTTER_CMD / DART_CMD.
+#
+# Ne jamais écrire `flutter` ou `dart` nus dans une recette : ce serait le SDK global du PATH et
+# l'épinglage deviendrait décoratif.
+flutter := env('FLUTTER_CMD', 'fvm flutter')
+dart := env('DART_CMD', 'fvm dart')
+
 default:
     @just --list
 
 install:
     cd api && uv sync
-    cd app && flutter pub get
+    cd app && {{flutter}} pub get
 
 test: test-api test-app
 
@@ -17,7 +29,7 @@ test-api:
     cd api && uv run pytest --cov=src --cov-fail-under=85
 
 test-app:
-    cd app && flutter test
+    cd app && {{flutter}} test
 
 # Une seule cible, pour la boucle TDD de `cycle-pr`
 test-one CIBLE:
@@ -25,21 +37,21 @@ test-one CIBLE:
 
 lint:
     cd api && uv run ruff check .
-    cd app && flutter analyze
+    cd app && {{flutter}} analyze
 
 fmt:
     cd api && uv run ruff format .
-    cd app && dart format .
+    cd app && {{dart}} format .
 
 fmt-check:
     cd api && uv run ruff format --check .
-    cd app && dart format --set-exit-if-changed .
+    cd app && {{dart}} format --set-exit-if-changed .
 
 typecheck:
     cd api && uv run mypy --strict src
 
 build:
-    cd app && flutter build appbundle
+    cd app && {{flutter}} build appbundle
 
 up:
     docker compose -f infra/docker-compose.yml up -d

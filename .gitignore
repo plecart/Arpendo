@@ -12,8 +12,20 @@ Thumbs.db
 *.jks
 *.keystore
 key.properties
-android/key.properties
 *.pem
+
+# Python — `api/` et `worker/` (uv, pytest, ruff, mypy)
+# `uv.lock` est VOLONTAIREMENT versionné, au même titre que `pubspec.lock`.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
 
 # Flutter / Dart
 # `pubspec.lock` est VOLONTAIREMENT versionné : c'est une application, pas une lib
@@ -29,19 +41,24 @@ coverage/
 doc/api/
 
 # Android
-android/.gradle/
-android/local.properties
-android/app/debug/
-android/app/profile/
-android/app/release/
+# `**/` est indispensable : l'app vit dans `app/`, pas à la racine. Un motif écrit
+# `android/...` serait ancré sur ce fichier et ne matcherait jamais `app/android/...`.
+**/android/.gradle/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
 *.apk
 *.aab
 
-# iOS
-ios/Pods/
-ios/.symlinks/
-ios/Flutter/ephemeral/
-ios/Flutter/App.framework
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
+# iOS — phase 2, hors périmètre MVP ; motifs posés d'avance, même règle de profondeur
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
 *.ipa
+
+# FVM Version Cache
+.fvm/

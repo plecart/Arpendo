@@ -9,7 +9,14 @@
 - frameworks : Flutter + `mapbox_maps_flutter` v11.27, Tracelet (géoloc arrière-plan) ; FastAPI +
   Pydantic ; Caddy, Valkey, PostgreSQL, Docker Compose
 - gestionnaire de paquets : `uv` (Python), `pub` (Dart)
-- runtime + version : python 3.13, Flutter stable (version épinglée par FVM au scaffold)
+- runtime + version :
+  - **Python 3.13** — fournie par `uv` ; à épingler dans `api/.python-version` au scaffold.
+  - **Flutter 3.47.1** (Dart 3.13.1, révision `6655482ec0`, stable du 19 août 2026) — épinglée
+    dans `.fvmrc` à la racine, **source unique en local comme en CI**. Seul le fournisseur
+    diffère : FVM sur le poste de dev, `subosito/flutter-action` sur le runner (qui lit le
+    même `.fvmrc`). Les recettes `app/` du justfile passent par les variables `{{flutter}}` /
+    `{{dart}}`, valant `fvm flutter` / `fvm dart` par défaut et surchargées en CI via
+    `FLUTTER_CMD` / `DART_CMD`. Changer de version = éditer `.fvmrc`, puis `fvm install`.
 
 ## Commandes du projet
 Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape absente du projet.
@@ -31,7 +38,13 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 ## Qualité
 - seuil de couverture : 85 % côté `api/` (appliqué par `--cov-fail-under=85`) ; `n/a` côté `app/`
 - gates bloquants en CI : lint, format:check, typecheck, test
-- services requis en CI : postgres, valkey
+- services requis en CI : `postgres:17`, `valkey:8`
+  - **PostgreSQL 17** — décidé le 23 août 2026. Disponible chez tous les hébergeurs managés UE
+    (la 18 ne l'est pas partout), supporté jusqu'en novembre 2029, et aucune fonctionnalité
+    postérieure n'est utilisée : H3 en BIGINT sans extension (cadrage §13.6). **Commander le
+    service managé en 17.**
+  - **Valkey 8** — ligne stable, compatible protocole Redis 7 ; usages du projet (pub/sub, cache,
+    compteurs, verrous — cadrage §13.0) n'ont besoin de rien de plus récent.
 
 ## Périmètre
 - domaines (nom métier → chemin) — servent aussi de thèmes/milestones à `triage` :
@@ -85,7 +98,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - Mapbox (7) : `mapbox-flutter-patterns`, `mapbox-android-patterns`, `mapbox-cartography`,
   `mapbox-data-visualization-patterns`, `mapbox-style-patterns`, `mapbox-style-quality`,
   `mapbox-token-security`
-- Design / UI (5) : `design-system`, `ui-ux-pro-max`, `mobile-app-ui-design`, `mobile-design`,
+- Design / UI (6) : `design-system`, `ui-ux-pro-max`, `mobile-app-ui-design`, `mobile-design`,
   `game-ui-ux`, plus `design-motion-principles`
 - Transverses : `task-observer` (activé par `CLAUDE.md`), `find-skills`, `i-have-adhd`
 - Fourni par le runtime, **non épinglé** : `dataviz` — son `scripts/validate_palette.py` est le

@@ -28,9 +28,18 @@ jobs:
     # `pull_request` n'existe pas.
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
 
+    # Fait sauter le préfixe `fvm` des recettes : le runner est jetable et n'a rien à isoler.
+    # Rationale complète en tête du `justfile`, qui définit ces deux variables.
+    env:
+      FLUTTER_CMD: flutter
+      DART_CMD: dart
+
     services:
-      # ⚠️ Aligner le tag de postgres sur la version du service managé quand il sera choisi
-      # (cadrage §13.7). Une CI qui teste sur une autre majeure ne prouve rien sur les migrations.
+      # PostgreSQL 17 — décidé le 23 août 2026, à ne pas rouvrir sans élément nouveau.
+      # Disponible chez tous les hébergeurs managés UE (la 18 ne l'est pas partout), supporté
+      # jusqu'en novembre 2029, et le projet n'utilise aucune fonctionnalité postérieure : H3 est
+      # stocké en BIGINT sans extension (cadrage §13.6). Le service managé DOIT être commandé en
+      # 17 — une CI qui teste sur une autre majeure ne prouve rien sur les migrations.
       postgres:
         image: postgres:17
         env:
@@ -59,14 +68,20 @@ jobs:
       - name: Setup uv + Python
         uses: astral-sh/setup-uv@v5
         with:
+          # Épinglage provisoire : au scaffold de `api/`, c'est `api/.python-version` qui devient
+          # la source unique — `setup-uv` le lit automatiquement. Retirer cette ligne À CE
+          # MOMENT-LÀ, sous peine d'avoir deux versions déclarées à deux endroits.
           python-version: "3.13"
           enable-cache: true
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          # Source unique de la version, partagée avec le poste de dev (cf. `env` du job).
+          # Pas de `channel:` ici : il serait une seconde déclaration concurrente de `.fvmrc`.
+          flutter-version-file: .fvmrc
           cache: true
+          pub-cache: true
 
       - name: Setup just
         uses: extractions/setup-just@v2
