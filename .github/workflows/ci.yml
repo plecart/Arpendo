@@ -62,7 +62,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Versions d'actions tenues à jour par Dependabot (cadrage §13.11).
       - name: Setup uv + Python
