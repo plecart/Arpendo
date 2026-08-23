@@ -73,6 +73,16 @@ en leur faveur.
 | `documents/assets/` | Les SVG définitifs de la marque : signe, logotype, icône d'app, marqueur vu de face |
 | `documents/maquettes/claude-design-v2/` | La maquette de référence — 8 planches en HTML autonome. **Inspiration, pas norme : en cas de divergence, la spécification l'emporte.** `trace-maquette.md` résume ce qui a été demandé, obtenu, et les deux écarts tranchés en sa faveur |
 
+### `documents/setup/` — comptes et services externes à ouvrir
+
+Les tutoriels des services tiers dont le projet dépend, à dérouler **avant** de coder le domaine
+concerné. Ce ne sont pas des décisions produit : ce sont des marches à suivre, mises à jour quand
+la console du fournisseur change.
+
+| Fichier | À faire avant |
+|---|---|
+| `google-oauth.md` | Le domaine *Compte & identité* (spec UX §4) |
+
 ### `documents/archive/` — une seule pièce, conservée comme justificatif
 
 `brief-identite-visuelle.md` — le questionnaire d'identité rempli le 13 août 2026. C'est la **seule
@@ -122,6 +132,12 @@ UX**.
 | 2 | **Les CGU et la politique de confidentialité doivent couvrir la visibilité des zones.** La modale qui portait cette information a été retirée de l'interface ; l'obligation est passée aux documents juridiques, et la clause exacte est écrite au **§13.12 du cadrage** | Avant la publication |
 | 3 | **La page web de suppression de compte n'existe pas.** Le cadrage §12.2 la donne comme **obligatoire pour Google Play** — « chemin dans l'app **et** URL web ». L'app a son chemin ; la page reste due | Avant la publication |
 | 4 | **La modale « Mes hexagones »** — spécifiée au §7.6 du cadrage, **reportée post-MVP**. Ne bloque rien | Post-MVP |
+| 5 | **`fvm` n'est pas installé, et le SDK Flutter global est en 3.38.8** alors que `.fvmrc` épingle 3.47.1. Toutes les recettes `app/` du justfile appellent `fvm flutter` : elles échouent en local tant que fvm manque, et l'épinglage reste décoratif | **Avant le scaffold de `app/`** |
+| 6 | **Aucun jeton Mapbox.** Deux sont nécessaires (public + téléchargement du SDK), voir `.env.example`. Le public est le risque de facture n°1 du cadrage §13.10 | Avant le scaffold de `app/` |
+| 7 | **`UBIQUITOUS_LANGUAGE.md` n'existe pas.** `CLAUDE.md` s'en sert pour nommer tests, issues et PR. Le vocabulaire est arrêté dans le cadrage mais n'est extrait nulle part | Avant les premières issues |
+| 8 | **Pas de fichier de jetons machine** (`tokens.json` ou thème Dart) — voir « Ce qui n'existe pas encore » | Avant le premier écran |
+| 9 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |
+| 10 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
 
 **Tout le reste est clos.** Cadrage, spécification UX, identité visuelle et retour de maquette ont
 été arbitrés et intégrés. Les journaux §18.1 à §18.4 du cadrage disent ce qui a changé et pourquoi ;
