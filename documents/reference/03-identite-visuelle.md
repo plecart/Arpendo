@@ -234,28 +234,23 @@ valide.**
 | `danger` | `#F2B8B5` | 9,88:1 sur `surface` |
 | `warning` | `#F5C77E` | 10,73:1 sur `surface` |
 
-> **La carte reste claire dans les deux modes** (cadrage §7.2). Le mode sombre n'habille que le
-> chrome : header, feuilles, modales, bandeaux. C'est la raison pour laquelle l'accent sombre doit
-> lui aussi passer le ΔE — le bouton « Recentrer » flotte au-dessus d'une carte claire et colorée.
-
-> **Révision du 23 août 2026 — la carte suit désormais le mode.** Le style Mapbox Standard expose
-> un `lightPreset` (`dawn` · `day` · `dusk` · `night`) sur l'import de style, par **le même appel
-> de configuration** que la désactivation des libellés déjà retenue en `02-specification-ux.md`
-> §3.2. Le coût est nul, et un jeu de marche joué le soir affichait jusqu'ici une carte blanche
-> plein écran sous un chrome sombre — c'est-à-dire l'exact cas d'usage où le mode sombre sert.
+> **La carte suit le mode.** Le style Mapbox Standard expose un `lightPreset`
+> (`dawn` · `day` · `dusk` · `night`) sur l'import de style, par **le même appel de configuration**
+> que la désactivation des libellés retenue en `02-specification-ux.md` §3.2 : `night` en mode
+> sombre, `day` sinon. Le coût est d'une propriété, pas d'un style à maintenir — et un jeu de
+> marche joué le soir afficherait sans cela une carte blanche plein écran sous un chrome sombre,
+> c'est-à-dire l'exact cas d'usage où le mode sombre sert.
 >
-> **Ce que cette révision ne change pas :** `accent` en mode sombre garde son plancher de ΔE 15.
-> La couche hexagones n'est **pas** affectée par le `lightPreset` — elle porte les couleurs joueur,
-> pleines, dans les deux modes — donc le bouton « Recentrer » flotte toujours au-dessus d'aplats
-> colorés. Seul le fond neutre s'assombrit. Le raisonnement du paragraphe ci-dessus tient, sa
-> prémisse change.
+> **`accent` en mode sombre garde néanmoins son plancher de ΔE 15.** La couche hexagones n'est
+> **pas** affectée par le `lightPreset` — elle porte les couleurs joueur, pleines, dans les deux
+> modes — donc le bouton « Recentrer » flotte toujours au-dessus d'aplats colorés. Seul le fond
+> neutre s'assombrit.
 >
-> **Ce qu'elle ouvre :** le rapport du validateur de la palette joueur a été calculé contre un fond
-> **clair** (`#F1EDE2`). Sur un fond `night`, les quatre couleurs en `WARN` de contraste cessent de
-> l'être — ce sont les plus claires — et ce sont les trois plus sombres (`#BD3216`, `#007559`,
-> `#773B95`) qui passent sous 3:1. Le contour d'hexagone reste le relief qui traite le cas ;
-> **le rapport est à rejouer sur le fond sombre réel** avant la livraison du mode sombre.
-> Inscrit en `02-specification-ux.md` §15.2.
+> **Le rapport du validateur de la palette joueur est à rejouer sur le fond sombre.** Il a été
+> calculé contre un fond clair (`#F1EDE2`). Sur un fond `night`, les quatre couleurs en `WARN` de
+> contraste cessent de l'être — ce sont les plus claires — et ce sont les trois plus sombres
+> (`#BD3216`, `#007559`, `#773B95`) qui passent sous 3:1. Le contour d'hexagone reste le relief qui
+> traite le cas. Inscrit en `02-specification-ux.md` §15.2.
 
 ### 1.5 Logotype et icône d'app
 

@@ -26,27 +26,27 @@ Chaque composant est spécifié selon quatre rubriques, toujours dans cet ordre 
 | **Ergonomie** | Position à l'écran, **pourquoi cette position**, taille de cible |
 | **Textes** | Le français exact |
 
-> ⚠️ **Chantier ouvert — la passe de ton n'a pas été faite.** Les ~80 textes de ce document ont été
-> rédigés **avant** que le registre d'écriture soit arrêté. Le questionnaire d'identité a retenu la
-> formulation qui **explique** la mauvaise nouvelle ; ces textes sont majoritairement dans celle qui
-> **l'annonce**. L'écart est réel :
+> ⚠️ **Travail dû avant les clés i18n — la passe de ton.** Les ~80 textes de ce document sont
+> majoritairement dans le registre qui **annonce** la mauvaise nouvelle ; le registre retenu est
+> celui qui **l'explique**. L'écart est réel :
 >
-> | Ce document, aujourd'hui | Le registre retenu |
+> | Registre actuel du document | Registre à appliquer |
 > |---|---|
 > | « Capture en pause — tes déplacements ne comptent plus » | « Le réseau ne répond plus. Tes pas ne comptent pas pour l'instant. » |
 > | « Tu perds tes 1 247 hexagones et tes 124 700 points. » | « Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras pas. » |
 > | « Rien ne s'est encore passé. Le premier bilan arrive dans 5 minutes. » | « Rien à relever pour l'instant. Le premier bilan tombe dans 5 minutes. » |
 >
-> **C'est tout ou rien** : réécrire trois textes sur quatre-vingts produirait un corpus incohérent
-> d'une autre manière. Une passe dédiée reste à faire, **avant que les clés i18n existent** — après,
-> ce n'est plus une réécriture de document mais une migration de ressources.
+> **C'est tout ou rien** : réécrire trois textes sur quatre-vingts produit un corpus incohérent
+> d'une autre manière. **La passe doit être faite avant que les clés i18n existent** — après, ce
+> n'est plus une réécriture de document mais une migration de ressources.
 >
 > **Trois garde-fous pour cette passe.** *(1)* Les textes cités mot pour mot depuis le cadrage ne
-> bougent pas — « Ta progression s'arrêtera si ton téléphone redémarre » (§9.2 du cadrage) et
-> l'avertissement de sécurité du §6, qui reprend le §16 littéralement. *(2)* **La bonne nouvelle
-> reste factuelle** : seule la mauvaise s'explique. Ne pas confondre « plus humain » avec « plus
-> enthousiaste ». *(3)* Aucun emoji, et la tolérance de +30 % ci-dessous reste opposable — une
-> phrase qui explique est plus longue qu'une phrase sèche, et c'est le conteneur qui doit suivre.
+> bougent pas — « Ta progression s'arrêtera si ton téléphone redémarre » (cadrage §9.2) et
+> l'avertissement de sécurité du §6, qui reprend le cadrage §16 littéralement. *(2)* **La bonne
+> nouvelle reste factuelle** : seule la mauvaise s'explique. Ne pas confondre « plus humain » avec
+> « plus enthousiaste ». *(3)* Aucun emoji, et la tolérance de +30 % ci-dessous reste opposable —
+> une phrase qui explique est plus longue qu'une phrase sèche, et c'est le conteneur qui doit
+> suivre.
 
 **Convention typographique.** Un texte entre « guillemets français » est **définitif** : il provient
 du cadrage mot pour mot, ou il est arrêté ici. Il devient une clé de ressource i18n (§12.6 du
@@ -125,7 +125,7 @@ Aucun texte sous 12 dp. Le rendu doit suivre le réglage de taille de police du 
 | `radius-lg` | 28 | Feuille modale (coins hauts uniquement) |
 | `radius-full` | ∞ | Pastille de delta, FAB, pastille d'alerte |
 | `elev-0` | 0 | Contenu à plat |
-| `elev-1` | 1 dp | Header permanent, bandeau |
+| `elev-1` | 1 dp | Puces de header, bandeau |
 | `elev-3` | 3 dp | Bouton flottant sur la carte |
 | `elev-6` | 6 dp | Feuille modale, modale de confirmation |
 
@@ -311,13 +311,10 @@ Toutes les durées passent à **0 ms** si `MediaQuery.disableAnimations` est vra
 d'accessibilité). Une animation ne porte jamais seule une information — chaque transition
 ci-dessous a un état final lisible à l'arrêt.
 
-**Une exception, et une seule : `motion-camera` conserve un plancher de 200 ms.** À 0 ms, un vol de
-caméra devient une **téléportation** : la carte affiche brusquement un autre endroit et rien ne dit
-au joueur que c'est le résultat de son tap. L'« état final lisible » invoqué ci-dessus n'existe pas
-ici — l'état final est « la carte est ailleurs », qui n'explique rien. 200 ms suffisent à faire
-percevoir un déplacement sans produire de mouvement prolongé, ce que le réglage vise réellement.
-La transition d'élément partagé du §7.4, elle, est bien supprimée à 0 ms ; c'est le glissement de
-caméra qui porte alors seul le lien de cause à effet, et il doit rester perceptible.
+**Aucune exception.** Le réglage désactive les animations, il les désactive toutes — y compris le
+vol de caméra du §7.4, qui devient un saut instantané, et la transition d'élément partagé qui
+l'accompagne. Un joueur qui a demandé zéro mouvement obtient zéro mouvement ; lui en concéder
+« juste un peu » quelque part, c'est ne pas respecter le réglage tout en compliquant le code.
 
 **Le principe qui gouverne les formes d'entrée.** Un élément entre **par l'endroit où il va vivre**.
 Une feuille ancrée en bas glisse depuis le bas ; une modale centrée grossit sur place, de 96 % à
@@ -379,7 +376,7 @@ l'accompagne, ou elle est seule là où la convention Android l'autorise (Param�
 | Bandeau — sévérité `info` | `Info` (cercle) | 2.4 |
 | Bandeau — sévérité `avertissement` | `Warning` (triangle) | 2.4 |
 | Bandeau — sévérité `bloquant` | `WarningOctagon` (octogone) | 2.4 |
-| Paramètres | `Gear` | 7.1, 5 |
+| Paramètres | `Gear` | 7.4, 5 |
 | Recentrer | `CrosshairSimple` | 7.2 |
 | Bouton d'action « Partie » | `UsersThree` | 7.4 |
 | Delta à la hausse / à la baisse | `ArrowUp` / `ArrowDown` | 7.1 |
@@ -439,7 +436,7 @@ document entre header, bandeaux d'état et bandeau de mise à jour.
 ├─ z 400 · Modale de confirmation + voile
 ├─ z 300 · Feuille modale (Partie, Paramètres) + voile
 ├─ z 200 · Bandeau — EMPLACEMENT UNIQUE, un seul à la fois (§2.4)
-├─ z 100 · Header permanent (écran Jeu) / barre de titre (autres écrans)
+├─ z 100 · Puces de header (écran Jeu, §7.1) / barre de titre (autres écrans)
 ├─ z  50 · Contrôles flottants sur la carte : bouton d'action « Partie » et Recentrer
 ├─ z  40 · Pile d'activité (§7.2.1) — sous les contrôles, et non interactive sauf sa ligne du bas
 └─ z   0 · Carte Mapbox
@@ -447,16 +444,24 @@ document entre header, bandeaux d'état et bandeau de mise à jour.
 
 **Budget vertical sur 360 × 800 dp, écran Jeu :**
 
-| Élément | Hauteur |
+| Élément | Hauteur retirée à la carte |
 |---|---|
 | Encoche / barre d'état (safe area haute) | 24–48 |
-| Header permanent | 56 — **88 si la taille de police système dépasse 130 %** (§7.1) |
+| **Puces de header** (§7.1) | **0** — elles flottent, la carte court dessous |
 | Bandeau, s'il y en a un | 56 |
 | Barre de gestes (safe area basse) | 24–48 |
-| **Carte réellement visible** | **≈ 592 à 642 dp, soit 74 à 80 %** — et 70 à 76 % en header deux lignes |
+| **Carte réellement visible** | **≈ 648 à 696 dp, soit 81 à 87 %** |
 
-C'est ce budget qui impose la règle du §2.4 : **empiler trois bandeaux ramènerait la carte à 55 %
-de l'écran**, et la carte est le jeu.
+**Deux surfaces occultent la carte sans la réduire, et il faut les compter à part** — le
+pourcentage ci-dessus ne les déduit pas, exactement comme au §7.2.1 :
+
+| Surface | Occultation |
+|---|---|
+| Puces de header (§7.1) | ≈ **300 × 40 = 12 000 dp²**, en haut |
+| Pile d'activité (§7.2.1) | ≈ **240 × 120 = 28 800 dp²**, en bas à gauche |
+
+C'est ce budget qui impose la règle du §2.4 : **empiler trois bandeaux ramènerait la carte sous
+60 % de l'écran**, et la carte est le jeu.
 
 ### 2.3 Safe areas
 
@@ -654,7 +659,7 @@ et la couche hexagones insérée dans le **slot `bottom`**.
 `lightPreset`, propriété de configuration de l'import de style au même titre que les quatre
 `show*Labels` ci-dessus. Le client la pose à **`night`** quand le système est en mode sombre, à
 **`day`** sinon, et la remet à jour au changement de mode sans recharger le style. Le coût est
-d'une propriété, pas d'un style à maintenir — c'est ce qui a fait basculer la décision du §1.5.
+d'une propriété, pas d'un style à maintenir.
 
 **Repli si `lightPreset` n'est pas exposé côté Flutter** (à vérifier, §15.2) : le mode sombre
 n'habille que le chrome et la carte reste en `day`, exactement le comportement d'origine. Dégradé,
@@ -782,17 +787,15 @@ prend le relais — ne jamais vider la couche sur une erreur, on effacerait un t
   élément en volume de toute l'interface — c'est ce qui en fait un jeu et pas une carte.
   **Spécification complète du modèle en §3.4.1.**
 - **Les autres joueurs** : **il n'y a pas de pastille de position.** Le cadrage est net : aucune
-  position n'est jamais diffusée (§7.5). Ce que l'ancien document appelait « pastilles colorées »
-  désigne en réalité **la représentation d'un joueur dans les listes** (participants, flux,
-  classement) : une pastille de 16 dp remplie de sa couleur, avec un contour de 1 dp à 25 %.
-  Aucun marqueur d'autre joueur n'apparaît sur la carte.
+  position n'est jamais diffusée (§7.5). Les **pastilles colorées** représentent un joueur **dans
+  les listes** (participants, flux, classement) : une pastille de 16 dp remplie de sa couleur, avec
+  un contour de 1 dp à 25 %. **Aucun marqueur d'autre joueur n'apparaît sur la carte.**
 - **Repli** : si le magnétomètre est absent ou incalibré, retour au nord sans casser le
   verrouillage (§7.4). Aucun message — c'est une dégradation que le joueur n'a pas à comprendre.
 
 #### 3.4.1 Le modèle du marqueur — spécification
 
-Arrêtée avec l'identité visuelle du 13 août 2026, direction « Relevé ». Le rendu SVG de référence
-est dans `03-identite-visuelle.md` §1.6.
+Le rendu SVG de référence est dans `03-identite-visuelle.md` §1.6.
 
 **Silhouette.** Une **capsule verticale posée sur sa pointe arrondie**, proportions **1 : 1,7**
 (largeur : hauteur). Aucun membre, aucun visage, aucune articulation — **rien à animer, donc rien
@@ -866,7 +869,7 @@ Le bouton d'authentification est en bande basse parce que c'est la seule action 
 qu'elle est fréquente à la réinstallation. Les liens juridiques sont obligatoires (§13.12) et
 volontairement discrets.
 
-**Hiérarchie de la marque — décision d'identité, 13 août 2026.** Le signe domine, le nom suit,
+**Hiérarchie de la marque.** Le signe domine, le nom suit,
 l'accroche est **discrète et subordonnée** : elle est en `type-body` et en `on-surface-muted`,
 jamais à la taille du nom, jamais au-dessus de lui. Ce même bloc — signe, nom, accroche — sert
 à l'identique sur l'**écran d'attente du démarrage** (§2.1) et sur l'**écran Accueil** (§5), pour que
@@ -933,12 +936,9 @@ suppression de compte.
 
 ## 5. Écran Accueil
 
-> **Révision du 13 août 2026 — l'écran Menu et les deux feuilles ont fusionné.** Le document
-> prévoyait un Menu à deux boutons ouvrant deux feuilles distinctes (« Créer », « Rejoindre »).
-> **Tout tient désormais sur un seul écran.** Motif, formulé par le porteur : *« C'est minimaliste
-> d'un autre point de vue. Ça permet d'avoir une seule page plutôt que plusieurs pour gérer ces
-> choses-là. C'est minimaliste dans le nombre de pages, pas dans ce qu'il y a dans la page. »*
-> Les §5.1 et §5.2 ci-dessous ne décrivent plus des feuilles mais **deux blocs de cet écran**.
+> **Un seul écran, deux blocs.** Créer et Rejoindre ne sont pas deux feuilles : ce sont **deux
+> blocs de cet écran**, spécifiés en §5.1 et §5.2. Le minimalisme visé porte sur le **nombre de
+> pages**, pas sur la densité d'une page.
 
 **Rôle.** Rejoindre une partie existante ou en créer une. Visible uniquement si aucune partie
 n'est active (§8.3).
@@ -953,16 +953,14 @@ n'est active (§8.3).
 | Séparateur **« ou »** | Filet horizontal avec le mot centré | — |
 | **Bloc « Créer »** — sélecteur de durée + bouton | Bande basse (§5.1) | 56 dp |
 
-**Rejoindre est au-dessus de Créer.** L'ordre est inversé par rapport au Menu d'origine, et c'est
-délibéré : le bloc « Créer » porte un curseur et son encart d'information, donc il est plus haut ;
-le mettre en bas met **les deux boutons d'action dans la zone du pouce**, alors que l'ordre inverse aurait
-repoussé « Rejoindre » hors d'atteinte.
+**Rejoindre est au-dessus de Créer**, et c'est délibéré : le bloc « Créer » porte un curseur et son
+encart d'information, donc il est plus haut ; le mettre en bas met **les deux boutons d'action dans
+la zone du pouce**, là où l'ordre inverse repousserait « Rejoindre » hors d'atteinte.
 
-**Le comportement au clavier — ajout du 23 août 2026.** Depuis la fusion du Menu et des deux
-feuilles, l'Accueil est un **écran de fond** qui porte un champ de saisie en bande médiane, avec un
-curseur et un bouton d'action en dessous. Le §2.3 ne traitait `viewInsets.bottom` que pour les
-feuilles modales ; cet écran n'en est pas une, et un clavier Android occupe environ 300 dp sur les
-800 de l'écran de référence.
+**Le comportement au clavier.** L'Accueil est un **écran de fond** qui porte un champ de saisie en
+bande médiane, avec un curseur et un bouton d'action en dessous. Ce n'est pas une feuille modale,
+donc la règle `viewInsets.bottom` du §2.3 ne suffit pas — et un clavier Android occupe environ
+300 dp sur les 800 de l'écran de référence.
 
 **Règle retenue : le contenu défile, il ne se réorganise pas.**
 
@@ -989,11 +987,9 @@ n'arrive ici qu'après avoir su qu'aucune partie n'est active. Erreur / hors lig
 actions restent **actives** ; l'échec se manifeste au moment de l'action, avec un message précis,
 plutôt que par deux boutons grisés sans explication.
 
-> **Correction du 23 août 2026.** Ce paragraphe et ses deux sous-sections se contredisaient : ici
-> les actions étaient actives hors ligne, en §5.1 et §5.2 elles étaient désactivées. **C'est la
-> règle de ce paragraphe qui l'emporte**, parce que c'est elle qui porte l'argument : un bouton
-> grisé n'apprend rien, il laisse le joueur chercher ce qu'il a mal fait. Les deux sous-sections
-> sont alignées ci-dessous.
+> **Aucun des deux boutons n'est jamais grisé pour cause de réseau.** Un bouton désactivé n'apprend
+> rien : il laisse le joueur chercher ce qu'il a mal fait. L'échec se dit au moment de l'action,
+> avec son motif. Les états de §5.1 et §5.2 appliquent cette règle.
 
 ### 5.1 Bloc « Créer une partie »
 
@@ -1009,15 +1005,13 @@ bilans du flux (§8.2, §4.2, §11.5).
   Cet encart est ce qui rend intelligible une décision que le joueur ne peut plus modifier ensuite.
 - Bouton « Créer une partie » — 56 dp, pleine largeur, bas de bloc.
 
-**Le sélecteur de durée — un curseur à huit crans.** Décision du porteur, 13 août 2026, après
-qu'une grille de huit puces ait d'abord été retenue puis écartée : *« une liste de pastilles fait
-trop AI slop pour un MVP, ce curseur me correspond très bien. »*
+**Le sélecteur de durée — un curseur à huit crans.**
 
-**Ce que la grille avait pour elle, et qui doit être compensé.** Les huit valeurs — 30 min / 1 h /
-2 h / 4 h / 24 h / 48 h / 1 semaine / 1 mois — sont **discrètes et non linéaires** : entre deux
-crans, l'écart va de trente minutes à vingt-deux jours. Un rail continu suggère un continuum qui
-n'existe pas, et huit crans sur 328 dp donnent des zones d'environ 47 dp, donc un geste de
-glissement peu précis. Quatre règles rendent le curseur aussi sûr que la grille l'était :
+**Ce qu'un curseur doit compenser ici.** Les huit valeurs — 30 min / 1 h / 2 h / 4 h / 24 h / 48 h /
+1 semaine / 1 mois — sont **discrètes et non linéaires** : entre deux crans, l'écart va de trente
+minutes à vingt-deux jours. Un rail continu suggère un continuum qui n'existe pas, et huit crans
+sur 328 dp donnent des zones d'environ 47 dp, donc un geste de glissement peu précis. Quatre règles
+rendent le curseur aussi sûr qu'une grille de puces :
 
 | Règle | Valeur |
 |---|---|
@@ -1103,9 +1097,8 @@ pastille isolée ne fait pas — deux couleurs proches se distinguent mieux en a
 
 **Textes.** Titre « Choisis ta couleur » · bouton « Entrer dans la partie ».
 
-**Deux cas de course, et ce sont deux cas distincts** — précisé le 23 août 2026. Le serveur est
-autoritaire, le client ne réserve rien : entre l'affichage de la grille et la validation, l'état
-peut avoir changé. Une seule issue était spécifiée, et c'était la plus rare.
+**Deux cas de course, et ce sont deux cas distincts.** Le serveur est autoritaire, le client ne
+réserve rien : entre l'affichage de la grille et la validation, l'état peut avoir changé.
 
 | Ce qui a changé | Ce qui s'affiche | Où l'on se retrouve |
 |---|---|---|
@@ -1149,26 +1142,19 @@ Le corps reprend le §16 du cadrage mot pour mot.
 la rue, pas sur une partie donnée. Le répéter à chaque entrée le transformerait en obstacle à
 balayer, ce qui détruirait sa fonction.
 
-### 6.1 La mention de visibilité des zones — retirée de l'interface
+### 6.1 La visibilité des zones — portée par les documents juridiques
 
-> **Décision du porteur, 13 août 2026, maintenue après objection.** Le document prévoyait une
-> seconde modale, « Ce que les autres voient », qui annonçait que les autres joueurs voient les
-> zones capturées et le moment de leur capture. **Elle est supprimée.** Motif : cette information
-> figure déjà dans les conditions d'utilisation et la politique de confidentialité, et la répéter à
-> chaque entrée en partie est jugé superflu.
+**Aucune modale n'annonce ce que les autres joueurs voient.** L'information vit dans les conditions
+d'utilisation et la politique de confidentialité, pas dans le parcours d'entrée en partie. Trois
+obligations en découlent :
 
-**Ce que ce retrait déplace, et qui devient obligatoire ailleurs.** L'information n'est pas
-supprimée, elle **change de support**. Trois conséquences, toutes à porter :
-
-1. **Le §16 du cadrage est modifié.** Il exigeait une « mention explicite à l'entrée en partie ».
-   Il exige désormais une mention explicite **dans les documents juridiques**. C'est écrit dans son
-   journal (§18.4).
-2. **La politique de confidentialité et les CGU (§13.12 du cadrage) doivent couvrir explicitement
-   deux choses** : que les autres joueurs voient **les zones capturées**, et qu'ils voient **le
-   moment** de la capture. Le second point est la répercussion de l'arbitrage du §7.5 ; il ne
-   figurait nulle part ailleurs et ne peut plus être omis.
-3. **Le lien « Lire les conditions d'utilisation » de la modale de sécurité devient le seul chemin
-   d'information dans le parcours.** Il n'est donc pas décoratif et ne peut pas être retiré.
+1. **Le cadrage §16 exige une mention explicite dans les documents juridiques**, pas à l'entrée en
+   partie.
+2. **La politique de confidentialité et les CGU (cadrage §13.12) couvrent explicitement deux
+   choses** : que les autres joueurs voient **les zones capturées**, et qu'ils voient **le moment**
+   de la capture.
+3. **Le lien « Lire les conditions d'utilisation » de la modale de sécurité est le seul chemin
+   d'information dans le parcours.** Il n'est pas décoratif et ne peut pas être retiré.
 
 **Ce que ça coûte, et qui est assumé.** Le §4.4 — le départ définitif qui neutralise ses tuiles —
 existe pour le joueur qui perd confiance dans le groupe. Un joueur qui n'a jamais lu les CGU
@@ -1192,65 +1178,107 @@ qui suit découle de là : chaque contrôle posé sur la carte vole des pixels e
 
 | Élément | Position | Persistant ? |
 |---|---|---|
-| Header (pastille, tuiles, points, timer) — **inerte, aucune cible tactile** | Haut, 56 dp | Oui |
+| **Puces de header** (identité + score à gauche, timer à droite) — **inertes, aucune cible tactile** | Haut, 40 dp, flottantes | Oui — **surfaces d'affichage, pas des contrôles** (§7.1) |
 | Bandeau | Sous le header | Conditionnel, un seul (§2.4) |
 | **Pile d'activité** | Bas gauche, 32 dp du bas | Oui — **surface d'affichage, pas un contrôle** (§7.2.1) |
 | Bouton « Recentrer » | Bas droite, 96 dp du bas | **Conditionnel** — visible ⇔ caméra libre (§7.3) |
 | **Bouton d'action « Partie »** | Bas droite, 32 dp du bas | Oui — ouvre la feuille Partie (§7.4) |
 | Carte | Tout le reste | Oui |
 
-**Deux contrôles permanents au-dessus de la carte, et un troisième conditionnel.** C'est le
-résultat d'une réduction volontaire. L'ancien document prévoyait **six boutons flottants**
-(Recentrer, Paramètres, Inviter, Joueurs, Flux, Quitter) plus trois indicateurs (compte à rebours
-de verrou, code de partie, vitesse). Sur 360 dp de large, six boutons de 56 dp occupent une
-colonne entière et interceptent les gestes de déplacement de la carte — exactement le geste dont
-dépend le mode caméra libre (§7.3).
+**Deux contrôles permanents au-dessus de la carte, et un troisième conditionnel. C'est un
+plafond, pas un état de fait.** Les puces de header et la pile d'activité n'entrent pas dans ce
+compte : elles ne consomment aucun geste. Sur 360 dp de large, six boutons de 56 dp occupent une colonne
+entière et interceptent les gestes de déplacement de la carte — exactement le geste dont dépend le
+mode caméra libre (§7.3). Tout ce qui pourrait vouloir un bouton flottant est donc logé ailleurs :
 
-Ce qui a été fait de chacun :
-
-| Élément d'origine | Devenu |
+| Fonction | Où elle vit |
 |---|---|
-| Paramètres | **Emplacement au bout de la barre d'onglets de la feuille Partie** (§7.4) |
+| Paramètres | **Bout de la barre d'onglets de la feuille Partie** (§7.4) |
 | Inviter | **Onglet** de la feuille Partie (§7.4) |
 | Liste des joueurs | **Onglet** de la feuille Partie |
-| Flux d'activité | **Pile d'activité** en bas gauche de la carte + modale au tap (§7.2.1, §7.2.2) — *révisé le 13 août 2026* |
-| Quitter la partie | **Bloc « Cette partie » de la modale Paramètres** (§8), hors de la zone du pouce — *révisé le 13 août 2026, voir §7.4* |
-| Code de la partie | **Onglet Inviter uniquement** — *révisé le 13 août 2026, voir §7.4* |
+| Flux d'activité | **Pile d'activité** en bas gauche de la carte, plus une modale au tap (§7.2.1, §7.2.2) |
+| Quitter la partie | **Bloc « Cette partie » de la modale Paramètres** (§8), hors de la zone du pouce |
+| Code de la partie | **Onglet Inviter uniquement** |
 | Compte à rebours du verrou de vol | **Bandeau réactif** (§7.3) |
 | Indicateur de vitesse | **Même bandeau réactif** (§7.3) |
 
-### 7.1 Header permanent
+**Toute fonction ajoutée plus tard passe par ce tableau, jamais par un bouton de plus.**
 
-**Rôle.** Porter en permanence l'état du joueur. Absent du §15 du cadrage, mais rendu nécessaire
+### 7.1 Header — deux puces flottantes
+
+**Rôle.** Porter en permanence l'état du joueur, **sans rien retirer à la carte**. Absent du §15 du cadrage, mais rendu nécessaire
 par §4.1 (score à l'instant T), §8.2 (timer) et §5.2 (identité visuelle du joueur).
 
-**Anatomie**, hauteur 56 dp, sous la safe area haute, fond `surface` **opaque**, `elev-1`, plus le
-contour de 1 dp du §1.3. **Le fond à 92 % avec flou léger a été retiré le 23 août 2026** : les
-contrastes du §1.5 ne valent que sur fond opaque, et un `BackdropFilter` au-dessus d'une surface
-Mapbox se repeint en continu (§1.5, règle de composition). L'immersion est portée par le §2.3 — la
-carte court sous l'encoche et occupe tout le reste de l'écran.
+**Le header n'est pas une barre : ce sont deux puces flottantes.** Une barre pleine largeur de
+56 dp coupe la carte d'un trait horizontal sur toute sa largeur, et ne peut pas être remplie — le
+contenu du header fait ~300 dp pour 360, donc **une soixantaine de dp reste vide quoi qu'on fasse**.
+Répartir ce vide ne le supprime pas : à gauche il devient une marge de fin, au milieu un trou, aux
+deux extrémités deux demi-trous. **Supprimer la barre le supprime**, parce que l'espace redevient
+de la carte — et la carte est le jeu (§2.2).
 
-```
-┌──────────────────────────────────────────────────────────┐
-│ ⬢  124 hex · 12 400 pts                       2 j 04 h  │
-│ └pastille └────score vivant────┘               └─timer─┘ │
-└──────────────────────────────────────────────────────────┘
-                    ▲
-             la pastille de delta se superpose ici,
-             par-dessus le score, 3 s puis disparaît
-```
-
-| Zone | Contenu | Type |
+| Puce | Contenu | Largeur |
 |---|---|---|
-| Gauche, 24 dp | Hexagone plein dans la couleur du joueur, contour 1 dp | — |
-| Gauche | **« 124 hex · 12 400 pts »** | `type-headline` pour le nombre, `type-caption` pour les unités |
-| **Superposée** au bloc de score | Pastille de delta, transitoire — **elle n'occupe aucune largeur propre** (§ « Le score vivant », point 3) | `type-label` |
-| Droite | Temps restant | `type-label`, `on-surface-muted` |
+| **Identité + score**, ancrée à **gauche** | Hexagone 20 dp dans la couleur du joueur · `space-2` · « 124 hex · 12 400 pts » | épouse son contenu, ≈ **218 dp** |
+| **Temps restant**, ancrée à **droite** | Le timer seul | épouse son contenu, ≈ **82 dp** |
 
-**Le header ne porte aucune cible tactile.** Il est **entièrement inerte** : trois informations à
-lire, rien à toucher, ce qui applique la bande haute du §1.4 sans exception. L'accès aux Paramètres
-passe par la barre d'onglets de la feuille Partie (§7.4), atteignable depuis le bouton d'action en
-bande basse.
+**Traitement commun aux deux.** Hauteur **40 dp**, rembourrage horizontal `space-3`, **`radius-md`**,
+fond `surface` **opaque**, `elev-1`, plus le **contour de 1 dp** qu'impose le §1.3 à tout élément
+flottant au-dessus de la carte.
+
+**`radius-md` et non `radius-full`.** Le §1.3 réserve `radius-full` à ce qui est **rond par nature**
+— pastille de delta, bouton d'action, pastille d'alerte — et donne `radius-md` à ce qui est une
+**surface de contenu** : carte, bandeau. Les puces portent du texte sur plusieurs valeurs : ce sont
+des surfaces de contenu. En pilule, elles se lisaient comme des jetons flottants sans rapport avec
+le bandeau (§2.4) qui apparaît juste dessous, et qui est en `radius-md` : deux vocabulaires de
+forme empilés à 8 dp d'écart sur le même bord d'écran. **Aucune transparence, aucun flou** : les contrastes du §1.5 ne
+valent que sur fond opaque, et un `BackdropFilter` au-dessus d'une surface Mapbox se repeint en
+continu. Marge de 16 dp par rapport aux bords et à la safe area haute.
+
+**Chaque puce épouse son contenu, donc rien ne dérive.** C'est la raison de fond, et elle interdit
+deux dispositions qui semblent plus jolies :
+
+- **Un score centré dérive en permanence.** Sa largeur change à chaque chiffre gagné ou perdu —
+  « 124 hex » puis « 1 247 hex », « 12 400 pts » puis « 124 700 pts ». Centré, c'est le bloc entier
+  qui se décale, et sur une valeur qui se met à jour en continu. Le §1.2 impose les chiffres
+  tabulaires précisément pour que le score ne danse pas ; le centrer réintroduit la danse un cran
+  plus haut.
+- **Un score centré *entre* deux ancres dérive une seconde fois**, parce que le timer change de
+  largeur lui aussi : il a **cinq formats** (« 27 j », « 2 j 04 h », « 18 h », « 1 h 12 »,
+  « 09:47 »). Chaque bascule de format déplacerait le score — au moment précis où le joueur
+  regarde l'écran parce que la fin approche.
+
+Ancrées chacune à son bord, les deux puces ne bougent jamais : celle de gauche grandit vers la
+droite, celle de droite vers la gauche, et l'écart entre elles est de la carte.
+
+```
+     ┌──────────────────────────────┐      ┌───────────┐
+     │ ⬢  124 hex · 12 400 pts      │      │  2 j 04 h │
+     └──────────────────────────────┘      └───────────┘
+      └───────── ≈ 218 dp ──────────┘  ↑    └─ ≈ 82 dp ┘
+                     ▲              la carte
+      la pastille de delta se superpose
+      ici, calée sur le bord droit intérieur
+```
+
+**Ce que ça change au budget vertical.** La carte **court sous les puces** jusqu'à la safe area
+haute : elle n'est plus amputée de 56 dp sur toute sa largeur. L'occultation réelle passe de
+**360 × 56 = 20 160 dp²** à **300 × 40 = 12 000 dp²**, et surtout elle cesse d'être un trait qui
+traverse l'écran. Comme pour la pile d'activité (§7.2.1), **c'est une occultation, pas une
+réduction** : le §2.2 ne décompte plus le header de la hauteur disponible, et dit ce qu'il occulte.
+
+| Où | Contenu | Type |
+|---|---|---|
+| Puce gauche, en tête | Hexagone 20 dp plein dans la couleur du joueur, contour 1 dp | — |
+| Puce gauche, après `space-2` | **« 124 hex · 12 400 pts »** | `type-headline` pour le nombre, `type-caption` pour les unités |
+| Puce droite | Temps restant | `type-label`, `on-surface-muted` |
+| Puce gauche, superposée | Pastille de delta, transitoire, calée sur le bord droit **intérieur** — **elle n'occupe aucune largeur propre** (§ « Le score vivant », point 3) | `type-label` |
+
+**Les deux puces ne portent aucune cible tactile.** Elles sont **entièrement inertes** : de
+l'information à lire, rien à toucher, ce qui applique la bande haute du §1.4 sans exception. Elles
+sont donc en `IgnorePointer` — le glissement de carte les traverse, exactement comme la pile
+d'activité (§7.2.1) — **et elles restent dans l'arbre d'accessibilité**, avec un `Semantics`
+explicite posé en dehors de l'`IgnorePointer`. L'accès aux Paramètres passe par la barre d'onglets
+de la feuille Partie (§7.4).
 
 **Le score vivant — traitement (§4.1).** Le cadrage exige que l'interface montre que le score est
 *vivant*, pas *acquis*, sinon la baisse passera pour un bug. Quatre décisions, aucune décorative :
@@ -1261,8 +1289,8 @@ bande basse.
    montrer ensemble enseigne la règle sans un mot d'explication.
 2. **Hausse et baisse ont exactement le même traitement.** Même durée, même emplacement, même
    taille. Un delta discret à la baisse enseignerait que la baisse est anormale.
-3. **La pastille de delta est une surimpression, pas un cinquième élément de la ligne** —
-   précisé le 23 août 2026. Elle apparaît à chaque variation, `radius-full`, pendant 3 s :
+3. **La pastille de delta est une surimpression, pas un élément de la ligne.** Elle apparaît à
+   chaque variation, `radius-full`, pendant 3 s :
    *« ↑ +300 »* ou *« ↓ −200 »*. Elle est posée **par-dessus le bloc de score**, alignée sur son
    bord droit, et **ne consomme aucune largeur** : le header ne se réorganise pas quand elle
    apparaît, et sa disparition ne fait rien bouger. C'est ce qui rend l'arithmétique du repli
@@ -1274,12 +1302,11 @@ bande basse.
    que c'est le chiffre des points, secondaire, qu'elle peut masquer — **jamais le nombre de
    tuiles**, qui est la valeur principale (point 1).
 
-   **La direction est portée par la flèche et le signe**, jamais par la couleur. Et le fond est
-   **neutre dans les deux sens** — `surface-dim`, texte `on-surface` — ce qui applique enfin le
-   point 2 ci-dessus à la lettre. Le vert `#007559` retenu jusqu'ici pour la hausse était en outre
-   la couleur joueur n° 5 (§3.1, « émeraude ») : le joueur émeraude voyait sa pastille d'identité
-   et sa pastille de gain dans la même teinte, à 40 dp l'une de l'autre. Voir §1.5, note sur
-   l'absence de jeton `success`.
+   **La direction est portée par la flèche et le signe**, jamais par la couleur. Le fond est
+   **neutre dans les deux sens** — `surface-dim`, texte `on-surface` — ce qui applique le point 2
+   ci-dessus à la lettre. **Aucun vert ici** : le seul vert disponible à cette clarté serait une
+   couleur joueur, et le joueur qui la porte verrait sa pastille d'identité et sa pastille de gain
+   dans la même teinte, à 40 dp l'une de l'autre. Voir §1.5, sur l'absence de jeton `success`.
 4. **Le bilan de retour** : au retour au premier plan après plus de 15 minutes d'absence, la
    pastille affiche une fois, pendant 6 s : *« Pendant ton absence : ↓ −4 hex »*. C'est le moment
    exact où la baisse serait prise pour un bug — le joueur rouvre l'app et voit un chiffre plus
@@ -1300,55 +1327,50 @@ prennent le bandeau priorité 13 — la cause y est, l'effet ici.
 | < 10 min | minutes + secondes, **rafraîchi à la seconde**, en `warning` | *« 09:47 »* |
 | Écoulé | — | *« Terminée »* en attendant la clôture serveur |
 
-> **Correction du 23 août 2026.** La table plaçait *« 2 j 04 h »* dans la tranche « 2 h à 48 h »,
-> alors que 2 j 04 h vaut plus de 48 h et retombait donc dans la tranche du dessus, qui n'affiche
-> que les jours. Ce même *« 2 j 04 h »* est l'exemple retenu à quatre endroits du document — le
-> schéma du header ci-dessus, l'en-tête de l'onglet Joueurs (§7.4), la compensation du classement
-> permanent (§7.4) et la notification permanente (§10.2). **Ce sont les exemples qui avaient
-> raison** : une tranche « jours + heures » manquait entre 48 h et 7 j.
-
 Au-dessus de 10 minutes, le timer se rafraîchit **à la minute**. Un compte à rebours à la seconde
 pendant un mois n'informe personne et empêche l'écran de se mettre en veille de rendu.
 
-**Le repli aux grandes tailles de police — décision du 13 août 2026.**
+**Le repli aux grandes tailles de police.**
 
 Le §1.2 exige de suivre le réglage système jusqu'à **200 %** sans troncature.
 
-**La largeur, mesurée — ajout du 23 août 2026.** L'arithmétique n'avait jamais été faite, alors
-qu'elle l'est ailleurs dans ce document (la grille de couleurs du §5.3, la largeur de la pile du
-§7.2.1). Sur l'écran de référence de 360 dp, à `textScaler` 1,0, la pastille de delta étant
-désormais une **surimpression** qui ne consomme aucune largeur :
+**La largeur, mesurée.** Sur l'écran de référence de 360 dp, à `textScaler` 1,0, la pastille de
+delta étant une **surimpression** qui ne consomme aucune largeur :
 
 | Élément | Largeur |
 |---|---|
 | Marge gauche (`space-4`) | 16 |
-| Pastille hexagone | 24 |
-| `space-2` | 8 |
-| « 124 hex · 12 400 pts » — chiffres en `type-headline`, unités en `type-caption` | ≈ 162 |
-| Écart flexible | ≥ 8 |
-| Timer « 2 j 04 h », `type-label` | ≈ 58 |
+| **Puce identité + score** — `space-3` + hexagone 20 + `space-2` + texte ≈ 162 + `space-3` | ≈ 218 |
+| **Écart entre les deux puces — de la carte** | ≈ 28 |
+| **Puce timer** — `space-3` + texte ≈ 58 + `space-3` | ≈ 82 |
 | Marge droite (`space-4`) | 16 |
-| **Total incompressible** | **≈ 292 dp pour 360** |
+| **Total** | **360 dp, exactement** |
 
-**Il reste environ 68 dp de marge**, et c'est ce qui rend la ligne unique tenable. Deux décisions y
-contribuent, chacune valant une trentaine de dp : le header **ne porte aucune cible tactile**, et la
-pastille de delta est une **surimpression** sans largeur propre. Retirer l'une des deux ramènerait
-la marge sous 30 dp et ferait basculer le header sur deux lignes dès les premiers crans du réglage
-de police.
+**Il ne reste que ~28 dp d'écart entre les deux puces**, et ce n'est plus un vide : c'est de la
+carte, au même titre que le reste de l'écran. Deux décisions rendent cet écart possible, chacune
+valant une trentaine de dp : les puces **ne portent aucune cible tactile**, et la pastille de delta
+est une **surimpression** sans largeur propre. Retirer l'une des deux ferait se toucher les deux
+puces dès les premiers crans du réglage de police.
 
-Seuls les deux blocs de texte suivent ce réglage — la pastille d'identité reste à 24 dp. Cela fait
-**220 dp de texte pour 68 dp de marge**, soit un dépassement à partir de **≈ 1,31**.
+Seuls les deux blocs de texte suivent ce réglage — l'hexagone reste à 20 dp, les rembourrages
+aussi. Cela fait **220 dp de texte pour 28 dp d'écart**, soit un contact à partir de **≈ 1,12**.
 
 Règle de repli :
 
-| `MediaQuery.textScaler` | Rendu | Hauteur |
+| `MediaQuery.textScaler` | Rendu | Hauteur occupée |
 |---|---|---|
-| **≤ 1,3** | Une ligne, telle que décrite ci-dessus | **56 dp** |
-| **> 1,3** | **Deux lignes.** Ligne 1 : pastille + « 124 hex · 12 400 pts ». Ligne 2 : temps restant. La pastille de delta reste **superposée à la ligne 1** | **88 dp** |
-| **Débordement résiduel** aux échelles extrêmes | Les **points** descendent en ligne 2, à côté du timer. **Le nombre de tuiles ne quitte jamais la ligne 1** | 88 dp |
+| **≤ 1,1** | **Deux puces côte à côte**, telles que décrites ci-dessus | **40 dp** |
+| **> 1,1** | **Les puces s'empilent.** La puce timer passe **sous** la puce score, ancrée au même bord gauche, `space-2` entre les deux. Chacune continue d'épouser son contenu | **88 dp** |
+| **Débordement résiduel** aux échelles extrêmes | Les **points** passent en seconde ligne **à l'intérieur de la puce score**, qui grandit en hauteur. **Le nombre de tuiles ne quitte jamais la première ligne** | 88 dp et plus |
 
-> **Le seuil de 1,3 est calculé sur le tableau ci-dessus, pas choisi.** Il est à revérifier sur les
-> métriques réelles de Roboto avant de figer le composant — c'est inscrit au §15.2.
+**Les puces s'empilent à gauche, pas en diagonale.** Une puce ancrée à droite et l'autre à gauche,
+sur deux lignes, produit un escalier que rien ne justifie. Empilées au même bord, elles se lisent
+comme un bloc unique — et le bord gauche est celui du sens de lecture.
+
+> **Le seuil de 1,1 est calculé sur le tableau ci-dessus, pas choisi.** Il est à revérifier sur les
+> métriques réelles de Roboto avant de figer le composant — c'est inscrit au §15.2. Le seuil est bas
+> parce que l'écart entre les puces est mince : c'est le prix d'une carte qui court dessous, et il
+> se paie par un empilement qui reste lisible, pas par une troncature.
 
 **Trois choses que ce repli refuse de faire, et pourquoi.**
 
@@ -1361,14 +1383,12 @@ Règle de repli :
 3. **Le nombre de tuiles ne descend jamais en ligne 2.** C'est la valeur principale ; elle reste
    en tête de lecture quelle que soit l'échelle.
 
-**Ce que ça coûte, et c'est assumé.** En mode deux lignes, le header prend **32 dp de plus**, pris
-sur la carte : le budget du §2.2 descend de 74-80 % à **70-76 %**, ce qui est exactement la valeur
-que le §2.2 annonce pour ce cas. *(Les chiffres portés ici jusqu'au 23 août 2026 — 65-71 % vers
-61-67 % — étaient ceux d'avant la suppression de la poignée de 72 dp du §7.4 ; ils n'avaient pas
-été rejoués.)* Rendre la carte inviolable ici aurait signifié tronquer du texte, ce que le §1.2
-interdit.
+**Ce que ça coûte, et c'est assumé.** Empilées, les puces occultent **88 dp** de haut au lieu de 40,
+sur leur seule largeur. La carte n'est pas amputée pour autant — elle court toujours dessous — mais
+la zone illisible double. C'est le prix d'un réglage d'accessibilité que l'utilisateur a
+délibérément posé, et il vaut mieux que tronquer du texte, ce que le §1.2 interdit.
 
-**États du header.** Normal : ci-dessus. Chargement (première entrée, score non encore reçu) :
+**États des puces.** Normal : ci-dessus. Chargement (première entrée, score non encore reçu) :
 « — hex · — pts », **jamais 0** — un zéro affiché est une information fausse. Erreur / hors ligne :
 les valeurs restent affichées, figées, et le bandeau porte l'explication ; le header ne devient
 jamais gris, il n'y a rien de faux dedans, juste du périmé. Vide, désactivé : sans objet.
@@ -1389,8 +1409,7 @@ jamais gris, il n'y a rien de faux dedans, juste du périmé. Vide, désactivé 
 objet. Erreur : sans objet. Désactivé : sans objet — s'il n'est pas actionnable, il n'est pas là.
 Hors ligne : **inchangé et pleinement fonctionnel** ; le GPS est indépendant du réseau (§7.3).
 
-**Le tap sur un hexagone ne fait rien au MVP — décision écrite le 23 août 2026.** C'est le geste le
-plus instinctif sur une carte d'hexagones colorés (« c'est à qui, ça ? »), et le seul retour prévu
+**Le tap sur un hexagone ne fait rien au MVP.** C'est le geste le plus instinctif sur une carte d'hexagones colorés (« c'est à qui, ça ? »), et le seul retour prévu
 sur l'appartenance d'une tuile est le bandeau de priorité 8, qui suppose d'y **marcher**
 physiquement. Le besoin est réel et il est déjà enregistré : le cadrage §7.6 spécifie une modale
 « Mes hexagones », reportée après le MVP.
@@ -1410,24 +1429,14 @@ bascule. Sans ce seuil, la règle du cadrage serait vraie sur le papier et fauss
 
 #### 7.2.1 La pile d'activité — surcouche de carte
 
-**Rôle.** Rendre l'activité de la partie **perceptible sans geste**. Décidée le 13 août 2026, elle
-remplace l'onglet « Activité » de la feuille Partie (§7.4), qui exigeait deux tapes pour découvrir
-qu'il s'était passé quelque chose — sur le contenu qui bouge le plus.
+**Rôle.** Rendre l'activité de la partie **perceptible sans geste**.
 
-**Ce qui justifie la pile, révisé le 23 août 2026.** Elle se justifiait jusqu'ici par le fait
-d'être « le châssis du futur chat », motif présenté comme celui qui emportait la décision. **Ce
-motif est retiré.** Le même document refuse deux fois l'anticipation avec les mêmes mots — pas
-d'emplacement pour le QR code, « un emplacement vide est un composant qui n'existe qu'au cas où »
-(§7.4), pas de calque de motifs, « un calque qui ne dessine rien est un composant qui n'existe
-qu'au cas où » (§15.3) — et `.claude/rules/contraintes.md` pose YAGNI comme règle permanente. Un
-principe qui vaut pour refuser doit valoir pour accepter.
-
-**Ce qui reste, et qui suffit :** l'activité est le contenu qui **bouge le plus** de la partie, et
-c'était le seul à exiger **deux tapes** pour découvrir qu'il s'était passé quelque chose. Sur un
-jeu dont le cas dominant est le téléphone en poche (§10), rendre le dernier événement lisible d'un
-coup d'œil à la réouverture est la fonction, entière, et elle se défend seule.
-
-**Si le chat arrive un jour et réutilise cette forme, tant mieux ; ce n'est pas ce qui la paie.**
+**Ce qui la justifie.** L'activité est le contenu qui **bouge le plus** de la partie, et le seul qui
+exigerait **deux tapes** pour qu'on découvre qu'il s'est passé quelque chose s'il vivait dans un
+onglet. Sur un jeu dont le cas dominant est le téléphone en poche (§10), rendre le dernier
+événement lisible d'un coup d'œil à la réouverture est la fonction, entière, et elle se défend
+seule. **Aucun usage futur n'entre dans cette justification** : la pile coûte de la carte
+aujourd'hui, elle doit se payer aujourd'hui.
 
 **Anatomie.**
 
@@ -1449,10 +1458,10 @@ coup d'œil à la réouverture est la fonction, entière, et elle se défend seu
 | Position | **Bas gauche.** 16 dp du bord gauche, **32 dp du bas** — même ligne de base que le bouton d'action « Partie », qui est en bas **droite**. Les deux ne se rencontrent jamais : la pile est plafonnée à 240 dp de large |
 | Largeur | **240 dp maximum.** Laisse 56 dp au bouton Recentrer plus les marges, sur les 360 dp de l'écran de référence |
 | Profondeur | **4 entrées au maximum**, la plus récente **en bas** |
-| Dégradé d'opacité | **1 · 1 · 0,70 · 0,45**, du plus récent au plus ancien. **Deux lignes pleines, deux qui s'effacent** — *plancher relevé le 23 août 2026 : à 0,25, la ligne la plus ancienne était du texte de 12 dp à un quart d'opacité, donc illisible pour tout le monde. Le dégradé doit rester une profondeur, pas une disparition* |
+| Dégradé d'opacité | **1 · 1 · 0,70 · 0,45**, du plus récent au plus ancien. **Deux lignes pleines, deux qui s'effacent.** 0,45 est un **plancher** : en dessous, du texte de 12 dp cesse d'être lisible pour tout le monde. Le dégradé est une profondeur, pas une disparition |
 | Ligne | Une seule ligne de texte, `type-caption`, **tronquée à l'ellipse** — jamais deux lignes, sinon la pile double de hauteur sans prévenir |
-| **Grandes tailles de police** | Au-delà de `textScaler` **1,3**, la pile **perd des entrées plutôt que des caractères** : 3 entrées au-dessus de 1,3, **2 au-dessus de 1,6**. La troncature reste, mais elle s'applique à une ligne qui a la place d'être lue. *(Ajout du 23 août 2026 : sans cette règle, la pile tronquait à l'ellipse là où le §1.2 exige de suivre le réglage jusqu'à 200 % — à 200 %, il restait une dizaine de caractères par ligne.)* |
-| Fond | Chaque ligne porte sa **plaque** `surface` **opaque**, `radius-sm`, plus le contour de 1 dp du §1.3. Sans plaque, du texte de 12 dp sur des hexagones saturés est illisible au soleil ; **et une plaque translucide ne permet pas de mesurer le contraste** (§1.5, règle de composition) — *le fond à 88 % avec flou a été retiré le 23 août 2026, en même temps que celui du header* |
+| **Grandes tailles de police** | La pile **perd des entrées plutôt que des caractères** : 3 entrées au-dessus de `textScaler` 1,3, **2 au-dessus de 1,6**. La troncature reste, mais elle s'applique à une ligne qui a la place d'être lue — sans cette règle, il ne resterait qu'une dizaine de caractères par ligne à 200 % |
+| Fond | Chaque ligne porte sa **plaque** `surface` **opaque**, `radius-sm`, plus le contour de 1 dp du §1.3. Sans plaque, du texte de 12 dp sur des hexagones saturés est illisible au soleil ; **et une plaque translucide ne permet pas de mesurer le contraste** (§1.5, règle de composition). Aucune transparence, aucun flou |
 | Pastilles | Les couleurs des joueurs cités, 10 dp, en tête de ligne — comme dans l'onglet d'origine |
 
 **Le geste — la décision qui rend la chose possible.**
@@ -1461,8 +1470,8 @@ coup d'œil à la réouverture est la fonction, entière, et elle se défend seu
   toucher **n'intercepte rien** : le glissement de carte traverse la pile et va à la carte. C'est ce
   qui permet à une surcouche permanente de coexister avec la règle du §7.2, là où un contrôle
   ordinaire l'aurait cassée.
-- **La pile reste dans l'arbre d'accessibilité — règle ajoutée le 23 août 2026.** Ne pas être
-  touchable ne veut pas dire ne pas être lisible : la pile est **la seule surface d'activité
+- **La pile reste dans l'arbre d'accessibilité.** Ne pas être touchable ne veut pas dire ne pas
+  être lisible : la pile est **la seule surface d'activité
   permanente du jeu**, et un joueur utilisant un lecteur d'écran doit l'entendre. `IgnorePointer`
   est précisément le widget qui peut l'en retirer selon la version de Flutter et la manière dont
   il est posé. **La règle est donc explicite et vérifiable :** les quatre entrées sont annoncées,
@@ -1492,14 +1501,11 @@ endroit où signaler une panne. Désactivé : sans objet. **Hors ligne** : la pi
 dernières entrées connues, sans mention de fraîcheur — elle est déjà datée par nature, et le
 bandeau réseau dit l'essentiel.
 
-**Ce que ça coûte — comptabilité refaite le 23 août 2026.** La pile occupe **240 × 120 dp**, soit
-**28 800 dp²**. La bande de 72 dp supprimée le même jour (§7.4) en faisait **360 × 72 = 25 920**.
-**La pile reprend donc un peu plus de surface que la révision qui la précède n'en avait libéré.**
-
-Le chiffre « la carte gagne près de dix points de pourcentage » du §7.4, et les 74-80 % du §2.2,
-restent exacts **au sens de la mise en page** : la pile n'est pas un élément de flux, la carte
-s'étend bien jusqu'à la safe area basse sous elle. Ils ne disent rien de la **lisibilité** de ce
-coin, et il faut le dire ici plutôt que de laisser le pourcentage le suggérer.
+**Ce que ça coûte.** La pile occupe **240 × 120 dp**, soit **28 800 dp²** du coin bas-gauche de la
+carte. Les 74-80 % de carte visible annoncés au §2.2 sont exacts **au sens de la mise en page** —
+la pile n'est pas un élément de flux, la carte s'étend jusqu'à la safe area basse sous elle — mais
+ils ne disent rien de la **lisibilité** de ce coin. Il faut le dire ici plutôt que de laisser le
+pourcentage le suggérer.
 
 **Deux choses limitent le coût réel, et ce sont elles qui font accepter l'échange :**
 
@@ -1532,8 +1538,8 @@ même bord d'écran.
 **Rôle.** Expliquer une action sans effet. Le cadrage justifie explicitement le compte à rebours du
 verrou de vol par : *« sans lui, marcher sur une tuile adverse sans rien obtenir passera pour un
 bug »* (§4.2). **Le plafond de 50 km/h (§4.3) pose exactement le même problème et n'a aucun retour
-prévu** — c'est le trou identifié en fin de l'ancien document. Les deux sont traités par le même
-composant, parce qu'ils ont le même besoin.
+prévu par le cadrage.** Les deux sont traités par le même composant, parce qu'ils ont le même
+besoin.
 
 **Décision de forme : réactif, pas permanent.** Le compte à rebours n'est pas un indicateur affiché
 en continu sur la carte. Il apparaît **au moment où le joueur subit l'effet**, et disparaît quand
@@ -1561,8 +1567,9 @@ message n'a de sens que quand le joueur perd réellement quelque chose.
 **Calcul.** Le verrou est calculé **localement**, avec la valeur `steal_cooldown_seconds` reçue à
 l'entrée en partie (§4.2) — le client applique la même règle que le serveur. La vitesse est
 calculée **côté serveur** (§4.3, non négociable) ; le client reçoit un drapeau et se contente de
-l'afficher. Ce drapeau est **acquis** : il a été ajouté au §4.3 du cadrage le 12 août 2026
-(voir §17.3).
+l'afficher. **Ce drapeau fait partie du contrat serveur** (cadrage §4.3) : un booléen dans la
+réponse aux lots de positions, aucun calcul déplacé côté client, donc aucune ouverture anti-triche
+(cadrage §12.5).
 
 **États.** Normal : affiché tant que la condition tient. Vide : absent — c'est le cas dominant.
 Chargement, erreur, désactivé : sans objet. **Hors ligne** : le verrou reste affiché (calcul local,
@@ -1604,54 +1611,39 @@ même raisonnement s'applique ici. Et trois panneaux, c'est trois boutons flotta
 **48 × 48 dp** séparé des deux onglets par un filet vertical en `outline`, glyphe `Gear` (§1.8).
 **Ce n'est pas un troisième onglet** : elle n'a pas d'état sélectionné, elle n'échange pas le
 contenu de la feuille, elle **ouvre la modale Paramètres par-dessus** (§8). C'est la seule porte
-vers les Paramètres pendant une partie, et elle est en bande basse — donc atteignable au pouce,
-là où le header ne l'était pas.
+vers les Paramètres pendant une partie, et elle est **en bande basse**, donc atteignable au pouce
+sans rattraper le téléphone (§1.4).
 
-**Deux onglets, et non plus trois — révision du 13 août 2026.** L'onglet « Activité » a quitté la feuille
-pour devenir la **pile d'activité** posée sur la carte (§7.2.1), avec sa modale au tap (§7.2.2).
-Motif : c'est le contenu qui bouge le plus, et il était le seul à exiger **deux tapes** pour qu'on
-découvre qu'il s'était passé quelque chose. La feuille garde ce qui se consulte à froid — qui joue,
-et comment inviter.
+**Deux onglets, pas trois.** L'activité ne vit pas ici : elle est posée sur la carte (§7.2.1) avec
+sa modale au tap (§7.2.2), parce que c'est le contenu qui bouge le plus et que deux tapes pour
+découvrir qu'il s'est passé quelque chose sont deux de trop. **Cette feuille porte ce qui se
+consulte à froid** — qui joue, et comment inviter.
 
-**Ni en-tête, ni pied — décision du 13 août 2026.** La feuille n'a plus de barre de titre portant le
-code de partie, ni de bouton « Quitter la partie » au pied. Motifs :
+**Ni en-tête, ni pied.**
 
-- **Le code ne vit qu'à un seul endroit, l'onglet Inviter.** L'afficher aussi dans l'en-tête le
-  dupliquait, avec un second bouton copier — contraire au principe DRY que le cadrage §2 pose
-  explicitement. Ce qu'on perd : lire le code sans changer d'onglet. Ce qu'on gagne : **48 dp de
-  hauteur de contenu**, dans un panneau dont la fonction principale est de **lire des listes**.
-  À mi-hauteur, la feuille passe de 5,6 à 6,3 lignes visibles.
-- **La feuille n'a plus de titre visible.** Elle n'en a pas besoin : elle glisse depuis l'écran de
-  jeu, ses deux onglets se nomment eux-mêmes, et un bandeau de titre qui ne fait que se nommer est
-  un composant qui existe pour se justifier. Son nom accessible est porté par
-  `Semantics(label: 'Partie')`, jamais par des pixels. **C'est propre à cette feuille** : les
-  autres — Créer, Rejoindre, Choix de couleur, Tableau des scores — gardent leur titre, parce
-  qu'on y arrive par un bouton nommé (§2.5).
-- **« Quitter la partie » a migré dans la modale Paramètres** (§8) — voir le raisonnement complet
+- **Pas de barre de titre.** La feuille glisse depuis l'écran de jeu, ses deux onglets se nomment
+  eux-mêmes, et un bandeau qui ne ferait que se nommer coûterait **48 dp de contenu** dans un
+  panneau dont la fonction est de **lire des listes** — à mi-hauteur, 5,6 lignes visibles au lieu
+  de 6,3. Son nom accessible est porté par `Semantics(label: 'Partie')`, jamais par des pixels.
+  **C'est propre à cette feuille** : les autres — Créer, Rejoindre, Choix de couleur, Tableau des
+  scores — portent leur titre, parce qu'on y arrive par un bouton nommé (§2.5).
+- **Le code de partie ne vit qu'à un seul endroit, l'onglet Inviter.** Le répéter dans un en-tête
+  le dupliquerait, avec un second bouton copier — contraire au principe DRY que le cadrage §2 pose
+  explicitement.
+- **Pas de pied.** « Quitter la partie » vit dans la modale Paramètres (§8) ; le raisonnement est
   au pied de ce paragraphe.
 
-**Ouverture par un bouton d'action — révision du 13 août 2026.**
+**Ouverture par un bouton d'action.** La feuille s'ouvre par un **bouton d'action rond de 56 dp**,
+en bas à droite, à 32 dp du bas, rempli en `accent`, avec le contour de 1 dp du §1.3. Le bouton
+« Recentrer » se place au-dessus de lui, à 96 dp du bas.
 
-Le document prévoyait un **état replié de 72 dp** occupant toute la largeur du bas de l'écran, qui
-portait le classement vivant en permanence : `───  ⬢ 3ᵉ sur 5 · Alice mène avec 312 hex  ⌃`.
-Cet état **est supprimé**. La feuille s'ouvre par un **bouton d'action rond de 56 dp**, en bas à
-droite, à 32 dp du bas, rempli en `accent`, avec le contour de 1 dp du §1.3. Le bouton
-« Recentrer » remonte au-dessus de lui, à 96 dp du bas.
+**Rien d'autre ne vit en bas de l'écran** — pas de bande, pas de poignée, pas de classement
+permanent : la carte descend jusqu'à la safe area, et c'est ce qui donne les 74-80 % du §2.2.
 
-| | Avant | Après |
-|---|---|---|
-| Bas de l'écran | Bande pleine largeur de 72 dp | **Rien** — la carte descend jusqu'à la safe area |
-| Classement | **Visible en permanence** | **À une tape**, en tête de l'onglet Joueurs |
-| Carte visible | 65 à 71 % | **≈ 74 à 80 %** |
-
-**Ce qu'on gagne :** environ 72 dp de carte, soit près de dix points de pourcentage — sur un écran
-dont le §2.2 dit que « la carte est le jeu ». Et un bas d'écran qui ne coupe plus la carte d'un
-trait horizontal.
-
-**Ce qu'on perd, et il faut le dire :** le classement n'est plus lisible sans geste. Le §7.5 du
-cadrage réclame un classement vivant ; il reste vivant, mais il se consulte. **Compensation :**
-l'onglet Joueurs affiche en tête *« 5 joueurs · fin dans 2 j 04 h »*, et le rang du joueur est
-porté par le header, qui reste permanent.
+**Ce que ça coûte, et il faut le dire :** le classement n'est pas lisible sans geste. Le §7.5 du
+cadrage réclame un classement vivant ; il l'est, mais il se consulte. **Compensation :** l'onglet
+Joueurs affiche en tête *« 5 joueurs · fin dans 2 j 04 h »*, et le score du joueur est porté par le
+header, qui reste permanent.
 
 **Ouverture automatique (§6).** À la **toute première** entrée en partie du créateur, la feuille
 s'ouvre seule à mi-hauteur sur l'onglet **Inviter**. Une seule fois, jamais à la réouverture de
@@ -1663,10 +1655,10 @@ carte (§7.2.1), qui montre la dernière entrée en permanence. Un compteur sur 
 
 #### Onglet « Joueurs » (§7.5)
 
-**En-tête de l'onglet — ajouté le 13 août 2026.** Une ligne de contexte en `type-caption`,
-`on-surface-muted` : *« 5 joueurs · fin dans 2 j 04 h »*. Elle compense la disparition du
-classement permanent (§7.4) en rappelant l'essentiel dès l'ouverture. Sous elle, un en-tête de
-colonne discret : *« hex · pts »*, aligné à droite.
+**En-tête de l'onglet.** Une ligne de contexte en `type-caption`, `on-surface-muted` :
+*« 5 joueurs · fin dans 2 j 04 h »*. C'est elle qui porte l'essentiel dès l'ouverture, en l'absence
+de classement permanent (§7.4). Sous elle, un en-tête de colonne discret : *« hex · pts »*, aligné
+à droite.
 
 **En pied de liste**, une ligne de réassurance en `type-caption` :
 *« Le classement se met à jour à chaque capture. Personne ne voit la position de personne. »*
@@ -1693,7 +1685,7 @@ Une ligne par joueur, hauteur **64 dp**, tappable en entier.
 direct**. La caméra passe en mode libre : le bouton « Recentrer » apparaît, ce qui indique
 exactement comment revenir.
 
-**La pastille voyage avec la caméra — décision d'identité, 13 août 2026.** Le déplacement se fait
+**La pastille voyage avec la caméra.** Le déplacement se fait
 par **transition d'élément partagé** (`Hero`) : la pastille de 16 dp de la ligne quitte la liste et
 devient le repère posé sur la tuile de destination, pendant que la feuille redescend et que la
 caméra glisse. Motif : un glissement de caméra seul ne relie pas l'action à son résultat — le
@@ -1720,12 +1712,6 @@ parties (§8.2).
 
 #### Contenu de la modale « Activité » (§11)
 
-> **Ce bloc a changé de support le 13 août 2026**, sans changer d'une ligne. Il spécifiait l'onglet
-> « Activité » de cette feuille ; il spécifie désormais le contenu de la **modale** ouverte au tap
-> sur la pile de carte (§7.2.2). Formats, types d'entrée, pagination et états sont **identiques** —
-> seul l'endroit où on les lit a bougé. Les quatre dernières entrées apparaissent en plus, tronquées,
-> dans la pile elle-même.
-
 Liste chronologique inverse, la plus récente en haut. Chaque entrée porte **un horodatage** et
 **une bande de distance** (§11.2).
 
@@ -1741,8 +1727,7 @@ Liste chronologique inverse, la plus récente en haut. Chaque entrée porte **un
 | Calcul de la bande | **Localement, sur l'appareil**, depuis le centre de gravité reçu et la position locale. La position du lecteur ne quitte jamais l'appareil (§11.2) |
 | Pastilles | Les couleurs des joueurs cités, en tête de ligne |
 
-Les **onze** types d'entrée, avec leurs textes. *(Neuf viennent du §11.3 du cadrage ; les deux
-derniers sont ajoutés le 23 août 2026 — voir la note sous la table.)*
+Les **onze** types d'entrée, avec leurs textes :
 
 | Type | Texte |
 |---|---|
@@ -1758,15 +1743,12 @@ derniers sont ajoutés le 23 août 2026 — voir la note sous la table.)*
 | **Vol subi** *(ajout)* | *« Alice t'a pris 2 tuiles. »* |
 | **Vol réussi** *(ajout)* | *« Tu as pris 3 tuiles à Alice. »* |
 
-> **Pourquoi deux types de plus — 23 août 2026.** Les neuf types d'origine sont **tous à la
-> troisième personne** : le journal raconte ce que font les autres entre eux, et jamais ce qui
-> arrive au lecteur. Or le §4.2 fonde tout le dispositif du verrou de vol sur le fait qu'un joueur
-> doit comprendre ce qui lui arrive, et le §7.1 sur le fait qu'une **baisse de score inexpliquée
-> passe pour un bug**. Le bandeau du §7.3 et le bilan de retour du §7.1 disent la baisse **au
-> moment où elle se voit** ; rien ne permettait de la retrouver ensuite.
->
-> **Ces deux types sont la trace consultable de la variation de score**, et ils ferment la boucle
-> ouverte par le §7.1 : le header dit « −200 », le journal dit **qui** et **quand**.
+> **Pourquoi les deux derniers existent.** Les neuf premiers sont à la **troisième personne** : ils
+> racontent ce que les autres font entre eux. Or le §4.2 fonde le verrou de vol sur le fait qu'un
+> joueur doit comprendre ce qui lui arrive, et le §7.1 sur le fait qu'une **baisse de score
+> inexpliquée passe pour un bug**. Le bandeau du §7.3 et le bilan de retour du §7.1 disent la
+> baisse **au moment où elle se voit** ; ces deux types-là en sont **la trace consultable
+> ensuite**. Le header dit « −200 », le journal dit **qui** et **quand**.
 >
 > **Trois règles qui les encadrent :**
 >
@@ -1805,9 +1787,8 @@ gauche ; les entrées de progression n'en portent pas. Deux niveaux, pas neuf ic
 pendant toute la partie. » (§6 : on peut rejoindre en cours). Après copie : *« Code copié »* en
 `SnackBar` de 2 s.
 
-**Le texte partagé — ajout du 23 août 2026.** Il n'était spécifié nulle part. C'est pourtant, au
-MVP, **le seul vecteur d'acquisition du jeu** : sans QR ni lien profond (§6), tout nouveau joueur
-arrive par ce message. Il doit donc nommer le jeu, donner le code, et dire où l'installer — un
+**Le texte partagé.** C'est, au MVP, **le seul vecteur d'acquisition du jeu** : sans QR ni lien
+profond (§6), tout nouveau joueur arrive par ce message. Il doit donc nommer le jeu, donner le code, et dire où l'installer — un
 message qui ne porte qu'un code de six caractères est illisible pour qui ne connaît pas Arpendo.
 
 > *« Rejoins ma partie sur Arpendo, le code est **K7MQ4P**.*
@@ -1840,15 +1821,13 @@ veut le lire**, avec des amis autour de soi et un réseau saturé. Vide, désact
 
 **Rôle.** Départ définitif et irréversible (§4.4).
 
-**Emplacement — révision du 13 août 2026.** L'action **n'est plus au pied de la feuille Partie**.
-Elle vit dans le bloc **« Cette partie »** de la modale Paramètres (§8), atteignable par l'icône
+**Emplacement.** L'action ne vit **pas** au pied de la feuille Partie, mais dans le bloc **« Cette partie »** de la modale Paramètres (§8), atteignable par l'icône
 Paramètres de la barre d'onglets de la feuille Partie (§7.4). Motifs :
 
-- **Un composant en moins.** Le pied de feuille n'existait que pour porter ce seul bouton, avec son
-  filet et son `space-12`. Il disparaît entièrement.
-- **La garantie ergonomique est conservée, le composant qui la portait ne l'est plus.** « Quitter
-  la partie » reste hors de portée du pouce au repos, dans une liste défilante — exactement la
-  règle du §1.4 qui justifiait le pied de feuille.
+- **Un composant en moins.** Un pied de feuille qui n'existerait que pour porter ce seul bouton,
+  avec son filet et son `space-12`, est un composant qui existe pour se justifier.
+- **La garantie ergonomique est la même.** « Quitter la partie » reste hors de portée du pouce au
+  repos, en fin de liste défilante — la règle du §1.4, appliquée où qu'elle vive.
 - **Une seule porte vers les Paramètres, et elle est ici.** L'icône vit dans la barre d'onglets de
   cette feuille (voir l'anatomie ci-dessus), pas dans le header du Jeu — qui est inerte (§7.1). Une
   seconde porte aurait recréé le défaut que §7.0 a passé son temps à supprimer.
@@ -1886,8 +1865,8 @@ de 4 s sur le Menu : *« Tu as quitté la partie. »*
 
 | État | Ce qui est affiché |
 |---|---|
-| Normal | Header + carte + **pile d'activité** + bouton d'action « Partie » |
-| Chargement initial | Carte au fond `surface-dim`, header avec « — hex · — pts », bouton d'action présent mais inactif, **pile absente**. **Aucun voile plein écran** : la carte doit apparaître dès qu'elle peut |
+| Normal | **Puces de header** + carte + **pile d'activité** + bouton d'action « Partie » |
+| Chargement initial | Carte au fond `surface-dim`, puce de score avec « — hex · — pts », bouton d'action présent mais inactif, **pile absente**. **Aucun voile plein écran** : la carte doit apparaître dès qu'elle peut |
 | Vide | Partie neuve, aucune tuile et aucune entrée : état normal, **sans pile**. Le vide n'appelle aucun message ici |
 | Erreur de viewport | Dernières données conservées + bandeau. **Ne jamais vider la couche** |
 | Hors ligne | Couche à 60 %, bandeau 5 ou 6, carte navigable, capture selon la phase (§10.1) |
@@ -1919,21 +1898,14 @@ titre **au Menu** (§5). Il n'y en a jamais deux à la fois.
 | **5** | **Cette partie** | Libellé de section, puis, après `space-12`, **« Quitter la partie »** — bouton texte `danger` | ✔ **en dernier** | ✖ | 48 dp |
 | **5** | **Ce compte** | Libellé de section, puis « Se déconnecter de Google » — bouton texte neutre, puis après `space-12` **« Supprimer mon compte »** — bouton texte `danger` | ✖ | ✔ | 48 dp |
 
-> **Correction du 23 août 2026 — « Cette partie » était en premier, il passe en dernier.** Le §1.4
-> pose que les actions destructives vivent **en fin de liste défilante**, et le §7.4 justifie
-> précisément le déplacement de « Quitter la partie » vers cette modale en écrivant qu'elle « reste
-> hors de portée du pouce au repos, **dans une liste défilante** — exactement la règle du §1.4 ».
-> La table le plaçait pourtant **immédiatement sous l'identité**, donc visible sans défiler : la
-> justification et le placement disaient l'inverse.
->
-> **Les deux blocs contextuels occupent désormais la même position, la dernière**, et ils
-> s'excluent toujours. C'est ce qui rend la modale identique en structure dans les deux contextes :
-> quatre blocs communs, puis un cinquième qui nomme la portée de ce qu'on va détruire.
+> **Les deux blocs contextuels occupent la même position, la dernière**, et ils s'excluent. C'est ce
+> qui rend la modale identique en structure dans les deux contextes : quatre blocs communs, puis un
+> cinquième qui nomme la portée de ce qu'on va détruire. Le §1.4 pose que les actions destructives
+> vivent **en fin de liste défilante** ; les placer plus haut les rendrait visibles sans défiler.
 
-**Pourquoi l'adresse du compte Google est affichée — décision du 13 août 2026.** Le cadrage §5.2
-exclut la photo de profil, et ce document n'affichait aucune donnée Google. L'adresse est ajoutée
-pour une raison précise : **un joueur qui possède plusieurs comptes Google doit pouvoir vérifier
-lequel il utilise.** C'est la seule donnée personnelle affichée à l'écran, elle n'est visible que
+**Pourquoi l'adresse du compte Google est affichée.** Le cadrage §5.2 exclut la photo de profil, et
+c'est la seule donnée Google de l'interface. Elle est là pour une raison précise : **un joueur qui
+possède plusieurs comptes Google doit pouvoir vérifier lequel il utilise.** C'est la seule donnée personnelle affichée à l'écran, elle n'est visible que
 par son propriétaire, elle n'est jamais transmise à un autre joueur et ne figure dans aucune liste
 ni aucun classement. À répercuter dans la politique de confidentialité (cadrage §13.12).
 
@@ -1945,7 +1917,7 @@ Tout ce qui est destructif est en bas de liste défilante, hors de portée du po
 Menu », « Supprimer mon compte » est en dernier et séparé de la déconnexion par `space-12` : c'est
 l'action la plus destructive de l'app.
 
-**La modale est contextuelle — révision du 13 août 2026.** Deux blocs s'excluent mutuellement :
+**La modale est contextuelle.** Deux blocs s'excluent mutuellement :
 **« Cette partie » n'existe qu'en partie, « Ce compte » n'existe qu'au Menu.** Ils ne sont donc
 jamais visibles ensemble, et le risque de confondre « Quitter la partie » avec « Supprimer mon
 compte » disparaît par construction. Les libellés de section restent, parce qu'ils nomment la
@@ -2174,8 +2146,8 @@ Trois, et trois seulement, sur un canal distinct de celui de la capture :
 **Aucune notification pour le flux d'activité** (§14.2). Le flux ne réveille jamais le téléphone et
 ne sort jamais de l'application.
 
-> **Précision du 13 août 2026.** Cette règle porte sur les **notifications système**, pas sur ce que
-> l'écran montre pendant qu'on le regarde. La pile d'activité (§7.2.1) est visible en permanence
+> **Cette règle porte sur les notifications système**, pas sur ce que l'écran montre pendant qu'on
+> le regarde. La pile d'activité (§7.2.1) est visible en permanence
 > **dans** l'application, et ne contredit donc rien ici : elle n'alerte pas, elle n'interrompt pas,
 > elle ne survit pas à la fermeture de l'app. Un joueur qui range son téléphone n'en entend jamais
 > parler.
@@ -2198,8 +2170,7 @@ il ne réapparaît **pas** pour la même version ; il réapparaît à la version
 ## 12. Permissions — parcours complet
 
 **Rôle.** Le cadrage définit un modèle unique à réévaluer à chaque passage au premier plan (§9.3).
-Ce document en spécifie l'interface et **y ajoute le quatrième niveau** exigé par §10.3 (voir
-§10.3 ci-dessus et §17).
+Ce document en spécifie l'interface, **quatrième niveau compris** — celui qu'exige §10.3.
 
 ### 12.1 Les quatre niveaux
 
@@ -2222,8 +2193,8 @@ pousserait le joueur à garder l'app ouverte, vidant sa batterie pour rien.
   que l'écran ait une identité, assez peu pour qu'on ne le confonde pas avec une carte.
 - Le **bandeau bloquant** (priorité 1, 2 ou 3), centré verticalement plutôt que collé en haut :
   c'est le seul contenu de l'écran, le mettre en haut laisserait un grand vide sous lui.
-- Le **header permanent reste affiché**, avec ses valeurs figées. Il est inerte (§7.1), il ne porte
-  donc aucun chemin de sortie.
+- Les **puces de header restent affichées**, avec leurs valeurs figées. Elles sont inertes (§7.1),
+  elles ne portent donc aucun chemin de sortie.
 - **Le bouton d'action « Partie » reste présent et actionnable**, et c'est lui qui porte la
   garantie de cohérence du §15 : il ouvre la feuille, dont la barre d'onglets porte l'icône
   Paramètres, d'où l'on atteint ses **Permissions** — le seul chemin de retour — et le lien web de
@@ -2257,15 +2228,14 @@ succès : le retour de la carte **est** le message.
    bandeau de niveau 2, jamais en interruption. C'est un réglage constructeur, pas une permission
    Android standard.
 
-Cela fait **quatre autorisations distinctes** à obtenir — le §9.3 du cadrage en compte trois ; voir
-§17.
+Cela fait **quatre autorisations distinctes** à obtenir, et la séquence ci-dessus les étale pour ne
+pas aggraver le taux de refus.
 
 ---
 
 ## 13. États vides, chargement et erreur — table transverse
 
-Récapitulatif consolidé, reprenant intégralement le §9 de l'ancien document et complétant les
-manques.
+Récapitulatif consolidé de tous les états vides, de chargement et d'erreur du document.
 
 ### 13.1 États vides
 
@@ -2284,9 +2254,8 @@ manques.
 Règle générale : **squelette pour une structure connue, indicateur pour une action déclenchée par
 le joueur.**
 
-**Le délai de 600 ms ne s'applique qu'à l'attente subie — précisé le 23 août 2026.** La règle était
-écrite comme générale et contredisait ses propres applications, qui font passer un bouton en
-indicateur **au tap**, sans délai. Les deux cas ne posent pas le même problème :
+**Le délai de 600 ms ne s'applique qu'à l'attente subie.** Les deux cas ne posent pas le même
+problème :
 
 | Cas | Délai | Motif |
 |---|---|---|
@@ -2326,13 +2295,14 @@ MVP mais l'API le prévoit) — chargent la page suivante **à 3 lignes du bas**
 
 ## 14. Récapitulatif des décisions
 
-Les dix points laissés ouverts par le §15 du cadrage et par l'ancien document, avec leur renvoi.
+Index des décisions structurantes, avec leur renvoi. Il ne remplace aucune section : il sert à
+retrouver où une décision est spécifiée.
 
-| # | Point ouvert | Décision | Détail |
+| # | Sujet | Décision | Où |
 |---|---|---|---|
 | 1 | Placement des boutons d'action sur l'écran Jeu | Header, bouton d'action « Partie », Recentrer conditionnel, plus la pile d'activité qui n'est pas un contrôle | §7.0, §7.2 |
 | 2 | Participants : modale ou panneau glissant | **Panneau glissant**, onglet « Joueurs » | §7.4 |
-| 3 | Flux d'activité : modale ou panneau | **Ni l'un ni l'autre** — pile permanente en bas gauche de la carte, non interactive sauf sa ligne du bas, plus une modale au tap. *Révisé le 13 août 2026 ; l'onglet était la décision initiale* | §7.2.1, §7.2.2 |
+| 3 | Flux d'activité : modale ou panneau | **Ni l'un ni l'autre** — pile permanente en bas gauche de la carte, non interactive sauf sa ligne du bas, plus une modale au tap | §7.2.1, §7.2.2 |
 | 4 | Dessin des motifs `pattern_id` | Recette de rendu spécifiée, **rien livré au MVP** | §15.2 |
 | 5 | Style Mapbox de base | **Mapbox Standard**, libellés désactivés, slot `bottom` | §3.2 |
 | 6 | Traitement visuel de la variation de score | Tuiles avant points · symétrie hausse/baisse · pastille de delta · bilan de retour | §7.1 |
@@ -2340,13 +2310,13 @@ Les dix points laissés ouverts par le §15 du cadrage et par l'ancien document,
 | 8 | Rendu de l'état « carte masquée » | Aucun widget Mapbox instancié | §12.2 |
 | 9 | Animation de capture d'un hexagone | 300 ms de couleur + pulsation de contour + haptique, **jamais sur un lot** | §3.3 |
 | 10 | Réapparition des écrans d'entrée en partie | **Une seule modale, la sécurité, une fois par compte.** La mention de visibilité est retirée de l'interface et portée par les documents juridiques | §6, §6.1 |
-| **+** | **Retour visuel du plafond de 50 km/h** *(trou du cadrage)* | Bandeau réactif partagé avec le verrou de vol | §7.3, §17 |
-| **+** | **Jeu d'icônes** *(rien n'était défini)* | **Phosphor `Regular`**, 24 dp de dessin, 48 dp de cible ; trois silhouettes de sévérité non substituables | §1.8 |
-| **+** | **Le mode sombre habille-t-il la carte ?** | **Oui** — `lightPreset: night` sur le style Standard, même canal de configuration que les libellés | §1.5, §3.2, §15.2 |
-| **+** | **Comportement au clavier de l'écran Accueil** *(non spécifié depuis la fusion)* | Défilement, le bloc marque sort de l'écran, le bloc Créer ne remonte pas | §5 |
-| **+** | **Course sur la couleur choisie** *(seul le cas « partie pleine » existait)* | La feuille reste ouverte, la pastille bascule en « Prise », aucune sélection à la place du joueur | §5.3 |
-| **+** | **Texte du message de partage** *(seul vecteur d'acquisition au MVP)* | Trois lignes : code en gras, phrase de présentation, lien Play Store | §7.4 |
-| **+** | **Tap sur un hexagone** | **Rien au MVP**, et aucun geste réservé sur la couche | §7.2 |
+| 11 | **Retour visuel du plafond de 50 km/h** | Bandeau réactif partagé avec le verrou de vol | §7.3 |
+| 12 | **Jeu d'icônes** | **Phosphor `Regular`**, 24 dp de dessin, 48 dp de cible ; trois silhouettes de sévérité non substituables | §1.8 |
+| 13 | **Le mode sombre habille-t-il la carte ?** | **Oui** — `lightPreset: night` sur le style Standard, même canal de configuration que les libellés | §1.5, §3.2, §15.2 |
+| 14 | **Comportement au clavier de l'écran Accueil** | Défilement, le bloc marque sort de l'écran, le bloc Créer ne remonte pas | §5 |
+| 15 | **Course sur la couleur choisie** | La feuille reste ouverte, la pastille bascule en « Prise », aucune sélection à la place du joueur | §5.3 |
+| 16 | **Texte du message de partage** *(seul vecteur d'acquisition au MVP)* | Trois lignes : code en gras, phrase de présentation, lien Play Store | §7.4 |
+| 17 | **Tap sur un hexagone** | **Rien au MVP**, et aucun geste réservé sur la couche | §7.2 |
 
 ---
 
@@ -2375,10 +2345,10 @@ avant d'écrire l'écran de jeu, pas avant de valider ce document.
 | **`LocationPuck3D` et la coloration du modèle** | Le marqueur doit porter la couleur du joueur. Si le modèle n'est pas teintable, il faut 10 fichiers glTF | 10 fichiers glTF, ou repli sur un puck 2D teinté — dégradation acceptable, le marqueur reste identifiable |
 | **Distinction glissement / pincement** dans les rappels de geste du `MapWidget` | Toute la machine à trois états de la caméra (§7.3) en dépend | Seuil de 24 dp sur un seul pointeur (§7.2) ; si le SDK ne donne pas le nombre de pointeurs, détection au niveau Flutter par-dessus le widget |
 | **Transitions de propriété de peinture** (`fill-color-transition`) exposées côté Flutter | L'animation de capture (§3.3) | Couche éphémère dédiée à la tuile capturée, animée depuis Dart par un `Ticker` — garanti faisable, coût : une source et une couche de plus |
-| **Motifs `fill-pattern`** | Le passage à 50 joueurs (§5.2) | Voir §17, point 2 |
-| **`lightPreset` du style Standard** exposé côté Flutter *(ajout du 23 août 2026)* | Le mode sombre de la carte (§1.5 règle 2, §3.2) | Le mode sombre n'habille que le chrome et la carte reste en `day` — le comportement d'origine. Dégradé, jamais bloquant |
-| **Métriques réelles de Roboto pour la ligne du header** *(ajout du 23 août 2026)* | Le seuil de repli à `textScaler` 1,1 (§7.1) est calculé sur des largeurs estimées, avec 12 dp de marge | Mesurer la ligne à 1,0 sur l'écran de référence ; si elle déborde, le seuil descend, ou les unités « hex » et « pts » passent en `type-caption` plus étroit. **Jamais de `FittedBox`** (§7.1) |
-| **Annonce de la pile d'activité par le lecteur d'écran** *(ajout du 23 août 2026)* | `IgnorePointer` peut retirer la pile de l'arbre sémantique selon la version de Flutter (§7.2.1) | Envelopper la pile dans un `Semantics` explicite en dehors de l'`IgnorePointer`. Test d'accessibilité obligatoire, le point ne se vérifie pas à l'œil |
+| **Motifs `fill-pattern`** | Le passage à 50 joueurs (§5.2) | Second `FillLayer` de motif au-dessus du calque de couleur, alimenté par la même source, `fill-pattern` piloté par `['get', 'pattern_id']` et 5 images monochromes à fond transparent. **Rien n'est livré au MVP** (§15.3) |
+| **`lightPreset` du style Standard** exposé côté Flutter | Le mode sombre de la carte (§1.5 règle 2, §3.2) | Le mode sombre n'habille que le chrome et la carte reste en `day` — le comportement d'origine. Dégradé, jamais bloquant |
+| **Métriques réelles de Roboto pour la ligne du header** | Le seuil de repli à `textScaler` 1,1 (§7.1) est calculé sur des largeurs estimées, avec 12 dp de marge | Mesurer la ligne à 1,0 sur l'écran de référence ; si elle déborde, le seuil descend, ou les unités « hex » et « pts » passent en `type-caption` plus étroit. **Jamais de `FittedBox`** (§7.1) |
+| **Annonce de la pile d'activité par le lecteur d'écran** | `IgnorePointer` peut retirer la pile de l'arbre sémantique selon la version de Flutter (§7.2.1) | Envelopper la pile dans un `Semantics` explicite en dehors de l'`IgnorePointer`. Test d'accessibilité obligatoire, le point ne se vérifie pas à l'œil |
 
 ### 15.3 Recette de rendu des motifs — pour plus tard, pas pour le MVP
 
