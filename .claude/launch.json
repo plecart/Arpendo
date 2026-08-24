@@ -1,0 +1,1 @@
+{"version":"0.0.1","configurations":[{"name":"maquette","runtimeExecutable":"python","runtimeArgs":["-m","http.server","8080","--directory","documents/maquettes/claude-design-v2"],"port":8080,"url":"http://localhost:8080"}]}

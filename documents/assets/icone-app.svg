@@ -1,0 +1,13 @@
+<svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="Icône Arpendo — direction Relevé">
+  <rect width="108" height="108" rx="24" fill="#F1EDE2"/>
+  <g fill="none" stroke="#123D1E" stroke-linejoin="round" transform="translate(0,-2)">
+    <path d="M54 16 C74 18 90 32 90 54 C90 76 74 92 54 92
+             C34 92 18 76 18 54 C18 32 34 14 54 16 Z"
+          stroke-width="3" opacity="0.26"/>
+    <path d="M54 30 C68 31 78 41 78 54 C78 67 68 78 54 78
+             C40 78 30 67 30 54 C30 41 40 29 54 30 Z"
+          stroke-width="3" opacity="0.52"/>
+  </g>
+  <path d="M54 36 L67 43.5 L67 58.5 L54 66 L41 58.5 L41 43.5 Z" fill="#123D1E"/>
+</svg>

@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  pull_request:
+    # `ready_for_review` est INDISPENSABLE ici : sans lui, aucun événement n'est émis au passage
+    # draft → ready, et la CI ne tournerait jamais sur une PR ouverte en draft (Étape 2 de
+    # `cycle-pr`). Ne pas retirer ce type sans retirer aussi le garde `if:` du job.
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint + Type-check + Test
+    runs-on: ubuntu-latest
+
+    # Pas de CI tant que la PR est en draft.
+    #
+    # `cycle-pr` ouvre la PR AVANT d'écrire la moindre ligne de code (Étape 2), pour rendre le
+    # travail visible comme « en cours ». Sans ce garde, chaque push de développement
+    # déclencherait un run complet sur du code volontairement incomplet.
+    #
+    # C'est sans risque dans cette pipeline : les étapes 3.2 et 3.4 imposent une suite verte en
+    # local avant chaque commit, donc aucun commit cassé n'entre dans l'historique. La CI reprend
+    # au `gh pr ready` (Étape 5) et sur chaque push suivant.
+    #
+    # La condition sur `event_name` est nécessaire : sur un push vers `main`, l'objet
+    # `pull_request` n'existe pas.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+
+    # Fait sauter le préfixe `fvm` des recettes : le runner est jetable et n'a rien à isoler.
+    # Rationale complète en tête du `justfile`, qui définit ces deux variables.
+    env:
+      FLUTTER_CMD: flutter
+      DART_CMD: dart
+
+    services:
+      # PostgreSQL 17 : disponible chez tous les hébergeurs managés UE, supporté jusqu'en
+      # novembre 2029, et le projet n'utilise aucune fonctionnalité postérieure — H3 est stocké
+      # en BIGINT sans extension (cadrage §13.6). Le service managé doit être commandé dans la
+      # même majeure : une CI qui teste sur une autre ne prouve rien sur les migrations.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      valkey:
+        image: valkey/valkey:8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versions d'actions tenues à jour par Dependabot (cadrage §13.11).
+      - name: Setup uv + Python
+        uses: astral-sh/setup-uv@v5
+        with:
+          # Tient lieu de source de version tant que `api/.python-version` n'existe pas.
+          # Dès que ce fichier est créé, `setup-uv` le lit seul : cette ligne doit alors
+          # disparaître, sinon la version est déclarée à deux endroits et elles divergent.
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Source unique de la version, partagée avec le poste de dev (cf. `env` du job).
+          # Pas de `channel:` ici : il serait une seconde déclaration concurrente de `.fvmrc`.
+          flutter-version-file: .fvmrc
+          cache: true
+          pub-cache: true
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Install
+        run: just install
+
+      - name: Lint
+        run: just lint
+
+      - name: Format check
+        run: just fmt-check
+
+      - name: Typecheck
+        run: just typecheck
+
+      - name: Build
+        run: just build
+
+      - name: Tests
+        run: just test

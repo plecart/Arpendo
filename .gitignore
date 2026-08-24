@@ -1,0 +1,68 @@
+# Réglages Claude Code propres à une machine : ils n'ont rien à faire dans le dépôt.
+# La règle doit vivre ICI et pas dans un .gitignore global, sinon elle ne suit pas les clones.
+.claude/settings.local.json
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+*.swp
+
+# Secrets — jamais dans le dépôt (cadrage §13.10)
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+key.properties
+*.pem
+
+# Python — `api/` et `worker/` (uv, pytest, ruff, mypy)
+# `uv.lock` est VOLONTAIREMENT versionné, au même titre que `pubspec.lock`.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+
+# Flutter / Dart
+# `pubspec.lock` est VOLONTAIREMENT versionné : c'est une application, pas une lib
+# (cadrage §13.11, « fichiers de verrouillage commités »).
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+coverage/
+doc/api/
+
+# Android
+# `**/` est indispensable : l'app vit dans `app/`, pas à la racine. Un motif écrit
+# `android/...` serait ancré sur ce fichier et ne matcherait jamais `app/android/...`.
+**/android/.gradle/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+*.apk
+*.aab
+
+# iOS — phase 2, hors périmètre MVP ; motifs posés d'avance, même règle de profondeur
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+*.ipa
+
+# FVM Version Cache
+.fvm/

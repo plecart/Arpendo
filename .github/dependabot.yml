@@ -1,0 +1,45 @@
+# Mises à jour de dépendances — cadrage §13.11 (« Dependabot ou Renovate, fichiers de
+# verrouillage commités »). Une bibliothèque de géolocalisation abandonnée est un risque réel.
+#
+# Les répertoires `/api`, `/worker`, `/app` et `/infra` n'existent pas encore : Dependabot
+# n'y trouve aucun manifeste et reste silencieux. Les entrées s'activent seules au scaffold.
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+
+  - package-ecosystem: "uv"
+    directories:
+      - "/api"
+      - "/worker"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(api)"
+    groups:
+      # Un seul PR pour les montées de patch/mineures : à moins de 8 h/semaine, dix PR
+      # Dependabot par semaine ne se relisent pas, elles se ferment en masse.
+      mineures:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "pub"
+    directory: "/app"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(app)"
+    groups:
+      mineures:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker-compose"
+    directory: "/infra"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(infra)"
