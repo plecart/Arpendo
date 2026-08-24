@@ -17,6 +17,8 @@ Thumbs.db
 *.keystore
 key.properties
 *.pem
+# Fichiers d'identifiants entiers (compte de service FCM, etc. — cf. `.env.example`)
+secrets/
 
 # Python — `api/` et `worker/` (uv, pytest, ruff, mypy)
 # `uv.lock` est VOLONTAIREMENT versionné, au même titre que `pubspec.lock`.

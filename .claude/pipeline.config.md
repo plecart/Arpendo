@@ -23,7 +23,8 @@ Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape abs
 Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est modifier le justfile**.
 - install      : `just install`
 - test         : `just test`                  # suite complète
-- test ciblé   : `just test-one <chemin|motif>`  # une seule cible, pour la boucle TDD
+- test ciblé api : `just test-one <chemin|motif>`     # une seule cible, pour la boucle TDD
+- test ciblé app : `just test-one-app <chemin>`       # chemin relatif à `app/`
 - lint         : `just lint`
 - format       : `just fmt`                   # écrit
 - format:check : `just fmt-check`             # vérifie sans écrire
@@ -33,11 +34,14 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 
 > ⚠️ **Non vérifiées tant que `api/` et `app/` n'existent pas** — les recettes pointent vers des
 > répertoires absents. À exécuter réellement dès le premier scaffold, et à corriger ici si l'une
-> échoue pour une autre raison que l'absence de code.
+> échoue pour une autre raison que l'absence de code. **Les agrégats (`install`, `test`, `lint`,
+> `fmt*`) traversent les deux répertoires : le premier scaffold doit créer `api/` et `app/`
+> ensemble** — même réduits au squelette —, sinon chaque commande échoue sur le répertoire manquant
+> et la CI reste rouge.
 
 ## Qualité
 - seuil de couverture : 85 % côté `api/` (appliqué par `--cov-fail-under=85`) ; `n/a` côté `app/`
-- gates bloquants en CI : lint, format:check, typecheck, test
+- gates bloquants en CI : lint, format:check, typecheck, build, test
 - services requis en CI : `postgres:17`, `valkey:8`
   - **PostgreSQL 17** — disponible chez tous les hébergeurs managés UE (la 18 ne l'est pas
     partout), supporté jusqu'en novembre 2029, et aucune fonctionnalité postérieure n'est
@@ -101,7 +105,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   `game-ui-ux`, plus `design-motion-principles`
 - Transverses : `task-observer` (activé par `CLAUDE.md`), `find-skills`, `i-have-adhd`
 - Fourni par le runtime, **non épinglé** : `dataviz` — son `scripts/validate_palette.py` est le
-  validateur normatif de la palette (identité visuelle §145, §577). Absent de `skills-lock.json`.
+  validateur normatif de la palette (identité visuelle §1.2, §4.3). Absent de `skills-lock.json`.
 - Écartés :
   - `0xGF/boneyard` — incompatible Flutter par construction : mesure la géométrie du DOM réel
   - `leonxlnx/taste-skill` — borné aux landing pages / portfolios en Tailwind

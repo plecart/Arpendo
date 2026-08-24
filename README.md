@@ -66,7 +66,7 @@ en leur faveur.
 | **`03-identite-visuelle.md`** | Le raisonnement derrière la direction « Relevé » : la contrainte chromatique découverte par le calcul, les validations ΔE, les ressources SVG, et **pourquoi** les deux autres directions ont été écartées. **Leurs valeurs en ont été retirées** — le projet ne contient qu'une seule palette |
 | **`04-chiffrage.md`** | Tarifs relevés à la source le 10 août 2026, scénarios 50 / 500 / 5 000 joueurs |
 
-### `documents/design/` → `assets/` et `maquettes/`
+### `documents/assets/` et `documents/maquettes/` — le design
 
 | Chemin | Contenu |
 |---|---|
@@ -133,7 +133,7 @@ UX**.
 | 2 | **Les CGU et la politique de confidentialité doivent couvrir la visibilité des zones.** La modale qui portait cette information a été retirée de l'interface ; l'obligation est passée aux documents juridiques, et la clause exacte est écrite au **§13.12 du cadrage** | Avant la publication |
 | 3 | **La page web de suppression de compte n'existe pas.** Le cadrage §12.2 la donne comme **obligatoire pour Google Play** — « chemin dans l'app **et** URL web ». L'app a son chemin ; la page reste due | Avant la publication |
 | 4 | **La modale « Mes hexagones »** — spécifiée au §7.6 du cadrage, **reportée post-MVP**. Ne bloque rien | Post-MVP |
-| 5 | **Aucun jeton Mapbox.** Deux sont nécessaires (public + téléchargement du SDK), voir `.env.example`. Le public est le risque de facture n°1 du cadrage §13.10 | Avant le scaffold de `app/` |
+| 5 | **Aucun jeton Mapbox.** Deux sont nécessaires (public + téléchargement du SDK), voir `.env.example`. Le public est le risque de facture n°1 du cadrage §13.10. Le jeton de téléchargement devra **aussi** exister en secret GitHub Actions (`MAPBOX_DOWNLOADS_TOKEN`) : le step Build de la CI en aura besoin dès que `mapbox_maps_flutter` sera une dépendance | Avant le scaffold de `app/` |
 | 6 | **`UBIQUITOUS_LANGUAGE.md` n'existe pas.** `CLAUDE.md` s'en sert pour nommer tests, issues et PR. Le vocabulaire est arrêté dans le cadrage mais n'est extrait nulle part | Avant les premières issues |
 | 7 | **Pas de fichier de jetons machine** (`tokens.json` ou thème Dart) — voir « Ce qui n'existe pas encore » | Avant le premier écran |
 | 8 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |

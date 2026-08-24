@@ -550,7 +550,7 @@ Toutes les modifications ci-dessous ont été **portées** dans `02-specificatio
 `01-cadrage.md` après l'arbitrage en faveur de « Relevé ». La liste est conservée telle quelle
 comme trace de ce qui a bougé et où.
 
-### 5.1 Dans `02-specification-ux.md`
+### 4.1 Dans `02-specification-ux.md`
 
 | § | Modification | Nature |
 |---|---|---|
@@ -567,7 +567,7 @@ comme trace de ce qui a bougé et où.
 | **§7.4** | Listes de la feuille Partie : **cascade de 30 ms par ligne, plafonnée à 8 lignes** | Recommandé |
 | **§4** | Ajouter le logotype et l'accroche à l'écran Connexion, avec leur hiérarchie : accroche discrète sous le nom (réponse 9.2) | Obligatoire |
 
-### 5.2 Dans `01-cadrage.md`
+### 4.2 Dans `01-cadrage.md`
 
 | § | Modification | Nature |
 |---|---|---|
@@ -576,7 +576,7 @@ comme trace de ce qui a bougé et où.
 | **§13.1** | Préciser le budget du modèle glTF (260 à 450 triangles selon la direction), le matériau unlit, et le fait que **le modèle est teinté par instance** — ce qui lève par avance le risque §15.2 de la spec UX (« si le modèle n'est pas teintable, il faut 10 fichiers ») | Recommandé |
 | **§18.2** | Entrée de journal datée | Obligatoire |
 
-### 5.3 Ce que ce document n'a pas tranché
+### 4.3 Ce que ce document n'a pas tranché
 
 - **Le style Mapbox réglé.** Le §3.2 de la spec impose la vérification ΔE du fond de carte ; elle se
   fait sur le style réel, dans l'application, pas ici.

@@ -48,7 +48,7 @@ install-api:
 test-api:
     uv run pytest --cov=src --cov-fail-under=85
 
-# Une seule cible, pour la boucle TDD de `cycle-pr`
+# Une seule cible côté `api/`, pour la boucle TDD de `cycle-pr` ; pendant Flutter : `test-one-app`
 [working-directory('api')]
 test-one CIBLE:
     uv run pytest {{CIBLE}}
@@ -78,6 +78,11 @@ install-app:
 [working-directory('app')]
 test-app:
     "{{flutter}}" test
+
+# Une seule cible côté `app/` (chemin relatif à `app/`), pendant de `test-one`
+[working-directory('app')]
+test-one-app CIBLE:
+    "{{flutter}}" test {{CIBLE}}
 
 [working-directory('app')]
 lint-app:

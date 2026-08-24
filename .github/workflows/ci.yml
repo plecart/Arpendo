@@ -97,8 +97,18 @@ jobs:
       - name: Typecheck
         run: just typecheck
 
+      # Exigera le secret `MAPBOX_DOWNLOADS_TOKEN` dès que `mapbox_maps_flutter` sera une
+      # dépendance (téléchargement du SDK Android au build) — README « Ce qui reste ouvert », n°5.
       - name: Build
         run: just build
 
       - name: Tests
+        # Coordonnées des conteneurs `services` ci-dessus. Valkey tourne SANS mot de passe en CI —
+        # le bloc `services:` ne permet pas de passer `--requirepass` à l'image officielle — alors
+        # que local et production en exigent un (`.env.example`). Compléter au scaffold si les
+        # settings réels demandent d'autres variables.
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
+          VALKEY_URL: redis://localhost:6379/0
+          VALKEY_PASSWORD: ""
         run: just test
