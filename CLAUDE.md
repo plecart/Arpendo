@@ -33,6 +33,15 @@ il renvoie la doc à jour de la lib demandée, ce qui économise des tokens et �
 périmées. Déclaré dans `.mcp.json` à la racine (scope projet), **sans clé API** : les quotas
 de l'offre gratuite s'appliquent. Vérifier avec `claude mcp list`.
 
+Second serveur déclaré dans `.mcp.json` : **`mapbox-devkit`** (`@mapbox/mcp-devkit-server`, stdio
+via `npx`), qui fournit les outils du skill `mapbox-style-quality` — `validate_expression_tool`,
+`validate_geojson_tool`, `color_contrast_checker_tool`, `compare_styles_tool`,
+`style_optimization_tool` — plus la gestion des styles et des jetons du compte. Il lit le jeton
+dans la variable d'environnement **`MAPBOX_DEVKIT_TOKEN`** du poste (jamais dans le dépôt) : un
+jeton **public `pk.`** dédié, portées `styles:read` `styles:list` `styles:download` pour la
+validation ; ajouter `styles:write` seulement le jour où un style personnalisé existe, `tokens:*`
+jamais. Distinct des deux jetons de l'app (`mapbox-token-security`).
+
 ## Minimalisme (`ponytail`)
 
 Invoquer le skill `ponytail` **avant d'écrire du code** — écriture, ajout, refactor, correctif,
@@ -66,11 +75,32 @@ Quatre skills design sont installés et se chevauchent. Un seul par situation :
 |---|---|---|
 | Structure de l'écran Jeu : contrôles flottants, pile d'activité, feuille, empilement Connexion → Accueil → Avertissement → Jeu → Paramètres | `game-ui-ux` | Ancrage aux safe areas (§2.3), pile d'écrans, **HUD piloté par événements SSE, jamais par sondage**. Les widgets concrets viennent des skills `flutter-*` |
 | Écrire `tokens.json` et son pendant Flutter (`ThemeData` / `ThemeExtension`) | `design-system` | Architecture primitif → sémantique → composant, **valeurs recopiées de la spec §1**. Ni CSS, ni Tailwind, ni diapositives |
-| Relire une animation implémentée | `design-motion-principles` | **Mode audit uniquement**, contre les jetons `motion-*` de la spec. Jamais en mode construction : il est pensé CSS/Framer et choisirait des durées déjà fixées |
-| Performance mobile (60 fps, batterie, géoloc arrière-plan) et checklist de sortie | `mobile-design` | Sur invocation explicite `/mobile-design`. Lourd (six lectures obligatoires), orienté React Native : ne pas le déclencher pour dessiner un écran |
+| Relire une animation implémentée | `design-motion-principles` | **Mode audit uniquement**, contre les jetons `motion-*` de la spec, et en réponse écrite — pas son rapport HTML, pensé pour le web. Jamais en mode construction : il est pensé CSS/Framer (zéro Flutter) et choisirait des durées déjà fixées |
+| Ergonomie tactile (`touch-psychology.md`), Material 3 Android (`platform-android.md`), perf/batterie (`mobile-performance.md`, section Flutter), push et sync hors-ligne (`mobile-backend.md`), checklist de sortie (§10) | `mobile-design` | Sur invocation explicite `/mobile-design`, en ignorant son « Mandatory Reference Reading » : lire **uniquement** le fichier utile. **Ne jamais ouvrir** `mobile-color-system.md` (impose `#000000` en fond) ni `mobile-typography.md` (impose une échelle) — la palette et la typo sont closes |
 
 Sur une demande vague (« améliore cet écran »), **ne pas tirer un skill au hasard** : lire la
 section correspondante de la spec, puis choisir dans la table.
+
+## Carte (Mapbox) et navigation — skills gardés pour plus tard
+
+Trois skills sont installés **pour une phase future** ; tant qu'elle n'a pas commencé, ils ne
+s'invoquent que dans le cadre ci-dessous, jamais par matching de description :
+
+- `mapbox-style-patterns` — recettes de **styles personnalisés**. La spec §3.2 a tranché **Mapbox
+  Standard** (libellés désactivés par `show*Labels`, `lightPreset` pour le mode sombre) : aucun
+  style à maintenir. Il ne sert que si cette décision est rouverte — et alors la contrainte
+  ΔE ≥ 15 du fond de carte face aux dix couleurs joueur (cadrage §7.2) s'applique au nouveau style.
+- `mapbox-data-visualization-patterns` — pour la **couche hexagones de la spec §3.3**
+  (`GeoJsonSource` + `FillLayer` + expression sur une propriété) et rien d'autre : pas de
+  choroplèthe, heat map ni 3D. Ses exemples sont en GL JS ; transposer vers `mapbox_maps_flutter`
+  avec `mapbox-flutter-patterns`.
+- `flutter-setup-declarative-routing` — son déclencheur (deep links, App Links, historique
+  navigateur) est **post-MVP** (cadrage §7 : lien profond et QR code repoussés). Le MVP navigue
+  au `Navigator` de base entre cinq écrans à racine pilotée par l'état (UX §2). Ne pas introduire
+  `go_router` avant que le lien profond soit à l'ordre du jour.
+
+`mapbox-style-quality` dépend du serveur MCP **DevKit** de Mapbox (`validate_expression_tool`,
+`check_color_contrast_tool`…) déclaré dans `.mcp.json` ; sans lui, le skill n'a aucun outil.
 
 ## Observation continue (`task-observer`)
 

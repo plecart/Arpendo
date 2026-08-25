@@ -61,12 +61,6 @@
       "skillPath": "skills/i-have-adhd/SKILL.md",
       "computedHash": "8464da28e98a4f7884a7ebc060bab0cec318aa30e874239e48e505b95e814132"
     },
-    "mapbox-android-patterns": {
-      "source": "mapbox/mapbox-agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/mapbox-android-patterns/SKILL.md",
-      "computedHash": "8785c7f24fabc74b6ab706150a5327a92f5edaaae162bfa4eb5f07618a1a3f0e"
-    },
     "mapbox-cartography": {
       "source": "mapbox/mapbox-agent-skills",
       "sourceType": "github",

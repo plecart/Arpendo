@@ -98,9 +98,9 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   `ponytail-gain`, `ponytail-help` — exigé par cadrage §13.10, `ponytail` activé par `CLAUDE.md`
 - Flutter (5) : `flutter-apply-architecture-best-practices`, `flutter-setup-declarative-routing`,
   `flutter-setup-localization`, `flutter-build-responsive-layout`, `flutter-fix-layout-issues`
-- Mapbox (7) : `mapbox-flutter-patterns`, `mapbox-android-patterns`, `mapbox-cartography`,
-  `mapbox-data-visualization-patterns`, `mapbox-style-patterns`, `mapbox-style-quality`,
-  `mapbox-token-security`
+- Mapbox (6) : `mapbox-flutter-patterns`, `mapbox-cartography`, `mapbox-token-security`,
+  `mapbox-data-visualization-patterns`, `mapbox-style-patterns`, `mapbox-style-quality` — les
+  trois derniers sous conditions, voir `CLAUDE.md` (« Carte (Mapbox) et navigation »)
 - Design / UI (4) : `design-system`, `mobile-design`, `game-ui-ux`, `design-motion-principles` —
   un seul par situation, table d'arbitrage dans `CLAUDE.md` (« Design et UI »)
 - Transverses : `task-observer` (activé par `CLAUDE.md`), `find-skills`, `i-have-adhd`
