@@ -37,7 +37,9 @@ Second serveur déclaré dans `.mcp.json` : **`mapbox-devkit`** (`@mapbox/mcp-de
 via `npx`), qui fournit les outils du skill `mapbox-style-quality` — `validate_expression_tool`,
 `validate_geojson_tool`, `color_contrast_checker_tool`, `compare_styles_tool`,
 `style_optimization_tool` — plus la gestion des styles et des jetons du compte. Il lit le jeton
-dans la variable d'environnement **`MAPBOX_DEVKIT_TOKEN`** du poste (jamais dans le dépôt) : un
+dans la variable d'environnement **`MAPBOX_DEVKIT_TOKEN`**, posée dans le bloc `env` de
+`.claude/settings.local.json` (fichier ignoré par git, lu par Claude Code au lancement — ni
+variable système, ni `.env` de l'app, que Claude Code ne lit pas) : un
 jeton **public `pk.`** dédié, portées `styles:read` `styles:list` `styles:download` pour la
 validation ; ajouter `styles:write` seulement le jour où un style personnalisé existe, `tokens:*`
 jamais. Distinct des deux jetons de l'app (`mapbox-token-security`).
