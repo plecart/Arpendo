@@ -33,6 +33,45 @@ il renvoie la doc à jour de la lib demandée, ce qui économise des tokens et �
 périmées. Déclaré dans `.mcp.json` à la racine (scope projet), **sans clé API** : les quotas
 de l'offre gratuite s'appliquent. Vérifier avec `claude mcp list`.
 
+## Minimalisme (`ponytail`)
+
+Invoquer le skill `ponytail` **avant d'écrire du code** — écriture, ajout, refactor, correctif,
+choix d'une dépendance ou d'une lib. Sa description seule ne suffit pas à le déclencher de façon
+fiable : c'est cette ligne qui l'active. Exigé par le cadrage §13.10, aligné sur la doctrine
+KISS/DRY/YAGNI de `.claude/rules/contraintes.md`.
+
+Niveau par défaut : `full`. Se change par `/ponytail lite|full|ultra` et persiste jusqu'à la fin
+de la session. Ponctuellement : `/ponytail-review` (relecture anti-sur-ingénierie d'un diff),
+`/ponytail-audit` (dépôt entier), `/ponytail-debt` (raccourcis marqués `ponytail:` à reprendre).
+
+**Ce qu'il ne simplifie jamais** : validation aux frontières de confiance, gestion d'erreurs qui
+évite une perte de données, sécurité, accessibilité, et tout ce qui est explicitement demandé.
+Il raccourcit la solution, jamais la lecture : tracer le flux complet avant de choisir un barreau.
+
+`ponytail` gouverne **ce qu'on construit** ; `.claude/rules/cleanup-verbatim.md` gouverne **la
+relecture de ce qui a été construit**. Les deux s'appliquent, à des moments différents — ponytail
+en amont de l'écriture, le prompt de relecture après. L'un ne dispense pas de l'autre.
+
+## Design et UI — arbitrage des skills
+
+**La spécification décide, les skills exécutent.** Les jetons (`02-specification-ux.md` §1 :
+espacements, typo, couleurs, mouvement), l'architecture d'écran (§2), la palette joueur (§3) et
+l'identité « Relevé » (`03-identite-visuelle.md`) sont **clos**. Aucun skill ne choisit une
+palette, une police, un style, une durée d'animation ni un rayon d'angle : il les **lit** dans la
+spec. Ne jamais re-dériver la contrainte ΔE (§16) — elle a déjà été calculée.
+
+Quatre skills design sont installés et se chevauchent. Un seul par situation :
+
+| Situation | Skill | Ce qu'il fait ici — et pas plus |
+|---|---|---|
+| Structure de l'écran Jeu : contrôles flottants, pile d'activité, feuille, empilement Connexion → Accueil → Avertissement → Jeu → Paramètres | `game-ui-ux` | Ancrage aux safe areas (§2.3), pile d'écrans, **HUD piloté par événements SSE, jamais par sondage**. Les widgets concrets viennent des skills `flutter-*` |
+| Écrire `tokens.json` et son pendant Flutter (`ThemeData` / `ThemeExtension`) | `design-system` | Architecture primitif → sémantique → composant, **valeurs recopiées de la spec §1**. Ni CSS, ni Tailwind, ni diapositives |
+| Relire une animation implémentée | `design-motion-principles` | **Mode audit uniquement**, contre les jetons `motion-*` de la spec. Jamais en mode construction : il est pensé CSS/Framer et choisirait des durées déjà fixées |
+| Performance mobile (60 fps, batterie, géoloc arrière-plan) et checklist de sortie | `mobile-design` | Sur invocation explicite `/mobile-design`. Lourd (six lectures obligatoires), orienté React Native : ne pas le déclencher pour dessiner un écran |
+
+Sur une demande vague (« améliore cet écran »), **ne pas tirer un skill au hasard** : lire la
+section correspondante de la spec, puis choisir dans la table.
+
 ## Observation continue (`task-observer`)
 
 Invoquer le skill `task-observer` au début d'une session **longue ou structurée** — un cycle de PR,

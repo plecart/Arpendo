@@ -95,14 +95,14 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - Pipeline maison (11) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,
   `cycle-pr`, `repercussions`, `pr-paralleles`, `plan-qa`, `execution-qa`, `bug-vers-issue`
 - Qualité de code (6) : `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`,
-  `ponytail-gain`, `ponytail-help` — exigé par cadrage §13.10
+  `ponytail-gain`, `ponytail-help` — exigé par cadrage §13.10, `ponytail` activé par `CLAUDE.md`
 - Flutter (5) : `flutter-apply-architecture-best-practices`, `flutter-setup-declarative-routing`,
   `flutter-setup-localization`, `flutter-build-responsive-layout`, `flutter-fix-layout-issues`
 - Mapbox (7) : `mapbox-flutter-patterns`, `mapbox-android-patterns`, `mapbox-cartography`,
   `mapbox-data-visualization-patterns`, `mapbox-style-patterns`, `mapbox-style-quality`,
   `mapbox-token-security`
-- Design / UI (6) : `design-system`, `ui-ux-pro-max`, `mobile-app-ui-design`, `mobile-design`,
-  `game-ui-ux`, plus `design-motion-principles`
+- Design / UI (4) : `design-system`, `mobile-design`, `game-ui-ux`, `design-motion-principles` —
+  un seul par situation, table d'arbitrage dans `CLAUDE.md` (« Design et UI »)
 - Transverses : `task-observer` (activé par `CLAUDE.md`), `find-skills`, `i-have-adhd`
 - Fourni par le runtime, **non épinglé** : `dataviz` — son `scripts/validate_palette.py` est le
   validateur normatif de la palette (identité visuelle §1.2, §4.3). Absent de `skills-lock.json`.
