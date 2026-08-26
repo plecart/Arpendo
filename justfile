@@ -108,5 +108,8 @@ build:
 
 # ─── infra/ ────────────────────────────────────────────────────────────────────
 
+# `--env-file` est indispensable : avec `-f infra/…`, le répertoire de projet de Compose est
+# `infra/`, et c'est `infra/.env` qu'il chercherait. On lui désigne celui de la racine, le seul
+# du dépôt. Les chemins relatifs du fichier compose, eux, restent résolus depuis `infra/`.
 up:
-    docker compose -f infra/docker-compose.yml up -d
+    docker compose -f infra/docker-compose.yml --env-file .env up -d

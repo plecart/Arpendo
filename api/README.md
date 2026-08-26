@@ -6,14 +6,29 @@ worker — un seul paquet, deux points d'entrée, deux conteneurs (cadrage §13.
 
 ## Lancer
 
-Prérequis : `uv` (il installe seul le Python épinglé dans `.python-version`).
+Deux façons, pour deux besoins.
+
+**La pile complète, en conteneurs** — PostgreSQL 17, Valkey 8 et l'api, décrits par
+`infra/docker-compose.yml`. C'est le mode de référence : c'est cette pile que la production
+reproduit, à deux écarts près documentés en tête du fichier compose.
+
+```
+cp .env.example .env    # une fois, à la racine ; y mettre un VALKEY_PASSWORD
+just up
+```
+
+Les sources sont montées dans le conteneur `api` et uvicorn tourne en `--reload` : éditer
+`src/` recharge le serveur, sans reconstruire l'image. Rebâtir n'est nécessaire qu'après un
+changement de dépendance (`docker compose -f infra/docker-compose.yml --env-file .env build api`).
+
+**L'api seule, sur le poste** — pour attacher un débogueur ou un profileur au processus.
 
 ```
 just install-api
 cd api && uv run uvicorn arpendo_api.main:create_app --factory --reload
 ```
 
-`GET http://localhost:8000/health` répond `{"status": "ok"}`.
+Dans les deux cas, `GET http://localhost:8000/health` répond `{"status": "ok"}`.
 
 ## Tester et vérifier
 
