@@ -40,9 +40,13 @@ via `npx`), qui fournit les outils du skill `mapbox-style-quality` — `validate
 dans la variable d'environnement **`MAPBOX_DEVKIT_TOKEN`**, posée dans le bloc `env` de
 `.claude/settings.local.json` (fichier ignoré par git, lu par Claude Code au lancement — ni
 variable système, ni `.env` de l'app, que Claude Code ne lit pas) : un
-jeton **public `pk.`** dédié, portées `styles:read` `styles:list` `styles:download` pour la
-validation ; ajouter `styles:write` seulement le jour où un style personnalisé existe, `tokens:*`
-jamais. Distinct des deux jetons de l'app (`mapbox-token-security`).
+jeton **public `pk.` aux portées publiques par défaut** (`styles:read`, `styles:tiles`,
+`fonts:read`, `datasets:read`). **Ne demander ni `styles:list` ni `styles:write`** : ce sont des
+portées *secrètes*, Mapbox émettrait alors un jeton `sk.` — inutilement puissant ici. Les cinq
+outils du skill (`validate_expression_tool`, `validate_geojson_tool`, `color_contrast_checker_tool`,
+`compare_styles_tool`, `style_optimization_tool`) sont du **traitement local** : ils n'appellent
+aucune API et fonctionnent même avec un jeton factice. Le jeton ne sert qu'à laisser le serveur
+démarrer. Distinct des deux jetons de l'app (`mapbox-token-security`).
 
 ## Minimalisme (`ponytail`)
 
