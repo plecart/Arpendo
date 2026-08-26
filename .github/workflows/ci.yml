@@ -116,8 +116,11 @@ jobs:
         # PostgreSQL et Valkey, jamais à des doubles. Ce sont les trois variables que
         # `arpendo_api.core.settings.Settings` lit, et les seules : toute autre est absente parce
         # qu'aucun code ne la lit encore.
+        #
+        # `127.0.0.1` et non `localhost`, comme dans `.env.example` : une seule forme d'adresse
+        # dans les trois environnements, et aucune dépendance à l'ordre du résolveur.
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
-          VALKEY_URL: redis://localhost:6379/0
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres
+          VALKEY_URL: redis://127.0.0.1:6379/0
           VALKEY_PASSWORD: valkey-de-ci
         run: just test

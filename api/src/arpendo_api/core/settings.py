@@ -5,7 +5,7 @@ from typing import Annotated
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
-NonVide = Annotated[str, Field(min_length=1)]
+NonEmpty = Annotated[str, Field(min_length=1)]
 
 
 class Settings(BaseSettings):
@@ -35,6 +35,6 @@ class Settings(BaseSettings):
         Settings(database_url='postgresql+asyncpg://…', valkey_url='redis://…', …)
     """
 
-    database_url: NonVide
-    valkey_url: NonVide
-    valkey_password: NonVide
+    database_url: NonEmpty
+    valkey_url: NonEmpty
+    valkey_password: NonEmpty

@@ -3,6 +3,8 @@
 # seul service managé) et les trois services publient un port (en production, seul `caddy` est
 # exposé — §13.10). Ces ports sont ce qui permet à `uvicorn` et à `pytest` lancés sur l'hôte de
 # joindre la base et le cache : sans eux, la boucle de développement passerait par un conteneur.
+# La base et le cache sont bornés à la boucle locale, seule l'api est publiée largement — le
+# détail est sur chacun.
 #
 # Lancé par `just up`, depuis la racine du dépôt, avec le `.env` de la racine — voir cette recette.
 # Le durcissement complet (empreintes d'images, `read_only`, `cap_drop`, limites de ressources,
@@ -20,7 +22,10 @@ services:
       POSTGRES_PASSWORD: arpendo
       POSTGRES_DB: arpendo
     ports:
-      - "5432:5432"
+      # Boucle locale seule : seuls `pytest` et `uvicorn` lancés sur cette machine en ont
+      # besoin. Sans le préfixe, Docker publie sur toutes les interfaces et une base aux
+      # identifiants volontairement faibles devient joignable depuis le réseau du café.
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -47,7 +52,8 @@ services:
       VALKEY_PASSWORD: ${VALKEY_PASSWORD:?VALKEY_PASSWORD est requis — copier .env.example en .env}
       VALKEY_EXTRA_FLAGS: --requirepass ${VALKEY_PASSWORD}
     ports:
-      - "6379:6379"
+      # Boucle locale seule, même raison que pour `postgres`.
+      - "127.0.0.1:6379:6379"
     healthcheck:
       # `$$` échappe l'interpolation de Compose : c'est le shell du conteneur qui doit lire la
       # variable, pas Compose. `--no-auth-warning` évite un avertissement sur stderr à chaque
@@ -75,6 +81,9 @@ services:
     volumes:
       - ../api/src:/app/src
     ports:
+      # Publié sur toutes les interfaces, lui : une application Flutter installée sur un
+      # téléphone du réseau local doit pouvoir joindre cette api. C'est le seul service qui
+      # ait un lecteur hors de la machine — comme en production, où seul `caddy` est exposé.
       - "8000:8000"
     depends_on:
       # `service_healthy`, pas `service_started` : l'api ouvre ses connexions au démarrage, un

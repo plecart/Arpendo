@@ -50,8 +50,12 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 | `just typecheck` | `mypy --strict` sur `src/` |
 
 Les tests HTTP passent par la fixture `client` de `tests/conftest.py` : un `httpx.AsyncClient`
-branché sur `create_app()` sans réseau. Les tests asynchrones n'ont besoin d'aucun marqueur
-(`asyncio_mode = "auto"`).
+branché sur l'application sans réseau. La chaîne est `settings` → `app` → `client`, et c'est
+`app` qui **entre réellement dans le cycle de vie** : `ASGITransport` ne le déclenche pas, donc
+sans ce contexte les tests parleraient à une application sans moteur ni client Valkey — en
+silence. Un test qui veut un environnement dégradé surcharge `settings` par paramétrisation
+indirecte et hérite du reste de la chaîne, comme le fait le test « Valkey injoignable ».
+Les tests asynchrones n'ont besoin d'aucun marqueur (`asyncio_mode = "auto"`).
 
 ## Structure
 
