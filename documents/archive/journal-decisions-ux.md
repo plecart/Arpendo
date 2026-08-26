@@ -206,3 +206,40 @@ des contradictions internes, des trous, et trois points de conception que l'audi
 - **Le curseur de durée du §5.1.** Conservé tel quel, sans étape de confirmation supplémentaire.
 - **L'opacité de 60 % hors ligne (§3.3).** Elle efface quatre couleurs joueur sur dix ; c'est
   **l'effet recherché** — l'inconfort doit être perçu et pousser à se reconnecter.
+
+---
+
+## 18.2 Amendement du §1.8 du 26 août 2026 — le paquet d'icônes
+
+Découvert en implémentant #34 (thème Dart des jetons), pas par un audit. **Aucune décision de
+conception n'est rouverte** : le jeu reste Phosphor, la graisse reste `Regular`, l'inventaire des
+15 usages est inchangé. Seul le *véhicule* change.
+
+**Ce qui était faux, et pourquoi personne ne l'avait vu :**
+
+| Ce qui était écrit | Ce qui est vrai |
+|---|---|
+| Le paquet est `phosphor_flutter` | `phosphor_flutter` 2.1.0 (mai 2024) **ne compile pas** avec Flutter 3.47 : `IconData` est passé `final class` en 3.43+, et le paquet fait `class PhosphorIconData extends IconData`. Le build échoue à `kernel_snapshot` |
+| « tree-shaké à la compilation comme n'importe quelle police d'icônes » | La graisse employée l'est bien (488 636 → 1 620 octets). Les **cinq autres graisses** déclarées par le paquet ne le sont pas : **2,58 Mo** dans l'AAB, mesurés |
+
+**Le piège de détection, qui vaut pour la suite.** `just lint`, `just test` et `just build` sont
+tous passés au **vert** avec la dépendance cassée. `flutter analyze` n'analyse pas les sources d'un
+paquet tiers, et le compilateur ne compile pas une bibliothèque qu'aucun chemin depuis `main()`
+n'atteint : `icones.dart` n'était importé de nulle part. La casse serait sortie au premier écran
+qui pose une icône (#43, #46). **Une table de constantes qui n'est référencée nulle part n'est pas
+compilée** — d'où la garde ajoutée dans #34 : un test rend une icône de la table, ce qui suffit à
+la rendre atteignable et à faire rougir la suite.
+
+**Options examinées :**
+
+| Option | Retenue ? |
+|---|---|
+| `phosphor_icons` ^3.0.1 (16 juillet 2026, MIT, seule dépendance `flutter`) | **Oui.** Successeur maintenu, qui documente et corrige explicitement cette rupture (`typedef PhosphorIconData = IconData`). Mêmes noms de classe et de membres — la migration est une ligne d'import. Les 15 glyphes du §1.8 y sont tous. Vérifié : build vert, tree-shaking effectif |
+| `forui_phosphor` 0.26.1 | Non. Couplé au système de design *forui*, et porte encore une sous-classe d'`IconData` pour le duotone |
+| Embarquer le sous-ensemble Phosphor tout de suite | Non — **repoussé, pas écarté**. C'est le point 7 du README, dont la motivation devient la mesure de 2,58 Mo au lieu de l'abandon supposé du paquet |
+| Revenir aux `Icons.*` de Flutter | Non. Rouvrirait la décision de trait du §1.8, close, sans nécessité |
+
+**§§ répercutés :** `02-specification-ux.md` §1.8 (nom du paquet, phrase de coût) ·
+`README.md` « Ce qui reste ouvert » point 7. Le §1.8 n'est mentionné dans aucun document de rang 1,
+donc aucune ligne au journal du cadrage. La ligne récapitulative « Jeu d'icônes | Phosphor
+`Regular` » ne nommait aucun paquet et reste inchangée.

@@ -1,14 +1,16 @@
 import 'package:flutter/widgets.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:phosphor_icons/phosphor_icons.dart';
 
 /// Table sémantique des icônes — spec UX §1.8.
 ///
-/// **Seul fichier du projet à importer `phosphor_flutter`.** Les écrans nomment
+/// **Seul fichier du projet à importer `phosphor_icons`.** Les écrans nomment
 /// un *usage* (`parametres`, `recentrer`), jamais un glyphe : changer le dessin
 /// d'une action se fait ici, en un point, sans toucher un écran.
 ///
 /// Jeu retenu : **Phosphor, graisse `Regular`**, une seule famille et une seule
-/// graisse. L'identité « Relevé » est portée par le trait — contour d'hexagone
+/// graisse. Le paquet est `phosphor_icons` et non `phosphor_flutter` : ce
+/// dernier sous-classe `IconData`, devenu `final class` en Flutter 3.43+, et ne
+/// compile plus (spec UX §1.8, archive §18.2). L'identité « Relevé » est portée par le trait — contour d'hexagone
 /// de 1 dp, contour de pastille de 1 dp — et Phosphor est un jeu à trait
 /// uniforme, donc il parle la même langue que le reste de l'interface.
 ///

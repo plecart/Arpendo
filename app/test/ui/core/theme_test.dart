@@ -1,3 +1,4 @@
+import 'package:arpendo/ui/core/theme/icones.dart';
 import 'package:arpendo/ui/core/theme/mouvement.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/core/theme/typographie.dart';
@@ -77,6 +78,31 @@ void main() {
         expect(mouvement.entree(jeton), Duration.zero, reason: '$jeton');
         expect(mouvement.sortie(jeton), Duration.zero, reason: '$jeton');
       }
+    });
+  });
+
+  group('icônes', () {
+    // Ce test référence [Icones], et c'est là son second rôle : sans un point
+    // d'appel atteignable, `icones.dart` n'est compilé par rien — ni par
+    // `flutter analyze`, qui ignore les sources d'un paquet tiers, ni par le
+    // build, qui ne compile pas une bibliothèque hors du graphe de `main()`.
+    // Une table de constantes que personne n'importe laisse passer un paquet
+    // cassé au vert. Ne pas le supprimer sans le remplacer.
+    test('les trois glyphes de sévérité sont trois silhouettes distinctes', () {
+      final severites = <IconData>{
+        Icones.severiteInfo,
+        Icones.severiteAvertissement,
+        Icones.severiteBloquant,
+      };
+
+      expect(
+        severites,
+        hasLength(3),
+        reason:
+            'cercle, triangle et octogone sont non substituables : la '
+            'sévérité se lit à la forme, donc en niveaux de gris et pour un '
+            'daltonien (§2.4). Deux glyphes identiques annuleraient la règle',
+      );
     });
   });
 }

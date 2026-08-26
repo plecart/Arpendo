@@ -358,14 +358,15 @@ code généré hors de cet alphabet serait insaisissable, puisque le champ le fi
 Le §2.4 fait porter la sévérité d'un bandeau par le **glyphe** et non par la couleur : sans jeu
 d'icônes nommé, cette règle n'est pas applicable.
 
-**Jeu retenu : Phosphor, graisse `Regular`** (`phosphor_flutter`, licence MIT).
+**Jeu retenu : Phosphor, graisse `Regular`** (`phosphor_icons`, licence MIT).
 
 Pourquoi celui-là plutôt que les `Icons.*` fournis par Flutter : l'identité « Relevé » est portée
 **par le trait** — contour d'hexagone de 1 dp (§3.3), *backface hull* du marqueur (§3.4.1), contour
 de pastille de 1 dp (§3.4). Phosphor est un jeu à trait uniforme dont la graisse se règle, donc il
 parle la même langue que le reste de l'interface. Les Material Icons ont un trait plus épais et des
-raccords arrondis qui jurent avec un fond de carte topographique. Le coût est un paquet, tree-shaké
-à la compilation comme n'importe quelle police d'icônes.
+raccords arrondis qui jurent avec un fond de carte topographique. Le coût est un paquet : la
+graisse employée est tree-shakée à la compilation, mais les cinq autres graisses que le paquet
+déclare restent embarquées — **2,58 Mo**, qu'un sous-ensemble embarqué supprimerait.
 
 **Règles d'emploi.** Dessin à **24 dp**, zone tactile à **48 dp** (§1.4). Couleur héritée du
 contexte, jamais posée en dur. Une icône ne remplace jamais un libellé sur une action nommée ; elle

@@ -46,7 +46,7 @@ ni glyphe ne se pose en dur ailleurs dans `lib/`.
 | `typographie.dart` | les huit styles, leurs créneaux Material, la variante `.tabulaire` | 1.2, 1.7 |
 | `mesures.dart` | `Espacements`, `Rayons`, `Elevations` | 1.1, 1.3 |
 | `mouvement.dart` | `JetonMouvement` et `Mouvement.of(context)` | 1.6 |
-| `icones.dart` | la table sémantique Phosphor — **seul fichier à importer `phosphor_flutter`** | 1.8 |
+| `icones.dart` | la table sémantique Phosphor — **seul fichier à importer `phosphor_icons`** | 1.8 |
 
 ### Lire un jeton depuis un écran
 
