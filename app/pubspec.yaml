@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Jeu d'icônes unique de l'interface, graisse Regular (spec UX §1.8). Seul
+  # `lib/ui/core/theme/icones.dart` l'importe.
+  phosphor_flutter: ^2.1.0
 
 dev_dependencies:
   flutter_test:
