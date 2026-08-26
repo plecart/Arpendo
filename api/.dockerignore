@@ -1,0 +1,8 @@
+# Le Dockerfile ne copie que `pyproject.toml`, `uv.lock` et `src/` — ce fichier ne change donc pas
+# l'image, il évite d'envoyer au démon un contexte de plusieurs centaines de mégaoctets. `.venv/`
+# est en outre construit pour l'hôte : le laisser entrer n'apporterait rien d'utilisable.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage

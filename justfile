@@ -20,6 +20,12 @@
 # `justfile_directory()` rend un chemin Windows à antislashs, que `sh` interprète comme des
 # échappements et avale (`E:\Projets` devient `E:Projets`). On normalise en slashs : Windows les
 # accepte partout, et le chemin traverse alors n'importe quel shell intact.
+# Le `.env` de la racine alimente l'environnement des recettes — `just test` en a besoin, puisque
+# `Settings` ne lit que l'environnement (cadrage §13.9 règle 5) et n'ouvre aucun fichier. Sans
+# effet en CI : une variable déjà posée dans l'environnement l'emporte sur le `.env`, et le runner
+# n'en a de toute façon aucun. Absent du poste, le fichier est ignoré sans erreur.
+set dotenv-load := true
+
 racine := replace(justfile_directory(), '\', '/')
 flutter := env('FLUTTER_CMD', racine / '.fvm/flutter_sdk/bin/flutter')
 dart := env('DART_CMD', racine / '.fvm/flutter_sdk/bin/dart')
@@ -102,5 +108,13 @@ build:
 
 # ─── infra/ ────────────────────────────────────────────────────────────────────
 
+# `--env-file` est indispensable : avec `-f infra/…`, le répertoire de projet de Compose est
+# `infra/`, et c'est `infra/.env` qu'il chercherait. On lui désigne celui de la racine, le seul
+# du dépôt. Les chemins relatifs du fichier compose, eux, restent résolus depuis `infra/`.
+#
+# `--build` : sans lui, `just up` relance l'image telle qu'elle était au dernier build, et une
+# dépendance ajoutée entre-temps manque à l'exécution — une panne dont la cause n'est nulle part
+# dans le code qu'on vient d'écrire. Le coût est nul quand rien n'a bougé : les couches du
+# Dockerfile ne se reconstruisent que si `pyproject.toml` ou `uv.lock` changent.
 up:
-    docker compose -f infra/docker-compose.yml up -d
+    docker compose -f infra/docker-compose.yml --env-file .env up -d --build
