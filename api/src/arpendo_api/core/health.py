@@ -13,38 +13,38 @@ from arpendo_api.db.engine import Engine
 
 router = APIRouter()
 
-Sonde = Callable[[], Awaitable[object]]
+Probe = Callable[[], Awaitable[object]]
 """Un aller-retour vers une dépendance.
 
 Ce qu'elle rend est ignoré : seul compte qu'elle aboutisse.
 """
 
-DELAI_DE_SONDE = 1.0
+PROBE_TIMEOUT = 1.0
 """Secondes accordées à chaque dépendance.
 
 Une sonde de santé qui pend est pire qu'une sonde qui échoue : le reverse proxy et le moniteur
-d'uptime attendraient, et un `docker compose up` resterait bloqué sur un `healthcheck` sans
-réponse. Une seconde est très au-dessus de ce que coûtent un `SELECT 1` et un `PING` sur le
+d'uptime attendraient, et un ``docker compose up`` resterait bloqué sur un ``healthcheck`` sans
+réponse. Une seconde est très au-dessus de ce que coûtent un ``SELECT 1`` et un ``PING`` sur le
 réseau local ; la dépasser signifie que quelque chose ne va pas, pas que la machine est lente.
 """
 
-JOIGNABLE = "ok"
-INJOIGNABLE = "unreachable"
-SAIN = "ok"
-DEGRADE = "degraded"
+REACHABLE = "ok"
+UNREACHABLE = "unreachable"
+HEALTHY = "ok"
+DEGRADED = "degraded"
 
 
-async def _interroger_postgresql(engine: AsyncEngine) -> None:
+async def _probe_postgres(engine: AsyncEngine) -> None:
     """Ouvre une connexion et l'utilise : c'est le seul moyen de savoir qu'elle sert encore.
 
     Le moteur ne se connecte qu'au premier usage et son pool peut contenir des connexions
     coupées depuis. Vérifier l'objet moteur ne prouverait donc rien.
     """
-    async with engine.connect() as connexion:
-        await connexion.execute(text("SELECT 1"))
+    async with engine.connect() as connection:
+        await connection.execute(text("SELECT 1"))
 
 
-async def _etat(sonde: Sonde) -> str:
+async def _state_of(probe: Probe) -> str:
     """Rend ``ok`` si la sonde aboutit dans le délai, ``unreachable`` sinon.
 
     Attrape ``Exception`` volontairement : du point de vue de l'appelant, une dépendance qui
@@ -54,11 +54,11 @@ async def _etat(sonde: Sonde) -> str:
     diagnostiquer.
     """
     try:
-        async with asyncio.timeout(DELAI_DE_SONDE):
-            await sonde()
+        async with asyncio.timeout(PROBE_TIMEOUT):
+            await probe()
     except Exception:
-        return INJOIGNABLE
-    return JOIGNABLE
+        return UNREACHABLE
+    return REACHABLE
 
 
 @router.get("/health")
@@ -70,21 +70,21 @@ async def health(engine: Engine, valkey: Valkey, response: Response) -> dict[str
     besoin du verdict, la personne d'astreinte a besoin de savoir laquelle.
 
     Les sondes partent **en parallèle** — deux dépendances lentes coûtent le délai de la plus
-    lente, pas leur somme — et chacune est bornée par ``DELAI_DE_SONDE``.
+    lente, pas leur somme — et chacune est bornée par ``PROBE_TIMEOUT``.
 
     Une seule route, pas de ``/ready`` distinct : rien ici ne redémarre un conteneur sur un état
     dégradé, donc distinguer « vivant » de « disponible » n'aurait aucun lecteur.
 
-    Ajouter une dépendance, c'est ajouter un paramètre et une entrée à ``sondes`` ; ni le calcul
+    Ajouter une dépendance, c'est ajouter un paramètre et une entrée à ``probes`` ; ni le calcul
     du verdict, ni le code de statut, ni le format de la réponse n'ont à changer.
     """
-    sondes: dict[str, Sonde] = {
-        "postgres": partial(_interroger_postgresql, engine),
+    probes: dict[str, Probe] = {
+        "postgres": partial(_probe_postgres, engine),
         "valkey": valkey.ping,
     }
-    resultats = await asyncio.gather(*(_etat(sonde) for sonde in sondes.values()))
-    etats = dict(zip(sondes, resultats, strict=True))
+    results = await asyncio.gather(*(_state_of(probe) for probe in probes.values()))
+    states = dict(zip(probes, results, strict=True))
 
-    sain = all(etat == JOIGNABLE for etat in etats.values())
-    response.status_code = 200 if sain else 503
-    return {"status": SAIN if sain else DEGRADE, **etats}
+    healthy = all(state == REACHABLE for state in states.values())
+    response.status_code = 200 if healthy else 503
+    return {"status": HEALTHY if healthy else DEGRADED, **states}
