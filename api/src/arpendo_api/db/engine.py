@@ -1,5 +1,8 @@
-"""Le moteur SQLAlchemy async de l'application."""
+"""Le moteur SQLAlchemy async : comment on l'ouvre, et comment les routes y accèdent."""
 
+from typing import Annotated
+
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from arpendo_api.core.settings import Settings
@@ -21,3 +24,17 @@ def create_engine(settings: Settings) -> AsyncEngine:
         Le moteur, à fermer par ``await moteur.dispose()``.
     """
     return create_async_engine(settings.database_url)
+
+
+def _from_state(request: Request) -> AsyncEngine:
+    """Rend le moteur rangé dans ``app.state`` par le cycle de vie de l'application."""
+    engine: AsyncEngine = request.app.state.engine
+    return engine
+
+
+Engine = Annotated[AsyncEngine, Depends(_from_state)]
+"""Le moteur, vu par une route : ``async def route(engine: Engine)``.
+
+Une dépendance plutôt qu'un singleton de module : un test qui construit son application obtient
+le moteur de *cette* application, jamais un état global laissé par un test précédent.
+"""

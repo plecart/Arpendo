@@ -52,6 +52,11 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - build        : `just build`
 - run local    : `just up`
 
+> **`just test` exige `just up`** : les tests d'`api/` parlent à un vrai PostgreSQL et à un vrai
+> Valkey. Ils lisent leurs coordonnées dans le `.env` de la racine (`set dotenv-load` du
+> justfile) ; en CI, ce sont les conteneurs `services:` et les variables du job qui les
+> fournissent. Copier `.env.example` en `.env` fait partie de l'installation d'un poste.
+
 > Toutes exécutées et vertes depuis le scaffold `api/` + `app/` du 26 août 2026.
 
 ## Qualité
@@ -62,7 +67,10 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
     partout), supporté jusqu'en novembre 2029, et aucune fonctionnalité postérieure n'est
     utilisée : H3 en BIGINT sans extension (cadrage §13.6). **Commander le service managé en 17.**
   - **Valkey 8** — ligne stable, compatible protocole Redis 7 ; usages du projet (pub/sub, cache,
-    compteurs, verrous — cadrage §13.0) n'ont besoin de rien de plus récent.
+    compteurs, verrous — cadrage §13.0) n'ont besoin de rien de plus récent. **Authentifié en
+    CI comme ailleurs** (`VALKEY_EXTRA_FLAGS: --requirepass …`) : le §13.10 exige le mot de passe
+    dans tous les environnements, et une CI qui tournerait sans lui validerait une configuration
+    que personne ne déploie.
 
 ## Périmètre
 - domaines (nom métier → chemin) — servent aussi de thèmes/milestones à `triage` :

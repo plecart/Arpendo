@@ -9,14 +9,21 @@ from arpendo_api.main import create_app
 
 
 @pytest.fixture
-def settings() -> Settings:
+def settings(request: pytest.FixtureRequest) -> Settings:
     """Les réglages de l'environnement de test — donc de vrais services.
 
     En local, ce sont ceux du `.env` que le justfile charge, et les services que `just up`
     démarre ; en CI, ceux du job et les conteneurs `services:` du workflow. Aucun double : une
     connexion simulée ne prouverait rien de ce que cette configuration existe pour garantir.
+
+    Un test qui a besoin d'un environnement dégradé le décrit par une paramétrisation indirecte,
+    et hérite alors de toute la chaîne (`app`, `client`) sans la reconstruire ::
+
+        @pytest.mark.parametrize("settings", [{"valkey_url": "redis://127.0.0.1:1/0"}],
+                                 indirect=True)
     """
-    return Settings()
+    surcharges: dict[str, str] = getattr(request, "param", {})
+    return Settings().model_copy(update=surcharges)
 
 
 @pytest.fixture

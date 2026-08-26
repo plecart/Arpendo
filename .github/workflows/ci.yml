@@ -52,10 +52,21 @@ jobs:
           --health-retries 5
       valkey:
         image: valkey/valkey:8
+        # Mot de passe même sur un runner jetable. Le §13.10 exige un Valkey authentifié dans
+        # tous les environnements ; une CI qui tournerait sans lui validerait une configuration
+        # que personne ne déploie. `VALKEY_EXTRA_FLAGS` est le mécanisme de l'image officielle,
+        # le même que `infra/docker-compose.yml` emploie en local.
+        #
+        # Valeur en clair, et répétée trois fois — ici, dans la sonde, et dans le step Tests.
+        # Le contexte `env` n'est pas disponible dans `services`, donc rien ne peut la factoriser :
+        # **les trois doivent rester identiques**. Ce n'est pas un secret : le conteneur naît et
+        # meurt avec le job et ne contient rien.
+        env:
+          VALKEY_EXTRA_FLAGS: --requirepass valkey-de-ci
         ports:
           - 6379:6379
         options: >-
-          --health-cmd "valkey-cli ping"
+          --health-cmd "valkey-cli --no-auth-warning -a valkey-de-ci ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -101,12 +112,12 @@ jobs:
         run: just build
 
       - name: Tests
-        # Coordonnées des conteneurs `services` ci-dessus. Valkey tourne SANS mot de passe en CI —
-        # le bloc `services:` ne permet pas de passer `--requirepass` à l'image officielle — alors
-        # que local et production en exigent un (`.env.example`). Compléter au scaffold si les
-        # settings réels demandent d'autres variables.
+        # Coordonnées des conteneurs `services` ci-dessus — les tests parlent à de vrais
+        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les trois variables que
+        # `arpendo_api.core.settings.Settings` lit, et les seules : toute autre est absente parce
+        # qu'aucun code ne la lit encore.
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/postgres
           VALKEY_URL: redis://localhost:6379/0
-          VALKEY_PASSWORD: ""
+          VALKEY_PASSWORD: valkey-de-ci
         run: just test

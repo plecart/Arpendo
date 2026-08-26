@@ -111,5 +111,10 @@ build:
 # `--env-file` est indispensable : avec `-f infra/…`, le répertoire de projet de Compose est
 # `infra/`, et c'est `infra/.env` qu'il chercherait. On lui désigne celui de la racine, le seul
 # du dépôt. Les chemins relatifs du fichier compose, eux, restent résolus depuis `infra/`.
+#
+# `--build` : sans lui, `just up` relance l'image telle qu'elle était au dernier build, et une
+# dépendance ajoutée entre-temps manque à l'exécution — une panne dont la cause n'est nulle part
+# dans le code qu'on vient d'écrire. Le coût est nul quand rien n'a bougé : les couches du
+# Dockerfile ne se reconstruisent que si `pyproject.toml` ou `uv.lock` changent.
 up:
-    docker compose -f infra/docker-compose.yml --env-file .env up -d
+    docker compose -f infra/docker-compose.yml --env-file .env up -d --build

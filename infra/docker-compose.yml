@@ -51,8 +51,10 @@ services:
     healthcheck:
       # `$$` échappe l'interpolation de Compose : c'est le shell du conteneur qui doit lire la
       # variable, pas Compose. `--no-auth-warning` évite un avertissement sur stderr à chaque
-      # sonde, qui ferait passer un healthcheck vert pour un problème dans les journaux.
-      test: ["CMD-SHELL", "valkey-cli --no-auth-warning -a \"$$VALKEY_PASSWORD\" ping | grep -q PONG"]
+      # sonde, qui ferait passer un healthcheck vert pour un problème dans les journaux. Un mot
+      # de passe refusé fait sortir `valkey-cli` en erreur : le code de retour suffit, pas besoin
+      # de filtrer la sortie. Même sonde qu'en CI, à la source du mot de passe près.
+      test: ["CMD-SHELL", "valkey-cli --no-auth-warning -a \"$$VALKEY_PASSWORD\" ping"]
       interval: 5s
       timeout: 3s
       retries: 10

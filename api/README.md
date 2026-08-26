@@ -18,8 +18,8 @@ just up
 ```
 
 Les sources sont montées dans le conteneur `api` et uvicorn tourne en `--reload` : éditer
-`src/` recharge le serveur, sans reconstruire l'image. Rebâtir n'est nécessaire qu'après un
-changement de dépendance (`docker compose -f infra/docker-compose.yml --env-file .env build api`).
+`src/` recharge le serveur sans rien reconstruire. Un changement de dépendance, lui, demande une
+image neuve — `just up` la rebâtit, et ne coûte rien quand rien n'a bougé.
 
 **L'api seule, sur le poste** — pour attacher un débogueur ou un profileur au processus.
 
@@ -28,7 +28,10 @@ just install-api
 cd api && uv run uvicorn arpendo_api.main:create_app --factory --reload
 ```
 
-Dans les deux cas, `GET http://localhost:8000/health` répond `{"status": "ok"}`.
+Dans les deux cas, `GET http://localhost:8000/health` répond **200**
+`{"status": "ok", "postgres": "ok", "valkey": "ok"}`, ou **503** avec `"status": "degraded"` et
+la dépendance fautive marquée `"unreachable"` — le verdict pour un moniteur d'uptime, le détail
+pour la personne qui diagnostique.
 
 ## Tester et vérifier
 
@@ -55,7 +58,9 @@ branché sur `create_app()` sans réseau. Les tests asynchrones n'ont besoin d'a
 - `src/arpendo_api/main.py` — `create_app()`, la fabrique de l'hôte HTTP. Les routeurs des
   domaines s'y ajoutent sous `/v1` ; `/health` et `/version` restent à la racine.
 - `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
-  l'environnement du paquet), `valkey.py`, `health.py`.
+  l'environnement du paquet), `valkey.py`, `health.py`. Ajouter une dépendance à la sonde de
+  santé, c'est ajouter une entrée à son dictionnaire de sondes ; le verdict, le code de statut
+  et le format de réponse ne bougent pas.
 - `src/arpendo_api/db/` — la persistance : `engine.py` aujourd'hui, le schéma et les sessions
   ensuite.
 - `src/arpendo_api/domains/` — un paquet par domaine métier, créé avec le premier.
