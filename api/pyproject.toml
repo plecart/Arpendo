@@ -5,6 +5,7 @@ description = "Arpendo — couche de services du jeu, servie par l'api HTTP."
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.141.1",
+    "pydantic-settings>=2",
     "uvicorn>=0.52.4",
 ]
 
