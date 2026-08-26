@@ -243,3 +243,31 @@ la rendre atteignable et à faire rougir la suite.
 `README.md` « Ce qui reste ouvert » point 7. Le §1.8 n'est mentionné dans aucun document de rang 1,
 donc aucune ligne au journal du cadrage. La ligne récapitulative « Jeu d'icônes | Phosphor
 `Regular` » ne nommait aucun paquet et reste inchangée.
+
+---
+
+## 18.3 Amendement du §1.2 du 26 août 2026 — la phrase des graisses
+
+Découvert en transcrivant l'échelle typographique dans le thème Dart (#34). **Aucune valeur ne
+change** : le tableau du §1.2 fait autorité et n'est pas touché ; c'est la prose qui le décrivait
+mal.
+
+**Ce qui était faux :**
+
+| Ce qui était écrit | Ce que dit le tableau du même § |
+|---|---|
+| « Graisse 400 par défaut, **réservée aux seuls** `type-display` et `type-title` pour monter à 700 et 600 » | **Quatre** jetons dépassent 400, pas deux : `type-headline` 600, `type-label` 500, `type-mono` et `type-mono-display` 500 |
+
+**Pourquoi le tableau l'emporte, et pourquoi ce n'était pas un choix.** Le paragraphe fautif
+s'ouvre sur « il ne touche pas à l'échelle ci-dessus, qui reste invariante » : il se subordonne
+lui-même au tableau. La contradiction était donc interne et auto-résolue — le code de #34 a suivi
+le tableau sans attendre l'amendement. Ce qui restait à corriger n'était pas une décision mais une
+**phrase qui décrivait mal sa propre table**, et qu'un lecteur pressé aurait suivie à la place.
+
+**Ce qui a été retenu :** reformuler la phrase pour qu'elle décrive le tableau, en conservant son
+intention — le gras franc reste réservé aux deux plus gros jetons, la direction reste sobre.
+L'option inverse (garder la phrase et ramener les quatre jetons à 400) aurait rouvert une décision
+de conception close pour corriger une erreur de rédaction : disproportionné.
+
+**§§ répercutés :** aucun. La phrase n'est citée nulle part ailleurs, et le tableau — seul objet
+que la spec et le code partagent — est inchangé.
