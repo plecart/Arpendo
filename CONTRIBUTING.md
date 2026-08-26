@@ -19,6 +19,9 @@ Chaque étape ci-dessous a une commande dédiée (`/triage`, `/cycle-pr`…) —
 3. **Implémenter** — `cycle-pr` : briefing pré-PR → **PR draft ouverte avant tout code** → TDD
    red-green-refactor → cycle `modif → test → cleanup → test → commit` → auto-review → `gh pr ready`
    → review → vérif de fumée → merge. Plusieurs PR en parallèle : `pr-paralleles` (worktrees).
+3bis. **Amender** — `contradiction` dès qu'une décision de conversation contredit une source de
+   vérité (`documents/reference/`, issues ouvertes) : le document est amendé dans la session, ou la
+   décision est abandonnée. Déclenché par la règle `decisions-vs-doc`, à n'importe quel moment.
 4. **Répercuter** — `repercussions` après chaque merge : corrige le corps des issues dont la
    planification est devenue fausse. Lancé automatiquement en fin de `cycle-pr`.
 5. **Valider** — `plan-qa` → `execution-qa` → `bug-vers-issue`, proposé quand un **thème se vide**
@@ -32,6 +35,8 @@ Voir [.claude/rules/](.claude/rules/) (chargées automatiquement via `CLAUDE.md`
 - **Cleanup pass verbatim** à chaque relecture (DRY / KISS / YAGNI) — `cleanup-verbatim.md`
 - **Format des commits** : `type(scope): description`, préfixe EN + description FR ; PR ≤ ~10
   fichiers / ~500 lignes — `taille-pr.md`
+- **Aucune décision ne contredit la doc en silence** : deux citations, arrêt, puis amendement ou
+  abandon — `decisions-vs-doc.md`
 
 ## Deux choses qui surprennent au début
 

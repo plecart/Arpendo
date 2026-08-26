@@ -4,6 +4,25 @@
 - repo : `plecart/Arpendo`
 - branche trunk : `main`
 
+## Sources de vérité
+Ordre de normativité : **en cas de contradiction, le rang le plus haut l'emporte**. Lu par le skill
+`contradiction` et par la règle `.claude/rules/decisions-vs-doc.md`.
+
+| Rang | Fichier | Portée | Où s'inscrit un amendement |
+|---|---|---|---|
+| 1 | `documents/reference/01-cadrage.md` | produit, règles du jeu, étude technique, exploitation — **toutes sections closes** | le § concerné, **plus** une ligne dans le journal des changements (§18) |
+| 2 | `documents/reference/02-specification-ux.md` | l'interface des décisions du cadrage ; n'en rouvre aucune | le § concerné seul — le document **ne porte que l'état courant**, jamais d'historique |
+| 3 | `documents/reference/03-identite-visuelle.md` | direction « Relevé », close. Ses valeurs sont **intégrées** dans la spec UX §1.2, §1.5, §1.6, §3.4.1, §4 | le § concerné **et** son § miroir dans la spec UX — sinon les deux divergent |
+| 4 | `documents/reference/04-chiffrage.md` | coûts d'hébergement et scénarios de montée en charge | le § concerné |
+| 5 | issues GitHub ouvertes | découpage et planification, **dérivés** des rangs 1 à 4 | le corps de l'issue, jamais un commentaire — voir `repercussions` |
+
+**Non normatif :** `documents/archive/` conserve le raisonnement et les options écartées. Rien ne
+s'y décide ; on y **archive** le pourquoi d'un amendement. `documents/setup/` et
+`documents/maquettes/` sont des supports, pas des sources.
+
+Toute référence croisée cite un **§ ou un titre de section**, jamais un numéro de ligne : une
+position périme à la première édition du document.
+
 ## Stack
 - langages : Dart, Python
 - frameworks : Flutter + `mapbox_maps_flutter` v11.27, Tracelet (géoloc arrière-plan) ; FastAPI +
@@ -88,8 +107,9 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - qa-finding → `qa-finding`
 
 ## Skills du projet
-- Pipeline maison (11) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,
-  `cycle-pr`, `repercussions`, `pr-paralleles`, `plan-qa`, `execution-qa`, `bug-vers-issue`
+- Pipeline maison (12) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,
+  `cycle-pr`, `contradiction`, `repercussions`, `pr-paralleles`, `plan-qa`, `execution-qa`,
+  `bug-vers-issue`
 - Qualité de code (6) : `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`,
   `ponytail-gain`, `ponytail-help` — exigé par cadrage §13.10, `ponytail` activé par `CLAUDE.md`
 - Flutter (5) : `flutter-apply-architecture-best-practices`, `flutter-setup-declarative-routing`,

@@ -8,13 +8,20 @@ décrit dans [CONTRIBUTING.md](CONTRIBUTING.md) et exécutable via le skill `cyc
 @.claude/rules/contraintes.md
 @.claude/rules/taille-pr.md
 @.claude/rules/cleanup-verbatim.md
+@.claude/rules/decisions-vs-doc.md
 
 ## Configuration du projet
 
 `.claude/pipeline.config.md` est la **source unique** pour : le dépôt GitHub, le mapping de labels,
 la stack, les **commandes du projet** (test / lint / format / typecheck / build), les seuils de
-qualité, les **domaines**, les **zones sensibles** et les **surfaces exposées**. Ne jamais deviner
-une commande ni un label — les lire là. Pour créer ou modifier ce fichier : skill `init-projet`.
+qualité, les **sources de vérité**, les **domaines**, les **zones sensibles** et les **surfaces
+exposées**. Ne jamais deviner une commande ni un label — les lire là. Pour créer ou modifier ce
+fichier : skill `init-projet`.
+
+Les **sources de vérité** (`documents/reference/`, puis les issues ouvertes) y sont classées par
+**rang de normativité**. C'est cette table que lisent la règle `decisions-vs-doc` et le skill
+`contradiction` : une décision qui contredit un rang s'arrête, et soit elle est abandonnée, soit
+le document est amendé dans la même session.
 
 Les **domaines** servent aussi de thèmes (milestones GitHub). Les **surfaces visibles par un
 utilisateur** déclenchent la vérif de fumée avant merge et la proposition de campagne QA en fin de
@@ -144,6 +151,7 @@ déclenche automatiquement sur sa description.
 | `/triage` | Machine à états + thèmes + brief d'agent |
 | `/interroge-moi` | Lever les ambiguïtés d'un plan |
 | `/cycle-pr` | Cycle complet d'une PR (TDD → merge) |
+| `/contradiction` | Une décision contredit la doc → amende le document, puis propage |
 | `/repercussions` | Impact d'un merge sur les issues ouvertes |
 | `/pr-paralleles` | Plusieurs PR en parallèle (worktrees) |
 | `/plan-qa` | Écrire un plan de QA |
