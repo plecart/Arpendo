@@ -9,7 +9,7 @@ Mouvement **amont** de la pipeline, symétrique de `repercussions`.
 
 | | `contradiction` | `repercussions` |
 |---|---|---|
-| Déclencheur | une **décision de conversation** | un **merge** |
+| Déclencheur | une **décision de conversation**, ou un § falsifié par un merge que `repercussions` lui remonte | un **merge** |
 | Ce qui falsifie | la décision qui vient d'être prise | le diff mergé |
 | Ce qui devient faux | un **§ de document**, puis les issues | des **corps d'issues** |
 

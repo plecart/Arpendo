@@ -60,6 +60,23 @@ mentionner :
 Chaque ancre doit provenir du diff ou d'une décision écrite. **Une ancre qu'on ne peut pas
 rattacher à un fait du delta n'est pas une ancre.**
 
+#### Confronter d'abord le delta aux sources de vérité
+
+Les issues sont le **rang 5** de la table « Sources de vérité » de `.claude/pipeline.config.md` :
+elles dérivent des rangs 1 à 4. Avant de les corriger, vérifier que le delta n'a pas rendu faux un
+**§ d'un document de référence** — sinon on aligne les issues sur une doc qui est elle-même à
+amender, et la cascade se fait dans le mauvais sens.
+
+C'est un `grep` des ancres sur les fichiers des rangs 1 à 4, rien de plus. Même seuil que pour les
+issues : **deux citations ou rien** — la ligne exacte du §, et le fait du delta qui la falsifie. Un
+document **muet** sur le point (le cadrage décrit le serveur, le delta touche le poste de dev) n'est
+pas contredit.
+
+Une contradiction avérée → **s'arrêter avant l'étape 2** et invoquer `contradiction` : c'est lui
+qui amende le §, puis rappelle `repercussions` avec l'amendement comme delta. Ce skill **n'amende
+jamais un document lui-même**. Une contradiction déjà portée par une issue ouverte — l'échappatoire
+de `decisions-vs-doc` — est déjà tracée : ne pas la signaler une seconde fois.
+
 ### 2. Sélectionner les issues à examiner
 
 Sur le dépôt de `.claude/pipeline.config.md` :
@@ -262,8 +279,10 @@ apprend à ignorer — c'est précisément ce qu'on cherche à éviter en ne la 
 - **Il ne re-trie pas.** La seule transition d'état qu'il applique est le retour en
   `needs-interrogation` décrit ci-dessus ; tout autre changement d'état passe par `triage`.
 - **Il ne relit pas le code.** Il confronte des specs à un delta, il n'audite pas la codebase.
+- **Il n'amende aucun document de référence.** Il détecte qu'un § est falsifié (étape 1) et passe
+  la main à `contradiction`, seul à écrire dans les rangs 1 à 4.
 
-## Les 4 idées à retenir
+## Les 5 idées à retenir
 
 1. **Le livrable est un corps d'issue corrigé.** Aucun commentaire d'issue — un commentaire laisse
    le texte faux en place.
@@ -274,3 +293,5 @@ apprend à ignorer — c'est précisément ce qu'on cherche à éviter en ne la 
    dégât irrattrapable que ce skill puisse causer.
 4. **Périmètre mécanique** (thème + ancres) et **idempotence** (journal de spec) : le skill se
    relance après chaque merge sans re-brasser le backlog.
+5. **Les documents avant les issues.** Un delta qui falsifie un § de référence passe par
+   `contradiction` d'abord ; les issues se corrigent contre la doc amendée, jamais l'inverse.
