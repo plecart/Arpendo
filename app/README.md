@@ -24,7 +24,7 @@ Toujours par `just`, jamais par `flutter` nu (c'est le SDK global qui répondrai
 | `just test-app` | tests de widget et unitaires |
 | `just test-one-app test/app_test.dart` | un seul fichier, pour la boucle TDD |
 | `just lint-app` | `flutter analyze`, modes stricts activés dans `analysis_options.yaml` |
-| `just fmt-app` / `just fmt-check-app` | `dart format` |
+| `just fmt-app` / `just fmt-check-app` | `dart format` — la première écrit, la seconde vérifie seulement |
 | `just build` | `flutter build appbundle` |
 
 ## Structure

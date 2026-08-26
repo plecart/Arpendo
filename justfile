@@ -98,9 +98,11 @@ lint-app:
 fmt-app:
     "{{dart}}" format .
 
+# `--output none` est indispensable : `dart format` ÉCRIT par défaut, et `--set-exit-if-changed`
+# ne règle que le code de sortie. Sans lui, la vérification reformate les fichiers qu'elle contrôle.
 [working-directory('app')]
 fmt-check-app:
-    "{{dart}}" format --set-exit-if-changed .
+    "{{dart}}" format --output none --set-exit-if-changed .
 
 [working-directory('app')]
 build:
