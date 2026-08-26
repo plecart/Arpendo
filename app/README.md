@@ -35,10 +35,12 @@ créé avant. `lib/data/services/` existe depuis le client HTTP ; `lib/ui/` pas 
 
 ## Réseau
 
-Tout ce qui parle au serveur passe par `lib/data/services/api_client.dart`. **C'est le seul
-fichier de `lib/` qui importe `package:http`**, et `lib/data/services/connectivity_service.dart`
-le seul qui importe `package:connectivity_plus` — deux règles vérifiables d'un `grep`, et qui
-sont la raison d'être du module : le jour où la bibliothèque HTTP change, un seul fichier bouge.
+Tout ce qui parle au serveur passe par `lib/data/services/api_client.dart`. **Aucun appelant
+n'importe `package:http`** : seuls le client et ses futures enveloppes le connaissent, et
+`lib/data/services/connectivity_service.dart` est le seul fichier à importer
+`package:connectivity_plus`. Deux règles vérifiables d'un `grep`, et qui sont la raison d'être du
+module : le jour où la bibliothèque HTTP change, la liste des fichiers à toucher est courte et
+connue d'avance.
 
 `ApiClient` reçoit sa configuration (`ApiConfig` : url de base et délai), la version du client et
 le service de connectivité. Il ne connaît aucune valeur en dur. Tout échec sort en `ApiException`

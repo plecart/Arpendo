@@ -53,8 +53,10 @@ class ApiConfig {
 /// espacement progressif et idempotence des lots s'ajouteront en enveloppant
 /// le [http.Client] passé au constructeur, sans toucher à cette classe.
 ///
-/// Tout échec sort en [ApiException] ; aucune exception de transport ne
-/// traverse cette frontière.
+/// Toute panne réseau sort en [ApiException] : ni exception de transport ni
+/// dépassement de délai ne traverse cette frontière. Une [ApiConfig] mal
+/// formée, elle, est une erreur de configuration et reste une erreur de
+/// programmation — c'est la racine de composition qui la refuse au démarrage.
 class ApiClient {
   /// [client] n'est fourni que par les tests et les futures enveloppes ; en
   /// production, le client crée le sien.
