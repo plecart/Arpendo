@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Arpendo — couche de services du jeu, servie par l'api HTTP."
 requires-python = ">=3.13"
 dependencies = [
+    "asyncpg>=0.31.0",
     "fastapi>=0.141.1",
+    "pydantic-settings>=2",
+    "redis>=8.1.0",
+    "sqlalchemy[asyncio]>=2.0.52",
     "uvicorn>=0.52.4",
 ]
 
@@ -17,6 +21,12 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+# Sans ce greffon, mypy lit `Settings()` comme un appel de modèle Pydantic et réclame les trois
+# champs en arguments — alors que c'est précisément l'environnement qui les fournit. Le greffon
+# connaît `BaseSettings` et rend ses champs facultatifs à la construction.
+plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

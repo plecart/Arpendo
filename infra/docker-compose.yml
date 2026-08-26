@@ -1,0 +1,98 @@
+# Pile locale — l'équivalent poste de travail du serveur unique du cadrage §13.0. Deux écarts
+# assumés avec la production, et rien d'autre : PostgreSQL est ici un conteneur (en production,
+# seul service managé) et les trois services publient un port (en production, seul `caddy` est
+# exposé — §13.10). Ces ports sont ce qui permet à `uvicorn` et à `pytest` lancés sur l'hôte de
+# joindre la base et le cache : sans eux, la boucle de développement passerait par un conteneur.
+# La base et le cache sont bornés à la boucle locale, seule l'api est publiée largement — le
+# détail est sur chacun.
+#
+# Lancé par `just up`, depuis la racine du dépôt, avec le `.env` de la racine — voir cette recette.
+# Le durcissement complet (empreintes d'images, `read_only`, `cap_drop`, limites de ressources,
+# compose de production, Caddy) est le périmètre de #45 ; ne rien en anticiper ici.
+
+services:
+  postgres:
+    # PostgreSQL 17 : même majeure que la CI et que le service managé à commander (§13.6).
+    image: postgres:17
+    environment:
+      # Identifiants littéraux : ce conteneur ne contient que des données jetables, et les mettre
+      # dans le `.env` donnerait à croire qu'il s'agit d'un secret. Ils sont l'exacte contrepartie
+      # de la valeur d'exemple de `DATABASE_URL`.
+      POSTGRES_USER: arpendo
+      POSTGRES_PASSWORD: arpendo
+      POSTGRES_DB: arpendo
+    ports:
+      # Boucle locale seule : seuls `pytest` et `uvicorn` lancés sur cette machine en ont
+      # besoin. Sans le préfixe, Docker publie sur toutes les interfaces et une base aux
+      # identifiants volontairement faibles devient joignable depuis le réseau du café.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # `-U` et `-d` explicites : sans eux `pg_isready` interroge la base `root`, qui n'existe
+      # pas. Lus dans l'environnement du conteneur (`$$`, donc à l'exécution) plutôt que
+      # recopiés : une sonde qui répète les identifiants finit par les répéter faux, et un
+      # `healthy` obtenu sur les mauvais identifiants est pire qu'un échec franc.
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  valkey:
+    image: valkey/valkey:8
+    environment:
+      # Mot de passe obligatoire même sans port publié (§13.10, « Valkey authentifié »).
+      # `VALKEY_EXTRA_FLAGS` plutôt qu'un `command:` qui réécrirait la ligne de commande de
+      # l'image : c'est le mécanisme que la CI emploie déjà, donc une seule façon de faire dans
+      # les trois environnements. Le serveur lit le mot de passe par ce drapeau ; la sonde
+      # ci-dessous a besoin de la même valeur, sous son propre nom. Un seul `:?` protège les
+      # trois emplois : Compose résout toutes les interpolations avant de démarrer quoi que ce
+      # soit, et échoue avec ce message si le `.env` est absent ou incomplet — plutôt que de
+      # lever un Valkey sans mot de passe.
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?VALKEY_PASSWORD est requis — copier .env.example en .env}
+      VALKEY_EXTRA_FLAGS: --requirepass ${VALKEY_PASSWORD}
+    ports:
+      # Boucle locale seule, même raison que pour `postgres`.
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      # `$$` échappe l'interpolation de Compose : c'est le shell du conteneur qui doit lire la
+      # variable, pas Compose. `--no-auth-warning` évite un avertissement sur stderr à chaque
+      # sonde, qui ferait passer un healthcheck vert pour un problème dans les journaux. Un mot
+      # de passe refusé fait sortir `valkey-cli` en erreur : le code de retour suffit, pas besoin
+      # de filtrer la sortie. Même sonde qu'en CI, à la source du mot de passe près.
+      test: ["CMD-SHELL", "valkey-cli --no-auth-warning -a \"$$VALKEY_PASSWORD\" ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ../api
+    environment:
+      # Les conteneurs se joignent par nom de service, jamais par `localhost` — d'où des URL
+      # différentes de celles du `.env`, qui sont le point de vue de l'hôte. Seul le mot de passe
+      # est un secret, donc seul lui est interpolé.
+      DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
+      VALKEY_URL: redis://valkey:6379/0
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+    # Rechargement à chaud sur les sources montées. `--reload-dir` borne la surveillance à `src/` :
+    # sans lui, uvicorn scrute aussi `/app/.venv`, des milliers de fichiers relus en boucle.
+    command: ["uvicorn", "arpendo_api.main:create_app", "--factory", "--host", "0.0.0.0",
+              "--port", "8000", "--reload", "--reload-dir", "/app/src"]
+    volumes:
+      - ../api/src:/app/src
+    ports:
+      # Publié sur toutes les interfaces, lui : une application Flutter installée sur un
+      # téléphone du réseau local doit pouvoir joindre cette api. C'est le seul service qui
+      # ait un lecteur hors de la machine — comme en production, où seul `caddy` est exposé.
+      - "8000:8000"
+    depends_on:
+      # `service_healthy`, pas `service_started` : l'api ouvre ses connexions au démarrage, un
+      # PostgreSQL encore en initialisation la ferait échouer au premier lancement.
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    # Sonde héritée de `api/Dockerfile` : une seule déclaration pour tous les environnements.
+
+volumes:
+  postgres-data:
