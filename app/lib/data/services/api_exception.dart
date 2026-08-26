@@ -27,6 +27,27 @@ final class ServeurInjoignable extends ApiException {
   const ServeurInjoignable();
 }
 
+/// Le serveur a répondu, hors de la plage 2xx.
+///
+/// Porte le [statut] et rien d'autre : ni le corps, ni un message. Le texte
+/// affiché est le choix de l'appelant (spec UX §13.3).
+final class ErreurHttp extends ApiException {
+  const ErreurHttp(this.statut);
+
+  /// Code de statut HTTP renvoyé par le serveur.
+  final int statut;
+}
+
+/// Le serveur a répondu 2xx, avec un corps inexploitable.
+///
+/// JSON invalide, corps vide, ou racine qui n'est pas un objet. Le corps d'une
+/// réponse est une frontière de confiance : sans ce cas, une régression du
+/// serveur ferait planter l'application en partie au lieu d'afficher un
+/// bandeau (spec UX §13.3).
+final class ReponseInvalide extends ApiException {
+  const ReponseInvalide();
+}
+
 /// Classe une panne de transport selon l'état du réseau.
 ///
 /// C'est le **seul** endroit où se décide la distinction que le cadrage §10.3
