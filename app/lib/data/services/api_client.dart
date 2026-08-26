@@ -48,10 +48,10 @@ class ApiConfig {
 
 /// Seul point de l'application qui parle au serveur.
 ///
-/// **Seul importeur de `package:http` dans `lib/`.** Aucun autre code de
-/// l'application ne connaît la bibliothèque HTTP : jetons de session,
-/// espacement progressif et idempotence des lots s'ajouteront en enveloppant
-/// le [http.Client] passé au constructeur, sans toucher à cette classe.
+/// **Aucun appelant n'importe `package:http`** : seuls ce client et ses
+/// enveloppes connaissent la bibliothèque HTTP. Jetons de session, espacement
+/// progressif et idempotence des lots s'ajouteront en enveloppant le
+/// [http.Client] passé au constructeur, sans toucher à cette classe.
 ///
 /// Toute panne réseau sort en [ApiException] : ni exception de transport ni
 /// dépassement de délai ne traverse cette frontière. Une [ApiConfig] mal

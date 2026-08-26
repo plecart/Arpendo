@@ -16,15 +16,15 @@ class ConnectivityService {
   /// Renvoie `true` dès qu'une interface est active, quel que soit son type
   /// (Wi-Fi, mobile, Ethernet, VPN…), `false` si le téléphone n'en a aucune.
   ///
-  /// Ne lève jamais : si la plateforme ne répond pas, la méthode suppose le
-  /// réseau **présent**. C'est le choix le moins nuisible du cadrage §10.3 —
+  /// N'échoue jamais sur un incident de plateforme (canal natif absent ou en
+  /// erreur) : la méthode suppose alors le réseau **présent**. C'est le choix le moins nuisible du cadrage §10.3 —
   /// « serveur indisponible » invite à garder l'application ouverte, là où
   /// « pas de connexion » enverrait le joueur vérifier une connexion qui
   /// marche, et donc fermer l'application.
   Future<bool> isOnline() async {
     try {
       return (await Connectivity().checkConnectivity()).hasConnectivity;
-    } catch (_) {
+    } on Exception {
       return true;
     }
   }

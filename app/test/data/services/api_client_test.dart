@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:arpendo/data/services/api_client.dart';
 import 'package:arpendo/data/services/api_exception.dart';
 import 'package:arpendo/data/services/connectivity_service.dart';
@@ -98,10 +100,7 @@ void main() {
 
   test('passé le délai, le serveur est injoignable', () async {
     final client = _client(
-      MockClient((_) async {
-        await Future<void>.delayed(const Duration(seconds: 5));
-        return http.Response('{}', 200);
-      }),
+      MockClient((_) => Completer<http.Response>().future),
       delai: const Duration(milliseconds: 20),
     );
 

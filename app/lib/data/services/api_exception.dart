@@ -36,6 +36,10 @@ final class ErreurHttp extends ApiException {
 
   /// Code de statut HTTP renvoyé par le serveur.
   final int statut;
+
+  /// Pour les journaux et les traces : un échec sans son statut ne dit rien.
+  @override
+  String toString() => 'ErreurHttp($statut)';
 }
 
 /// Le serveur a répondu 2xx, avec un corps inexploitable.
