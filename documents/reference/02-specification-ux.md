@@ -106,8 +106,10 @@ Aucun texte sous 12 dp. Le rendu doit suivre le réglage de taille de police du 
 
 **Traitement propre à l'identité** — il ne touche pas à l'échelle ci-dessus, qui reste invariante :
 
-- **Graisse 400 par défaut**, réservée aux seuls `type-display` et `type-title` pour monter à 700
-  et 600. La direction est sobre ; le texte ne prend pas de poids pour exister.
+- **Graisse 400 par défaut** : c'est celle du texte courant et de l'horodatage. Les six autres
+  jetons montent selon le tableau ci-dessus, et le gras franc — 700, puis 600 — reste réservé aux
+  deux plus gros, `type-display` et `type-title`. La direction est sobre ; le texte ne prend pas
+  de poids pour exister.
 - **Chiffres tabulaires** (`fontFeatures: [FontFeature.tabularFigures()]`) sur **le score du
   header, le timer, les scores de liste et le tableau des scores**. Sans eux, un score qui passe de
   12 400 à 12 300 fait danser toute la ligne — un défaut particulièrement visible sur une valeur
@@ -358,14 +360,15 @@ code généré hors de cet alphabet serait insaisissable, puisque le champ le fi
 Le §2.4 fait porter la sévérité d'un bandeau par le **glyphe** et non par la couleur : sans jeu
 d'icônes nommé, cette règle n'est pas applicable.
 
-**Jeu retenu : Phosphor, graisse `Regular`** (`phosphor_flutter`, licence MIT).
+**Jeu retenu : Phosphor, graisse `Regular`** (`phosphor_icons`, licence MIT).
 
 Pourquoi celui-là plutôt que les `Icons.*` fournis par Flutter : l'identité « Relevé » est portée
 **par le trait** — contour d'hexagone de 1 dp (§3.3), *backface hull* du marqueur (§3.4.1), contour
 de pastille de 1 dp (§3.4). Phosphor est un jeu à trait uniforme dont la graisse se règle, donc il
 parle la même langue que le reste de l'interface. Les Material Icons ont un trait plus épais et des
-raccords arrondis qui jurent avec un fond de carte topographique. Le coût est un paquet, tree-shaké
-à la compilation comme n'importe quelle police d'icônes.
+raccords arrondis qui jurent avec un fond de carte topographique. Le coût est un paquet : la
+graisse employée est tree-shakée à la compilation, mais les cinq autres graisses que le paquet
+déclare restent embarquées — **2,58 Mo**, qu'un sous-ensemble embarqué supprimerait.
 
 **Règles d'emploi.** Dessin à **24 dp**, zone tactile à **48 dp** (§1.4). Couleur héritée du
 contexte, jamais posée en dur. Une icône ne remplace jamais un libellé sur une action nommée ; elle

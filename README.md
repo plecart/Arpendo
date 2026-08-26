@@ -135,7 +135,7 @@ UX**.
 | 4 | **La modale « Mes hexagones »** — spécifiée au §7.6 du cadrage, **reportée post-MVP**. Ne bloque rien | Post-MVP |
 | 5 | **Aucun jeton Mapbox.** Deux sont nécessaires, à ne pas confondre : le jeton **public** (`pk.*`) part dans l'APK pour charger les tuiles — il en est extractible, c'est le risque de facture n°1 du cadrage §13.10 (portées de lecture seules, alerte de budget dès le premier dollar) ; le jeton de **téléchargement** (`sk.*`, portée `DOWNLOADS:READ`) ne sert qu'à récupérer le SDK Android au moment du build et ne doit jamais partir dans l'APK. Ce dernier devra **aussi** exister en secret GitHub Actions (`MAPBOX_DOWNLOADS_TOKEN`) : le step Build de la CI en aura besoin dès que `mapbox_maps_flutter` sera une dépendance | Avant la première dépendance `mapbox_maps_flutter` |
 | 6 | **`UBIQUITOUS_LANGUAGE.md` n'existe pas.** `CLAUDE.md` s'en sert pour nommer tests, issues et PR. Le vocabulaire est arrêté dans le cadrage mais n'est extrait nulle part | Avant les premières issues |
-| 7 | **Pas de fichier de jetons machine** (`tokens.json` ou thème Dart) — voir « Ce qui n'existe pas encore » | Avant le premier écran |
+| 7 | **Le sous-ensemble Phosphor n'est pas embarqué.** Le paquet `phosphor_icons` déclare **six graisses** ; le §1.8 n'en emploie qu'une, et les cinq autres pèsent **2,58 Mo** dans l'AAB — mesurés. Un sous-ensemble embarqué — police ou SVG — les supprimerait et rendrait l'inventaire indépendant du paquet | Post-MVP |
 | 8 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |
 | 9 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
 
@@ -148,11 +148,9 @@ ils existent pour éviter qu'une décision close soit rouverte sans élément no
 ## Ce qui n'existe pas encore
 
 - **Presque aucun code applicatif.** `api/` (FastAPI, `GET /health`) et `app/` (Flutter, écran
-  vide) sont des squelettes ; chacun a son README. Le worker n'existe pas : il naît comme second
-  point d'entrée du paquet `arpendo_api`, avec sa première tâche réelle.
-- **Pas de fichier de jetons machine.** Toutes les valeurs sont décidées mais vivent dans des
-  tableaux de prose. Un `tokens.json` ou un thème Dart vaudrait plus qu'une maquette au moment
-  d'écrire le code.
+  vide sur le thème des jetons du §1) sont des squelettes ; chacun a son README. Le worker
+  n'existe pas : il naît comme second point d'entrée du paquet `arpendo_api`, avec sa première
+  tâche réelle.
 - **Pas de modèle glTF du marqueur.** Sa spécification complète est au §3.4.1 de la spec UX ;
   c'est un travail de modeleur, pas de designer.
 - **Pas de PDF de spécification complète.** C'est le point 6 du §17 du cadrage.
