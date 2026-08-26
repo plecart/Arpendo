@@ -16,12 +16,24 @@ import 'typographie.dart';
 /// Aucun thème de composant n'est posé ici. `FilledButtonThemeData`,
 /// `InputDecorationTheme` et leurs semblables naissent avec le premier composant
 /// qui les réclame, avec un écran sous les yeux pour les valider.
-ThemeData themeArpendo(Brightness brightness) {
-  final palette = switch (brightness) {
-    Brightness.light => _Palette.clair,
-    Brightness.dark => _Palette.sombre,
-  };
+ThemeData themeArpendo(Brightness brightness) => switch (brightness) {
+  Brightness.light => _clair,
+  Brightness.dark => _sombre,
+};
 
+/// Les deux thèmes, construits une fois pour toutes.
+///
+/// `ThemeData` compare ses extensions avec `==`, et [CouleursChrome] n'en
+/// définit pas : deux instances aux mêmes valeurs se compareraient donc
+/// **inégales**. Le `Theme` de l'arbre notifierait alors ses dépendants à chaque
+/// reconstruction de la racine, et tout ce qui lit une couleur se reconstruirait
+/// pour rien. Rendre le même objet règle le problème sans imposer un `==` et un
+/// `hashCode` à écrire à la main sur chaque extension future — et évite au
+/// passage de rebâtir deux `ThemeData` à chaque `build`.
+final ThemeData _clair = _construire(Brightness.light, _Palette.clair);
+final ThemeData _sombre = _construire(Brightness.dark, _Palette.sombre);
+
+ThemeData _construire(Brightness brightness, _Palette palette) {
   return ThemeData(
     colorScheme: ColorScheme(
       brightness: brightness,

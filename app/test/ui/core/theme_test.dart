@@ -45,6 +45,17 @@ void main() {
             'retomber un accent pâle dans la bande de clarté des couleurs joueur',
       );
     });
+
+    test('deux appels rendent un thème égal', () {
+      expect(
+        themeArpendo(Brightness.light),
+        themeArpendo(Brightness.light),
+        reason:
+            'ThemeData compare ses extensions par == ; deux thèmes inégaux '
+            "font notifier l'InheritedWidget Theme et reconstruire tout ce qui "
+            'en dépend, pour rien',
+      );
+    });
   });
 
   group('mouvement', () {
