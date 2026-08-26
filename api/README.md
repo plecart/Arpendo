@@ -32,6 +32,12 @@ Dans les deux cas, `GET http://localhost:8000/health` répond `{"status": "ok"}`
 
 ## Tester et vérifier
 
+**`just test` exige `just up`.** Les tests parlent à un vrai PostgreSQL et à un vrai Valkey,
+jamais à des doubles : une connexion simulée ne prouverait rien de ce que cette configuration
+existe pour garantir. Ils lisent leurs coordonnées dans le `.env` de la racine, que le justfile
+charge dans l'environnement des recettes. En CI, ce sont les conteneurs `services:` du workflow
+et les variables du job qui jouent ce rôle — le même code, sans `.env`.
+
 | Commande | Rôle |
 |---|---|
 | `just test-api` | suite complète avec couverture, seuil 85 % |
@@ -48,5 +54,12 @@ branché sur `create_app()` sans réseau. Les tests asynchrones n'ont besoin d'a
 
 - `src/arpendo_api/main.py` — `create_app()`, la fabrique de l'hôte HTTP. Les routeurs des
   domaines s'y ajoutent sous `/v1` ; `/health` et `/version` restent à la racine.
-- `src/arpendo_api/core/` — le transversal (santé, puis réglages, garde-fous…).
+- `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
+  l'environnement du paquet), `valkey.py`, `health.py`.
+- `src/arpendo_api/db/` — la persistance : `engine.py` aujourd'hui, le schéma et les sessions
+  ensuite.
 - `src/arpendo_api/domains/` — un paquet par domaine métier, créé avec le premier.
+
+Le moteur et le client Valkey sont ouverts par le cycle de vie de l'application et rangés dans
+`app.state` : leur durée de vie est exactement celle de l'application, et deux applications de
+test n'en partagent jamais un.
