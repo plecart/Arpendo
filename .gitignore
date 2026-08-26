@@ -68,3 +68,6 @@ doc/api/
 
 # FVM Version Cache
 .fvm/
+
+# Généré par l'outil Flutter à chaque build, dans les sources Android de l'app
+**/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java

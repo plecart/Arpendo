@@ -10,7 +10,8 @@
   Pydantic ; Caddy, Valkey, PostgreSQL, Docker Compose
 - gestionnaire de paquets : `uv` (Python), `pub` (Dart)
 - runtime + version :
-  - **Python 3.13** — fournie par `uv` ; à épingler dans `api/.python-version` au scaffold.
+  - **Python 3.13** — épinglée dans `api/.python-version` (`3.13`, mineure : `uv` installe le
+    dernier patch, en local comme en CI ; le job CI ne déclare aucune version).
   - **Flutter 3.47.1** (Dart 3.13.1, révision `6655482ec0`) — épinglée
     dans `.fvmrc` à la racine, **source unique en local comme en CI**. Seul le fournisseur
     diffère : FVM sur le poste de dev, `subosito/flutter-action` sur le runner (qui lit le
@@ -32,12 +33,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - build        : `just build`
 - run local    : `just up`
 
-> ⚠️ **Non vérifiées tant que `api/` et `app/` n'existent pas** — les recettes pointent vers des
-> répertoires absents. À exécuter réellement dès le premier scaffold, et à corriger ici si l'une
-> échoue pour une autre raison que l'absence de code. **Les agrégats (`install`, `test`, `lint`,
-> `fmt*`) traversent les deux répertoires : le premier scaffold doit créer `api/` et `app/`
-> ensemble** — même réduits au squelette —, sinon chaque commande échoue sur le répertoire manquant
-> et la CI reste rouge.
+> Toutes exécutées et vertes depuis le scaffold `api/` + `app/` du 26 août 2026.
 
 ## Qualité
 - seuil de couverture : 85 % côté `api/` (appliqué par `--cov-fail-under=85`) ; `n/a` côté `app/`

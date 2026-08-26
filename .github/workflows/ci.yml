@@ -67,10 +67,8 @@ jobs:
       - name: Setup uv + Python
         uses: astral-sh/setup-uv@v5
         with:
-          # Tient lieu de source de version tant que `api/.python-version` n'existe pas.
-          # Dès que ce fichier est créé, `setup-uv` le lit seul : cette ligne doit alors
-          # disparaître, sinon la version est déclarée à deux endroits et elles divergent.
-          python-version: "3.13"
+          # Aucune version de Python ici : `uv sync` (recette `install-api`) lit
+          # `api/.python-version`, source unique, et installe l'interpréteur qu'il faut.
           enable-cache: true
 
       - name: Setup Flutter
