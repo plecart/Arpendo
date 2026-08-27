@@ -1,8 +1,5 @@
-"""Le client Valkey : comment on l'ouvre, et comment les routes y accèdent."""
+"""Le client Valkey : comment on l'ouvre."""
 
-from typing import Annotated
-
-from fastapi import Depends, Request
 from redis.asyncio import Redis
 from redis.asyncio.retry import Retry
 from redis.backoff import NoBackoff
@@ -47,16 +44,3 @@ def create_valkey(settings: Settings) -> Redis:
         socket_connect_timeout=CONNECT_TIMEOUT,
         retry=Retry(NoBackoff(), retries=0),
     )
-
-
-def _from_state(request: Request) -> Redis:
-    """Rend le client rangé dans ``app.state`` par le cycle de vie de l'application."""
-    valkey: Redis = request.app.state.valkey
-    return valkey
-
-
-Valkey = Annotated[Redis, Depends(_from_state)]
-"""Le client Valkey, vu par une route : ``async def route(valkey: Valkey)``.
-
-Même raison que pour ``db.engine.Engine`` : une dépendance, pas un singleton de module.
-"""

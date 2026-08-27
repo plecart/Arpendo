@@ -17,8 +17,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     Elles vivent dans ``app.state`` parce que c'est le seul endroit dont la durée de vie est
     exactement celle de l'application : un singleton de module survivrait aux tests et fuirait
-    d'une application à l'autre. Les routes les récupèrent par les dépendances
-    ``db.engine.Engine`` et ``core.valkey.Valkey``.
+    d'une application à l'autre. Un test qui construit son application obtient donc les
+    ressources de *celle-ci*, jamais un état global laissé par un test précédent. C'est là que
+    les sondes de ``core.health`` vont les chercher.
 
     Chaque ressource est empilée sur un ``AsyncExitStack`` **dès sa naissance**, et la pile se
     déroule en ordre inverse quoi qu'il arrive : si la ressource suivante échoue à naître, les
