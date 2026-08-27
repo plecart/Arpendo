@@ -56,10 +56,9 @@ final class ErreurHttp extends ApiException {
 /// Le serveur a répondu 2xx, avec un corps inexploitable.
 ///
 /// Octets qui ne sont pas de l'UTF-8, JSON invalide, corps vide, ou racine qui
-/// n'est pas un objet. Le corps d'une
-/// réponse est une frontière de confiance : sans ce cas, une régression du
-/// serveur ferait planter l'application en partie au lieu d'afficher un
-/// bandeau (spec UX §13.3).
+/// n'est pas un objet. Le corps d'une réponse est une frontière de confiance :
+/// sans ce cas, une régression du serveur ferait planter l'application en
+/// partie au lieu d'afficher un bandeau (spec UX §13.3).
 final class ReponseInvalide extends ApiException {
   const ReponseInvalide();
 }

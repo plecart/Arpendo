@@ -80,8 +80,8 @@ class _TransportFermable extends http.BaseClient {
   bool ferme = false;
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest requete) async =>
-      http.StreamedResponse(const Stream.empty(), 200);
+  Future<http.StreamedResponse> send(http.BaseRequest requete) =>
+      throw UnsupportedError("ce transport ne sert qu'à observer close");
 
   @override
   void close() => ferme = true;
@@ -103,14 +103,6 @@ final _famillesDePanne = <(String, Object)>[
 ];
 
 void main() {
-  test("close ferme le client injecté : l'injecter, c'est le céder", () {
-    final transport = _TransportFermable();
-
-    _client(transport).close();
-
-    expect(transport.ferme, isTrue);
-  });
-
   test('une réponse 200 rend le corps JSON décodé', () async {
     final client = _client(
       MockClient((_) async => http.Response('{"version":"1.0.0"}', 200)),
@@ -189,6 +181,14 @@ void main() {
       },
     );
   }
+
+  test("close ferme le client injecté : l'injecter, c'est le céder", () {
+    final transport = _TransportFermable();
+
+    _client(transport).close();
+
+    expect(transport.ferme, isTrue);
+  });
 
   test('close atteint le client par défaut, pas que son enveloppe', () async {
     // Un serveur qui répond vraiment : sans lui, une requête d'après-fermeture
