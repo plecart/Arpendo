@@ -28,8 +28,8 @@ class ConnectivityService {
   /// Toute **autre** erreur remonte. Rattraper `Exception` en bloc ferait
   /// répondre « en ligne » à un bogue de cette classe aussi bien qu'à un
   /// incident natif, et le mensonge serait indiscernable de la vérité. Ces
-  /// incidents ne laissent encore aucune trace : elle viendra avec Sentry
-  /// (#42), et surtout pas par un `print`.
+  /// incidents ne laissent encore aucune trace : elle viendra avec le Sentry
+  /// de l'app (#46), et surtout pas par un `print`.
   Future<bool> isOnline() async {
     try {
       return (await Connectivity().checkConnectivity()).hasConnectivity;
