@@ -302,3 +302,222 @@ Rang 1 muet sur les graisses (le cadrage ne nomme que la famille Roboto), donc a
 journal des changements du cadrage. Aucune issue ouverte ne cite ces phrases — recherche sur
 « graisse », « type-headline », « type-label », « gras franc » : zéro. Le code n'est pas touché :
 il a toujours suivi le tableau.
+
+---
+
+## 18.5 Passe de ton du 27 août 2026 — les textes de l'interface
+
+Issue #29, PR #67. Le seul point de conception laissé ouvert par la phase d'identité (cadrage
+§18.4, §19 point 4) : les textes de la spécification avaient été rédigés **avant** que le registre
+soit arrêté (`03-identite-visuelle.md` §0.3 et §1.7), dans celui qui *annonce* la mauvaise nouvelle.
+L'encadré qui portait la dette en tête du §0 est retiré ; un paragraphe **Ton** le remplace et
+énonce la règle en vigueur.
+
+**Ce qui a été appliqué, texte par texte.** Le registre du §1.7 de l'identité : phrases courtes,
+verbes au présent, aucun point d'exclamation, aucune interjection, aucun superlatif, aucun emoji.
+La mauvaise nouvelle dit **ce qui se passe** puis **ce qu'on peut faire** ; la bonne nouvelle reste
+plate. Quatre règles de rédaction ont été fixées pour que le corpus soit cohérent — c'est le sens
+du « tout ou rien » :
+
+1. **Un cap de +30 % par texte**, mesuré en caractères et reporté dans la colonne Δ. C'est la
+   tolérance que tout conteneur doit absorber (§0) ; une réécriture qui la consomme entièrement ne
+   laisse rien à la locale allongée. Aucune ne la dépasse.
+2. **Un vocabulaire commun.** La cause d'un échec se dit « Pas de réseau. » ou « Le serveur ne
+   répond pas. » ; la conséquence d'une pause de capture, « tes pas ne comptent pas » ; un échec
+   de chargement, « *X* n'est pas arrivé. » suivi de « Réessayer ». Un joueur qui a lu un message a
+   lu les autres.
+3. **Aucune forme genrée.** « Tu es seul dans la partie » et « Tu ne seras pas prévenu » supposent
+   un joueur masculin ; l'app ne connaît pas le genre et les clés ARB de #38 figeront la forme.
+   Les deux sont reformulés sans participe accordé.
+4. **Les libellés d'action, les valeurs, les formats et les noms ne bougent pas** — ils n'ont pas
+   de registre. Deux exceptions, pour interjection : « Oui, c'est mon pseudo » et « C'est bon, tu
+   peux la reprendre ».
+
+**Intouchés par consigne** : « Ta progression s'arrêtera si ton téléphone redémarre » (cadrage
+§9.2), « aucune capture pour l'instant » (cadrage §7.5), « dernière capture il y a 2 h » (idem) et
+l'avertissement de sécurité du §6.
+
+**Quatre écarts relevés en passant, et ce qui en a été fait :**
+
+| Écart | Traitement |
+|---|---|
+| L'encadré §0 affirmait que l'avertissement du §6 « reprend le cadrage §16 littéralement ». Le §16 du cadrage n'écrit aucun texte — il exige « avertissement de sécurité à l'onboarding + clause CGU » | Le texte reste intouché comme demandé ; la phrase du §6 devient « Le §16 du cadrage exige cet avertissement sans en écrire le texte ; il est arrêté ici » |
+| La réécriture fixée par l'identité §1.7 pour la priorité 6 — « **Le réseau** ne répond plus. » — nomme une cause sur un bandeau qui vaut « quelle qu'en soit la cause », et recrée le piège que le cadrage §10.3 interdit : un serveur en panne lu comme une 4G défaillante, donc une app relancée et un service tué | Rang 1 l'emporte : « Coupure depuis plus de 5 min. Tes pas ne comptent pas pour l'instant. » — l'identité §1.7 est alignée |
+| Le cadrage (rang 1) porte lui-même huit des textes à réécrire — §4.3, §4.4, §9.3, §10.1, §10.3 — alors que l'encadré n'en identifiait que deux comme « cités du cadrage ». L'encadré et l'identité prescrivent explicitement la réécriture de deux d'entre eux | **Arrêt `decisions-vs-doc`, question posée au porteur dans la PR #67.** Les neuf lignes marquées « en attente — Q1 » ci-dessous en dépendent |
+| Le corps 1 de la modale de départ (§7.4), une fois réécrit, dit déjà « redeviennent libres » ; le corps 2 le répétait | Dépend du même arrêt |
+
+**Inventaire.** 171 chaînes entre « » relues : 138 inchangées, 24 réécrites, 9 en attente.
+
+| § | Avant | Après | Δ | Motif |
+|---|---|---|---|---|
+| §2.1 | « prends du terrain » | *inchangé* |  | accroche de l'identité (§1.5), pas un message |
+| §2.1 | « Impossible de joindre le serveur. » | « Le serveur ne répond pas. » | -24 % | dit ce qui se passe ; « Réessayer » dit quoi faire |
+| §2.1 | « Réessayer » | *inchangé* |  | libellé d'action |
+| §2.4 p1 | « La localisation est nécessaire pour jouer. » | « Sans ta position, Arpendo ne sait pas où tu marches. » | +24 % | la règle devient sa conséquence pour le joueur ; même vocabulaire que l'amorce §12.3 |
+| §2.4 p1 | « Réglages » | *inchangé* |  | libellé d'action |
+| §2.4 p2 | « Android ne redemandera plus. Ouvre les réglages pour autoriser la localisation. » | *inchangé* |  | explique déjà : ce qui se passe, puis quoi faire |
+| §2.4 p3 | « Tu es toujours dans la partie. Autorise la localisation pour reprendre la capture. » | *inchangé* |  | explique déjà |
+| §2.4 p4 | « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | **en attente — Q1** |  | cadrage §10.3 |
+| §2.4 p5 | « Pas de connexion — capture en pause » | **en attente — Q1** |  | cadrage §10.3 |
+| §2.4 p6 | « Capture en pause — tes déplacements ne comptent plus » | **en attente — Q1** |  | cadrage §10.1 |
+| §2.4 p7 | « Trop rapide — capture en pause » | **en attente — Q1** |  | cadrage §4.3 |
+| §2.4 p8 | « Cette tuile est à Alice. » | *inchangé* |  | explique déjà (cadrage §18.4) |
+| §2.4 p8 | « Tu pourras la reprendre dans 1 min 12 s. » | *inchangé* |  | explique déjà ; le futur date un moment à venir (cadrage §18.4) |
+| §2.4 p9 | « Connexion instable » | *inchangé* |  | constat court, rien n'est perdu, rien à faire (cadrage §10.1) |
+| §2.4 p10 | « Ta progression s'arrêtera si ton téléphone redémarre » | *inchangé* |  | cité du cadrage §9.2 — garde-fou 1 |
+| §2.4 p10 | « Masquer pour cette partie » | *inchangé* |  | libellé d'action |
+| §2.4 p11 | « Tu ne seras pas prévenu si la capture s'arrête. » | **en attente — Q1** |  | cadrage §9.3 |
+| §2.4 p12 | « Une nouvelle version est disponible. » | *inchangé* |  | information plate |
+| §2.4 p12 | « Mettre à jour » | *inchangé* |  | libellé d'action |
+| §2.4 p13 | « Hors ligne trop longtemps : 12 captures perdues. » | « La coupure a duré trop longtemps : 12 captures sont perdues. » | +25 % | cause puis conséquence, en phrase |
+| §2.6 | « Annuler » | *inchangé* |  | libellé d'action |
+| §4 | « Se connecter avec Google » | *inchangé* |  | libellé officiel Google |
+| §4 | « Politique de confidentialité » | *inchangé* |  | libellé de lien |
+| §4 | « CGU » | *inchangé* |  | libellé de lien |
+| §4 | « Ce compte ne peut plus accéder au jeu. » | *inchangé* |  | constat, sans recours par décision (§12.6) |
+| §4 | « Fermer » | *inchangé* |  | libellé d'action |
+| §4.1 | « Choisis ton pseudo » | *inchangé* |  | titre |
+| §4.1 | « Il sera visible par les autres joueurs. » | *inchangé* |  | information plate |
+| §4.1 | « 7 / 16 » | *inchangé* |  | compteur |
+| §4.1 | « Continuer » | *inchangé* |  | libellé d'action |
+| §4.1 | « 3 à 16 caractères, lettres, chiffres, tiret et souligné. » | *inchangé* |  | aide de saisie |
+| §4.1 | « Vérification… » | *inchangé* |  | état |
+| §4.1 | « Caractère non autorisé : *é* » | « Pas de *é* dans un pseudo. » | -7 % | l'annonce devient une phrase |
+| §4.1 | « Trop court : 3 caractères minimum. » | « Il faut au moins 3 caractères. » | -12 % | dit quoi faire |
+| §4.1 | « Ce pseudo n'est pas autorisé. » | *inchangé* |  | sans détail par décision (le filtre ne se joue pas) |
+| §4.1 | « *Alex* est déjà pris. » | *inchangé* |  | constat ; quoi faire est évident |
+| §4.1 | « *Alex* est disponible. » | *inchangé* |  | bonne nouvelle factuelle — garde-fou 2 |
+| §4.1 | « Vérification impossible. » | « Le serveur ne répond pas. » | +4 % | nomme la cause ; même phrase qu'au démarrage |
+| §4.1 | « Ce pseudo sera définitif » | *inchangé* |  | titre |
+| §4.1 | « Tu ne pourras plus jamais changer *Alex*. Vérifie l'orthographe. » | « Tu ne pourras plus changer *Alex*. Vérifie l'orthographe. » | -11 % | « jamais » dramatise ; la perte se constate |
+| §4.1 | « Oui, c'est mon pseudo » | « Garder ce pseudo » | -24 % | interjection retirée ; l'action nomme ce qu'elle fait |
+| §4.1 | « Modifier » | *inchangé* |  | libellé d'action |
+| §5 | « Arpendo » | *inchangé* |  | nom |
+| §5 | « ou » | *inchangé* |  | séparateur |
+| §5 | « Conditions d'utilisation » | *inchangé* |  | libellé de lien |
+| §5.1 | « Créer une partie » | *inchangé* |  | libellé |
+| §5.1 | « La partie démarre tout de suite et se termine le 14 août à 18 h 42. Recharge de vol : 2 min. » | « La partie démarre tout de suite et se termine le 14 août à 18 h 42. Tu peux voler une tuile toutes les 2 min. » | +18 % | « Recharge de vol » est du jargon ; la règle du cadrage §4.2 dite au joueur |
+| §5.1 | « Durée de la partie » | *inchangé* |  | libellé |
+| §5.1 | « 30 min » | *inchangé* |  | étiquette |
+| §5.1 | « 1 mois » | *inchangé* |  | étiquette |
+| §5.1 | « 24 heures » | *inchangé* |  | valeur annoncée |
+| §5.1 | « 24 h » | *inchangé* |  | valeur |
+| §5.1 | « Pas de connexion — impossible de créer une partie. » | « Pas de réseau. La partie n'est pas créée. » | -18 % | cause puis conséquence ; le bouton reste actif |
+| §5.2 | « Rejoindre une partie » | *inchangé* |  | libellé |
+| §5.2 | « Rejoindre » | *inchangé* |  | libellé d'action |
+| §5.2 | « Saisis le code à 6 caractères. » | *inchangé* |  | aide de saisie |
+| §5.2 | « Ce code n'existe pas. » | *inchangé* |  | constat court, un des quatre échecs distincts |
+| §5.2 | « Cette partie est terminée. » | *inchangé* |  | constat |
+| §5.2 | « Cette partie est complète. » | « Cette partie a déjà 10 joueurs. » | +19 % | dit pourquoi |
+| §5.2 | « Tu es déjà dans une partie. » | *inchangé* |  | constat |
+| §5.2 | « Pas de connexion — impossible de rejoindre. » | « Pas de réseau. Le code n'est pas vérifié. » | -5 % | cause puis conséquence ; parallèle à §5.1 |
+| §5.3 | « Impossible de charger les couleurs disponibles. » | « Les couleurs disponibles ne sont pas arrivées. » | -2 % | forme commune des échecs de chargement |
+| §5.3 | « Choisis ta couleur » | *inchangé* |  | titre |
+| §5.3 | « Entrer dans la partie » | *inchangé* |  | libellé d'action |
+| §5.3 | « Cette couleur vient d'être prise. Choisis-en une autre. » | *inchangé* |  | explique déjà |
+| §6 | « Joue prudemment » | *inchangé* |  | avertissement de sécurité — garde-fou 1 |
+| §6 | « Arpendo se joue dans la rue. Regarde autour de toi, pas ton téléphone. Ne joue pas au volant. Certains lieux ne sont pas des terrains de jeu : respecte les propriétés privées, les établissements scolaires et les lieux de soin. » | *inchangé* |  | avertissement de sécurité — garde-fou 1 |
+| §6 | « Lire les conditions d'utilisation » | *inchangé* |  | libellé de lien |
+| §6 | « J'ai compris » | *inchangé* |  | libellé d'action |
+| §6.1 / §7.4 | « Le classement se met à jour à chaque capture. Personne ne voit la position de personne. » | *inchangé* |  | information plate |
+| §7.1 | « 124 hex · 12 400 pts » | *inchangé* |  | valeur |
+| §7.1 | « ↑ +300 » | *inchangé* |  | valeur |
+| §7.1 | « ↓ −200 » | *inchangé* |  | valeur |
+| §7.1 | « Pendant ton absence : ↓ −4 hex » | *inchangé* |  | bilan factuel |
+| §7.1 | « 27 j » | *inchangé* |  | format de timer |
+| §7.1 | « 2 j 04 h » | *inchangé* |  | format de timer |
+| §7.1 | « 18 h » | *inchangé* |  | format de timer |
+| §7.1 | « 1 h 12 » | *inchangé* |  | format de timer |
+| §7.1 | « 09:47 » | *inchangé* |  | format de timer |
+| §7.1 | « Terminée » | *inchangé* |  | état |
+| §7.1 | « — hex · — pts » | *inchangé* |  | état de chargement |
+| §7.3 | « C'est bon, tu peux la reprendre. » | « Tu peux la reprendre. » | -34 % | interjection retirée ; bonne nouvelle plate |
+| §7.4 | « 5 joueurs · fin dans 2 j 04 h » | *inchangé* |  | en-tête |
+| §7.4 | « hex · pts » | *inchangé* |  | en-tête de colonne |
+| §7.4 | « (toi) » | *inchangé* |  | marque |
+| §7.4 | « dernière capture il y a 2 h » | *inchangé* |  | cité du cadrage §7.5 |
+| §7.4 | « Tu es seul dans la partie. » | « Personne d'autre pour l'instant. » | +23 % | forme genrée (« seul ») neutralisée ; « Inviter » dit quoi faire |
+| §7.4 | « Inviter » | *inchangé* |  | libellé d'action |
+| §7.4 | « aucune capture pour l'instant » | *inchangé* |  | cité du cadrage §7.5 |
+| §7.4 | « Impossible de charger les joueurs. » | « La liste des joueurs n'est pas arrivée. » | +15 % | forme commune des échecs de chargement |
+| §7.4 | « Mis à jour il y a 6 min » | *inchangé* |  | mention de fraîcheur |
+| §7.4 | « il y a 12 min » | *inchangé* |  | horodatage |
+| §7.4 | « Hier 18 h 42 » | *inchangé* |  | horodatage |
+| §7.4 | « près de toi » | *inchangé* |  | bande de distance |
+| §7.4 | « dans ta région » | *inchangé* |  | bande de distance |
+| §7.4 | « loin » | *inchangé* |  | bande de distance |
+| §7.4 | « Chloé rejoint la partie. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « Bob quitte la partie. 137 tuiles sont libérées. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « La partie se termine dans 1 heure. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « La partie est terminée. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « Sur la dernière heure : Alice +23 tuiles, Bob +12, Chloé +4. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « Bob passe en tête. » | *inchangé* |  | bonne nouvelle plate — l'exemple du questionnaire |
+| §7.4 | « Alice dépasse 250 tuiles. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « Alice a pris 5 tuiles à Bob dans la dernière heure. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « Chloé a capturé 30 tuiles en 20 minutes. » | *inchangé* |  | entrée de flux, factuelle |
+| §7.4 | « Alice t'a pris 2 tuiles. » | *inchangé* |  | la perte se constate : qui, combien |
+| §7.4 | « Tu as pris 3 tuiles à Alice. » | *inchangé* |  | bonne nouvelle plate |
+| §7.4 | « Rien ne s'est encore passé. Le premier bilan arrive dans 5 minutes. » | « Rien à relever pour l'instant. Le premier bilan tombe dans 5 minutes. » | +3 % | réécriture fixée par l'identité §1.7 |
+| §7.4 | « Impossible de charger la suite. » | « La suite n'est pas arrivée. » | -13 % | forme commune des échecs de chargement |
+| §7.4 | « Activité » | *inchangé* |  | titre |
+| §7.4 | « Copier le code » | *inchangé* |  | libellé d'action |
+| §7.4 | « Partager » | *inchangé* |  | libellé d'action |
+| §7.4 | « Donne ce code à tes amis pour qu'ils rejoignent la partie. » | *inchangé* |  | explique déjà |
+| §7.4 | « Le code reste valide pendant toute la partie. » | *inchangé* |  | information plate |
+| §7.4 | « Code copié » | *inchangé* |  | accusé de réception |
+| §7.4 | « Rejoins ma partie sur Arpendo, le code est K7MQ4P. / Arpendo, c'est un jeu de territoire : tu colores les hexagones où tu marches. / https://play.google.com/… » | *inchangé* |  | message de partage : sans emoji, factuel |
+| §7.4 | « Impossible de charger le code. » | « Le code n'est pas arrivé. » | -17 % | forme commune des échecs de chargement |
+| §7.4 | « Quitter définitivement ? » | *inchangé* |  | titre |
+| §7.4 | « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. » | **en attente — Q1** |  | cadrage §4.4 |
+| §7.4 | « Tes hexagones redeviennent libres pour tous les joueurs. Tu peux rejoindre à nouveau, mais tu repartiras de zéro. » | **en attente — Q1** |  | dépend du corps 1 |
+| §7.4 | « Écris **définitivement** pour confirmer » | *inchangé* |  | libellé de champ |
+| §7.4 | « Quitter définitivement » | *inchangé* |  | libellé d'action |
+| §7.4 | « Tu as quitté la partie. » | *inchangé* |  | constat |
+| §8 | « compte Google · theo@gmail.com » | *inchangé* |  | valeur |
+| §8 | « Ton pseudo est définitif. » | *inchangé* |  | information plate |
+| §8 | « Permissions » | *inchangé* |  | libellé |
+| §8 | « Historique des parties » | *inchangé* |  | libellé |
+| §8 | « Supprimer mon compte depuis le web » | *inchangé* |  | libellé de lien |
+| §8 | « Cette partie » | *inchangé* |  | libellé de section |
+| §8 | « Quitter la partie » | *inchangé* |  | libellé d'action |
+| §8 | « Ce compte » | *inchangé* |  | libellé de section |
+| §8 | « Se déconnecter de Google » | *inchangé* |  | libellé d'action |
+| §8 | « Supprimer mon compte » | *inchangé* |  | libellé d'action |
+| §8.1 | « Tout est autorisé. » | *inchangé* |  | état |
+| §8.1 | « Localisation en arrière-plan non autorisée » | *inchangé* |  | sous-titre d'état d'une ligne de réglage |
+| §8.1 | « Notifications non autorisées » | *inchangé* |  | sous-titre d'état |
+| §8.1 | « 2 autorisations manquantes » | *inchangé* |  | sous-titre d'état |
+| §8.2 | « Joueur supprimé » | *inchangé* |  | libellé |
+| §8.2 | « Aucune partie terminée pour l'instant. » | *inchangé* |  | constat daté |
+| §8.2 | « Tes parties apparaîtront ici quand elles seront finies. » | « Tes parties apparaissent ici une fois terminées. » | -13 % | au présent |
+| §8.2 | « Impossible de charger l'historique. » | « L'historique n'est pas arrivé. » | -14 % | forme commune des échecs de chargement |
+| §8.2 | « abandonnée » | *inchangé* |  | mention |
+| §8.3 | « Supprimer ton compte ? » | *inchangé* |  | titre |
+| §8.3 | « Ton compte est désactivé immédiatement et toutes tes données sont effacées sous 30 jours. » | *inchangé* |  | constat, au présent |
+| §8.3 | « Ton pseudo devient "Joueur supprimé" dans les classements. » | *inchangé* |  | conséquence factuelle |
+| §8.3 | « Ta couleur est libérée. » | *inchangé* |  | conséquence factuelle |
+| §8.3 | « Tes hexagones redeviennent libres. » | *inchangé* |  | conséquence factuelle |
+| §8.3 | « Ton pseudo ne sera jamais réattribué. » | *inchangé* |  | conséquence factuelle — « jamais » est ici un fait, pas une emphase |
+| §8.3 | « Écris **supprimer** pour confirmer » | *inchangé* |  | libellé de champ |
+| §8.3 | « Supprimer définitivement » | *inchangé* |  | libellé d'action |
+| §8.3 | « Ton compte a été supprimé. » | *inchangé* |  | constat |
+| §9 | « Partie abandonnée » | *inchangé* |  | titre |
+| §9 | « Tous les joueurs ont quitté la partie. » | *inchangé* |  | constat |
+| §9 | « Les joueurs ayant quitté la partie n'apparaissent pas au classement. » | *inchangé* |  | information plate |
+| §9 | « Cette partie s'est terminée sans joueur. » | *inchangé* |  | constat |
+| §9 | « Impossible de charger le classement. » | « Le classement n'est pas arrivé. » | -14 % | forme commune des échecs de chargement |
+| §10.1 | « Capture en cours » | *inchangé* |  | nom de canal Android |
+| §10.2 | « 124 hex · 2 j 04 h restantes » | *inchangé* |  | valeur |
+| §10.2 | « Capture en pause — hors ligne » | **en attente — Q1** |  | cadrage §10.3 |
+| §10.2 | « Serveur indisponible — la reprise est automatique » | **en attente — Q1** |  | dérivé du cadrage §10.3 |
+| §10.2 | « Localisation désactivée — capture arrêtée » | « Sans localisation, la capture est arrêtée. » | +2 % | cause puis conséquence, en phrase |
+| §10.2 | « Partie terminée » | *inchangé* |  | état |
+| §10.3 | « Arpendo t'avertit si la capture s'arrête, et quand la partie se termine. » | *inchangé* |  | amorce, explique déjà |
+| §11.1 | « La partie se termine bientôt » | *inchangé* |  | titre de notification |
+| §11.1 | « Plus qu'une heure. Tu es 3ᵉ avec 124 hex. » | *inchangé* |  | factuel |
+| §11.1 | « Alice gagne avec 312 hex. Tu es 3ᵉ. » | *inchangé* |  | factuel |
+| §11.2 | « Mise à jour nécessaire » | *inchangé* |  | titre |
+| §11.2 | « Cette version d'Arpendo n'est plus compatible avec le serveur. Installe la dernière version pour continuer à jouer. » | *inchangé* |  | explique déjà : ce qui se passe, puis quoi faire |
+| §11.2 | « Ta partie et ta progression sont conservées. » | *inchangé* |  | réassurance factuelle |
+| §12.3 | « Arpendo a besoin de ta position pour colorer les hexagones où tu marches. » | *inchangé* |  | amorce, explique déjà |
+| §12.3 | « Pour que la capture reprenne toute seule après un redémarrage de ton téléphone. » | « Avec cette autorisation, la capture reprend toute seule après un redémarrage de ton téléphone. » | +19 % | un fragment devient une phrase qui dit ce que donne l'autorisation |

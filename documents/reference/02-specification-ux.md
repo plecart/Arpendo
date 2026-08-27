@@ -26,27 +26,12 @@ Chaque composant est spécifié selon quatre rubriques, toujours dans cet ordre 
 | **Ergonomie** | Position à l'écran, **pourquoi cette position**, taille de cible |
 | **Textes** | Le français exact |
 
-> ⚠️ **Travail dû avant les clés i18n — la passe de ton.** Les ~80 textes de ce document sont
-> majoritairement dans le registre qui **annonce** la mauvaise nouvelle ; le registre retenu est
-> celui qui **l'explique**. L'écart est réel :
->
-> | Registre actuel du document | Registre à appliquer |
-> |---|---|
-> | « Capture en pause — tes déplacements ne comptent plus » | « Le réseau ne répond plus. Tes pas ne comptent pas pour l'instant. » |
-> | « Tu perds tes 1 247 hexagones et tes 124 700 points. » | « Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras pas. » |
-> | « Rien ne s'est encore passé. Le premier bilan arrive dans 5 minutes. » | « Rien à relever pour l'instant. Le premier bilan tombe dans 5 minutes. » |
->
-> **C'est tout ou rien** : réécrire trois textes sur quatre-vingts produit un corpus incohérent
-> d'une autre manière. **La passe doit être faite avant que les clés i18n existent** — après, ce
-> n'est plus une réécriture de document mais une migration de ressources.
->
-> **Trois garde-fous pour cette passe.** *(1)* Les textes cités mot pour mot depuis le cadrage ne
-> bougent pas — « Ta progression s'arrêtera si ton téléphone redémarre » (cadrage §9.2) et
-> l'avertissement de sécurité du §6, qui reprend le cadrage §16 littéralement. *(2)* **La bonne
-> nouvelle reste factuelle** : seule la mauvaise s'explique. Ne pas confondre « plus humain » avec
-> « plus enthousiaste ». *(3)* Aucun emoji, et la tolérance de +30 % ci-dessous reste opposable —
-> une phrase qui explique est plus longue qu'une phrase sèche, et c'est le conteneur qui doit
-> suivre.
+**Ton.** Les textes suivent le registre arrêté dans `03-identite-visuelle.md` §1.7 : phrases
+courtes, verbes au présent, aucun point d'exclamation, aucune interjection, aucun superlatif, aucun
+emoji. **La mauvaise nouvelle s'explique** — ce qui se passe, puis ce qu'on peut faire ; **la bonne
+nouvelle reste factuelle.** Les textes cités du cadrage — « Ta progression s'arrêtera si ton
+téléphone redémarre » (cadrage §9.2), « aucune capture pour l'instant » (cadrage §7.5) — et
+l'avertissement de sécurité du §6 ne bougent pas.
 
 **Convention typographique.** Un texte entre « guillemets français » est **définitif** : il provient
 du cadrage mot pour mot, ou il est arrêté ici. Il devient une clé de ressource i18n (§12.6 du
@@ -424,7 +409,7 @@ participants, flux, invitation, scores, confirmations — s'ouvre **par-dessus**
 **Pendant les étapes 2 à 3**, l'écran affiché est un **écran d'attente neutre** : logo, accroche
 « prends du terrain », et un indicateur de progression indéterminé après **600 ms** seulement —
 en dessous, l'indicateur clignote et donne une impression de lenteur là où il n'y en a pas.
-En cas d'échec réseau à l'étape 3 : « Impossible de joindre le serveur. » + bouton « Réessayer ».
+En cas d'échec réseau à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer ».
 Ne jamais router vers le Menu par défaut : un joueur dont la partie est en cours verrait
 « Créer une partie » et croirait sa partie perdue.
 
@@ -504,7 +489,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 
 | Prio | Condition | Sévérité | Texte | Actions |
 |---|---|---|---|---|
-| 1 | Localisation de base refusée | bloquant | « La localisation est nécessaire pour jouer. » | « Réglages » |
+| 1 | Localisation de base refusée | bloquant | « Sans ta position, Arpendo ne sait pas où tu marches. » | « Réglages » |
 | 2 | Localisation de base refusée, **après 2 refus** | bloquant | « Android ne redemandera plus. Ouvre les réglages pour autoriser la localisation. » | « Réglages » |
 | 3 | Permission retirée **en cours de partie** | bloquant | « Tu es toujours dans la partie. Autorise la localisation pour reprendre la capture. » | « Réglages » |
 | 4 | Serveur injoignable, réseau présent, **coupure < 5 min** | avertissement | « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | — |
@@ -516,7 +501,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
 | 11 | Notifications refusées | avertissement | « Tu ne seras pas prévenu si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
 | 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · fermer |
-| 13 | Captures perdues, au retour au premier plan | info | *« Hors ligne trop longtemps : 12 captures perdues. »* | — *(disparaît seule après 6 s)* |
+| 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
 Notes de comportement :
 
@@ -914,11 +899,11 @@ visible clavier ouvert ; bouton d'action collé au-dessus du clavier.
 | Vide (départ) | — | « 3 à 16 caractères, lettres, chiffres, tiret et souligné. » |
 | Saisie en cours (< 400 ms d'inactivité) | — | Message d'aide maintenu |
 | Vérification | indicateur | « Vérification… » |
-| Format invalide | ✕ `danger` | « Caractère non autorisé : *é* » / « Trop court : 3 caractères minimum. » |
+| Format invalide | ✕ `danger` | « Pas de *é* dans un pseudo. » / « Il faut au moins 3 caractères. » |
 | Refusé par le filtre | ✕ `danger` | « Ce pseudo n'est pas autorisé. » — **jamais de détail**, sinon le filtre devient un jeu |
 | Déjà pris | ✕ `danger` | « *Alex* est déjà pris. » |
 | Disponible | ✓ `accent` | « *Alex* est disponible. » — `accent`, jamais `#007559` : c'est la couleur joueur n° 5 (§1.5) |
-| Erreur réseau | ⚠ `warning` | « Vérification impossible. » + « Réessayer » |
+| Erreur réseau | ⚠ `warning` | « Le serveur ne répond pas. » + « Réessayer » |
 | Hors ligne | ⚠ | Bouton « Continuer » désactivé — on ne peut pas réserver un pseudo unique hors ligne |
 
 La vérification de disponibilité (§5.1) est déclenchée **400 ms après la dernière frappe**, jamais
@@ -927,8 +912,8 @@ La vérification de disponibilité (§5.1) est déclenchée **400 ms après la d
 **Confirmation.** Modale de confirmation (§2.6), `saisieRequise: false` :
 
 > **Titre** — « Ce pseudo sera définitif »
-> **Corps** — « Tu ne pourras plus jamais changer *Alex*. Vérifie l'orthographe. »
-> **Action** — « Oui, c'est mon pseudo »
+> **Corps** — « Tu ne pourras plus changer *Alex*. Vérifie l'orthographe. »
+> **Action** — « Garder ce pseudo »
 > **Annuler** — « Modifier »
 
 C'est le garde-fou exigé au §5.1 : sans lui, une faute de frappe est irréparable autrement que par
@@ -1003,7 +988,7 @@ bilans du flux (§8.2, §4.2, §11.5).
 - Intitulé de bloc « Créer une partie ».
 - **Sélecteur de durée à 8 paliers fixes** — voir ci-dessous.
 - Encart d'information, `type-caption`, qui se met à jour avec la durée :
-  *« La partie démarre tout de suite et se termine le 14 août à 18 h 42. Recharge de vol : 2 min. »*
+  *« La partie démarre tout de suite et se termine le 14 août à 18 h 42. Tu peux voler une tuile toutes les 2 min. »*
   Cet encart est ce qui rend intelligible une décision que le joueur ne peut plus modifier ensuite.
 - Bouton « Créer une partie » — 56 dp, pleine largeur, bas de bloc.
 
@@ -1046,7 +1031,7 @@ décrit au §2 du cadrage (des joueurs à distance qui ne se croisent pas). Char
 sur « Créer une partie », le bouton passe en indicateur et l'écran reste en place — on ne quitte
 pas un écran sur une action non confirmée. Erreur réseau : bandeau, bouton réactivé.
 Hors ligne : le bouton **reste actif** ; au tap, il passe en indicateur, échoue, et le message
-« Pas de connexion — impossible de créer une partie. » s'affiche sous le bouton, qui redevient
+« Pas de réseau. La partie n'est pas créée. » s'affiche sous le bouton, qui redevient
 actif. La durée choisie est conservée. Vide : sans objet.
 
 ### 5.2 Bloc « Rejoindre une partie »
@@ -1066,10 +1051,10 @@ n'a rien à chercher.
 | Vérification | Bouton en indicateur |
 | Code inconnu | « Ce code n'existe pas. » |
 | Partie terminée | « Cette partie est terminée. » |
-| Partie complète (10 joueurs) | « Cette partie est complète. » |
+| Partie complète (10 joueurs) | « Cette partie a déjà 10 joueurs. » |
 | Déjà dans une partie | « Tu es déjà dans une partie. » — cas de course : ne peut se produire que sur deux appareils |
 | Erreur réseau | Bandeau priorité 4, bouton réactivé |
-| Hors ligne | Bouton **actif**. Au tap : indicateur, échec, puis « Pas de connexion — impossible de rejoindre. » sous le champ. Le code saisi est conservé |
+| Hors ligne | Bouton **actif**. Au tap : indicateur, échec, puis « Pas de réseau. Le code n'est pas vérifié. » sous le champ. Le code saisi est conservé |
 
 Quatre messages d'échec distincts, pas un seul générique. Un code refusé sans motif conduit le
 joueur à le retaper indéfiniment.
@@ -1091,7 +1076,7 @@ grille est en bande basse ; le bouton de validation sous elle.
 | **Sélectionnée** | Contour 3 dp `on-surface` **+ coche** au centre — jamais la couleur seule |
 | **Prise** | Disque à 30 % d'opacité, **barré d'une diagonale**, non tappable, `Semantics(enabled: false)` |
 | Chargement | Grille en squelette pendant la lecture des couleurs libres |
-| Erreur | « Impossible de charger les couleurs disponibles. » + « Réessayer » |
+| Erreur | « Les couleurs disponibles ne sont pas arrivées. » + « Réessayer » |
 
 **Aperçu.** Au-dessus de la grille, un aperçu de **96 dp** montrant un petit fragment de carte avec
 trois hexagones dans la couleur choisie. Il montre ce que le joueur va réellement voir, ce qu'une
@@ -1105,7 +1090,7 @@ réserve rien : entre l'affichage de la grille et la validation, l'état peut av
 | Ce qui a changé | Ce qui s'affiche | Où l'on se retrouve |
 |---|---|---|
 | **Ma couleur a été prise, d'autres restent libres** — le cas courant, deux joueurs qui rejoignent depuis le même canapé | La pastille concernée bascule en état **Prise** avec sa transition `motion-fast`, un message en ligne sous la grille : *« Cette couleur vient d'être prise. Choisis-en une autre. »*, et le bouton « Entrer dans la partie » redevient **inactif** | **La feuille reste ouverte**, la grille est rafraîchie, aucune sélection n'est faite à ma place |
-| **Toutes les couleurs sont prises** — la partie est pleine, donc à 10 joueurs | « Cette partie est complète. » | La feuille **se ferme**, retour à l'Accueil |
+| **Toutes les couleurs sont prises** — la partie est pleine, donc à 10 joueurs | « Cette partie a déjà 10 joueurs. » | La feuille **se ferme**, retour à l'Accueil |
 
 **Aucune couleur n'est présélectionnée à ma place** dans le premier cas. Choisir pour le joueur
 au moment où on lui retire son choix est la manière la plus sûre de lui faire valider une couleur
@@ -1138,7 +1123,7 @@ parcours d'entrée en partie, qui se déroule par-dessus l'Accueil.
 > **Lien** — « Lire les conditions d'utilisation »
 > **Action** — « J'ai compris »
 
-Le corps reprend le §16 du cadrage mot pour mot.
+Le §16 du cadrage exige cet avertissement sans en écrire le texte ; il est arrêté ici.
 
 **Fréquence.** **Une fois par compte.** Cet avertissement porte sur la personne et sa conduite dans
 la rue, pas sur une partie donnée. Le répéter à chaque entrée le transformerait en obstacle à
@@ -1559,7 +1544,7 @@ l'effet cesse. Motifs :
 
 | Cas | Déclencheur | Texte | Fin |
 |---|---|---|---|
-| **Verrou de vol** | Le joueur entre dans un hexagone appartenant à un autre joueur alors que `last_steal_at` + recharge est dans le futur | **Deux lignes.** *« Cette tuile est à Alice. »* en `type-label`, puis *« Tu pourras la reprendre dans 1 min 12 s. »* en `type-caption`, décompté à la seconde | À 0, le message se remplace 3 s par « C'est bon, tu peux la reprendre. » puis disparaît |
+| **Verrou de vol** | Le joueur entre dans un hexagone appartenant à un autre joueur alors que `last_steal_at` + recharge est dans le futur | **Deux lignes.** *« Cette tuile est à Alice. »* en `type-label`, puis *« Tu pourras la reprendre dans 1 min 12 s. »* en `type-caption`, décompté à la seconde | À 0, le message se remplace 3 s par « Tu peux la reprendre. » puis disparaît |
 | **Vitesse** | La moyenne glissante dépasse 50 km/h **et** le joueur traverse des hexagones capturables | « Trop rapide — capture en pause » | Dès que la vitesse repasse sous le seuil |
 
 Le second déclencheur est doublement conditionné : afficher « trop rapide » à un passager de train
@@ -1705,10 +1690,10 @@ parties (§8.2).
 | État | Rendu |
 |---|---|
 | Normal | La liste |
-| **Vide** | Un seul joueur : sa ligne est affichée, suivie de « Tu es seul dans la partie. » et d'un bouton « Inviter » qui bascule sur l'onglet Inviter. C'est le cas normal juste après la création (§9) |
+| **Vide** | Un seul joueur : sa ligne est affichée, suivie de « Personne d'autre pour l'instant. » et d'un bouton « Inviter » qui bascule sur l'onglet Inviter. C'est le cas normal juste après la création (§9) |
 | **Vide par joueur** | Un joueur qui vient de rejoindre : « aucune capture pour l'instant » à la place de la fraîcheur. La ligne est **non tappable** — jamais de saut vers des coordonnées nulles (§7.5) |
 | Chargement | Trois lignes en squelette |
-| Erreur | « Impossible de charger les joueurs. » + « Réessayer » |
+| Erreur | « La liste des joueurs n'est pas arrivée. » + « Réessayer » |
 | Désactivé | Une ligne sans capture, comme ci-dessus |
 | Hors ligne | Dernières valeurs connues + mention en tête de liste : *« Mis à jour il y a 6 min »* |
 
@@ -1772,10 +1757,10 @@ gauche ; les entrées de progression n'en portent pas. Deux niveaux, pas neuf ic
 | État | Rendu |
 |---|---|
 | Normal | La liste, **paginée** (§12.4) : chargement de la page suivante à l'approche du bas |
-| **Vide** | « Rien ne s'est encore passé. Le premier bilan arrive dans 5 minutes. » — le délai est calculé depuis la fréquence de la partie (§11.5), ce qui transforme un vide en attente comprise |
+| **Vide** | « Rien à relever pour l'instant. Le premier bilan tombe dans 5 minutes. » — le délai est calculé depuis la fréquence de la partie (§11.5), ce qui transforme un vide en attente comprise |
 | Chargement | Trois lignes en squelette |
 | Chargement de page | Indicateur de 32 dp en pied de liste |
-| Erreur | En pied de liste : « Impossible de charger la suite. » + « Réessayer ». Les entrées déjà chargées restent |
+| Erreur | En pied de liste : « La suite n'est pas arrivée. » + « Réessayer ». Les entrées déjà chargées restent |
 | Hors ligne | Entrées en cache + mention en tête : *« Mis à jour il y a 6 min »* |
 | Désactivé | Sans objet |
 
@@ -1815,7 +1800,7 @@ interface unique** — c'est-à-dire par l'architecture, pas par un trou dans la
 emplacement vide est un composant qui n'existe qu'au cas où.
 
 **États.** Normal. Chargement : le code arrive avec l'état de partie, donc jamais absent en
-pratique ; si absent, squelette. Erreur : « Impossible de charger le code. » + « Réessayer ».
+pratique ; si absent, squelette. Erreur : « Le code n'est pas arrivé. » + « Réessayer ».
 Hors ligne : le code est en cache local et reste affiché — **c'est précisément la situation où on
 veut le lire**, avec des amis autour de soi et un réseau saturé. Vide, désactivé : sans objet.
 
@@ -1979,9 +1964,9 @@ présents à la fin**. Un compte supprimé apparaît « Joueur supprimé » et s
 | État | Rendu |
 |---|---|
 | Normal | La liste, **paginée** (§12.4) |
-| **Vide** | « Aucune partie terminée pour l'instant. » + « Tes parties apparaîtront ici quand elles seront finies. » |
+| **Vide** | « Aucune partie terminée pour l'instant. » + « Tes parties apparaissent ici une fois terminées. » |
 | Chargement | Trois lignes en squelette |
-| Erreur | « Impossible de charger l'historique. » + « Réessayer » |
+| Erreur | « L'historique n'est pas arrivé. » + « Réessayer » |
 | **Partie abandonnée** | Mention « abandonnée » à la place du rang. Le détail n'affiche **aucun podium** (§4.5) |
 | Hors ligne | Liste en cache si elle a déjà été chargée, sinon état d'erreur avec « Réessayer » |
 | Désactivé | Sans objet |
@@ -2039,8 +2024,8 @@ mécanisme de revanche au MVP, et proposer une action qui recrée une partie vid
 personnes serait un composant inventé.
 
 **États.** Normal : ci-dessus. Vide : partie abandonnée sans aucun joueur restant → « Cette partie
-s'est terminée sans joueur. » Chargement : squelette de podium. Erreur : « Impossible de charger le
-classement. » + « Réessayer ». Hors ligne : si l'instantané n'a pas été reçu, état d'erreur ; il est
+s'est terminée sans joueur. » Chargement : squelette de podium. Erreur : « Le classement n'est pas
+arrivé. » + « Réessayer ». Hors ligne : si l'instantané n'a pas été reçu, état d'erreur ; il est
 figé côté serveur et ne changera plus, donc un réessai réussira. Désactivé : sans objet.
 
 ---
@@ -2085,7 +2070,7 @@ dans un tiroir de notifications rempli.
 | **Hors ligne au-delà de 5 min** | « Arpendo » | « Capture en pause — hors ligne » |
 | **Serveur injoignable** | « Arpendo » | « Serveur indisponible — la reprise est automatique » |
 | **Trop rapide** | « Arpendo » | « Trop rapide — capture en pause » |
-| **Localisation retirée** | « Arpendo » | « Localisation désactivée — capture arrêtée » |
+| **Localisation retirée** | « Arpendo » | « Sans localisation, la capture est arrêtée. » |
 | **Partie terminée** | « Arpendo » | *« Partie terminée »* — puis le service s'arrête et la notification disparaît |
 
 **Les états et leur ordre de priorité sont exactement ceux du bandeau (§2.4).** Même table de
@@ -2122,7 +2107,7 @@ Traitement retenu — **quatrième niveau du modèle de permissions** (§13) :
 Au retour au premier plan, si des captures ont été perdues au-delà de la fenêtre de 5 minutes,
 l'indiquer **une fois, sobrement** — c'est l'exigence littérale du cadrage.
 
-- Bandeau priorité 13 : *« Hors ligne trop longtemps : 12 captures perdues. »*
+- Bandeau priorité 13 : *« La coupure a duré trop longtemps : 12 captures sont perdues. »*
 - Disparaît seul après 6 s. Aucune action, aucune modale, aucune confirmation.
 - **Une seule fois par épisode hors ligne.** Compté côté serveur, sur les positions rejetées, pas
   côté client.
@@ -2223,8 +2208,9 @@ succès : le retour de la carte **est** le message.
    refus consécutifs déclenchent le refus définitif d'Android** (§9.3).
 2. **Notifications** — juste après, avec l'amorce du §10.3.
 3. **Arrière-plan** — **jamais dans la même séquence.** Demandée quand le joueur revient dans l'app
-   après une première session de jeu, avec l'amorce « Pour que la capture reprenne toute seule après
-   un redémarrage de ton téléphone. » Enchaîner trois demandes système à l'inscription maximise les
+   après une première session de jeu, avec l'amorce « Avec cette autorisation, la capture reprend
+   toute seule après un redémarrage de ton téléphone. » Enchaîner trois demandes système à
+   l'inscription maximise les
    refus, et le refus de la localisation d'arrière-plan est définitif au second essai.
 4. **Exemption d'optimisation de batterie** — proposée depuis la ligne « Permissions » et dans le
    bandeau de niveau 2, jamais en interruption. C'est un réglage constructeur, pas une permission
@@ -2243,10 +2229,10 @@ Récapitulatif consolidé de tous les états vides, de chargement et d'erreur du
 
 | Où | Texte | Action |
 |---|---|---|
-| Historique des parties | « Aucune partie terminée pour l'instant. » + « Tes parties apparaîtront ici quand elles seront finies. » | — |
-| Liste des participants | « Tu es seul dans la partie. » | « Inviter » |
+| Historique des parties | « Aucune partie terminée pour l'instant. » + « Tes parties apparaissent ici une fois terminées. » | — |
+| Liste des participants | « Personne d'autre pour l'instant. » | « Inviter » |
 | Joueur sans capture | « aucune capture pour l'instant » *(§7.5, littéral)* | Ligne non tappable |
-| Modale Activité (§7.2.2) | « Rien ne s'est encore passé. Le premier bilan arrive dans 5 minutes. » | — |
+| Modale Activité (§7.2.2) | « Rien à relever pour l'instant. Le premier bilan tombe dans 5 minutes. » | — |
 | Pile d'activité sur la carte (§7.2.1) | **Aucun texte** — la pile n'existe pas tant qu'il n'y a rien. Un état vide posé sur le jeu serait du bruit | — |
 | Couche hexagones | Aucun texte — le vide est l'état de départ normal | — |
 | Tableau des scores d'une partie abandonnée sans joueur | « Cette partie s'est terminée sans joueur. » | « Fermer » |
