@@ -306,10 +306,15 @@ déposer via `bug-vers-issue` s'il sort du périmètre de la PR.
 **Jamais d'auto-merge.** Même CI verte + audit propre, toujours attendre un « go » / « merge »
 humain explicite.
 
-## Étape 8 — Répercussions sur les autres issues (après le merge)
+## Étape 8 — Après le merge : clôture propre, puis répercussions
 
-Le merge **clôt l'issue liée** : la PR et la conversation qui l'a résolue ont pu acter des
-décisions, déplacer un contrat d'interface, déjà faire une partie d'un autre lot, ou rendre une
+Le merge **clôt l'issue liée** (via `Closes #N`). **Retirer aussitôt son label d'état** —
+`ready-for-agent` ou `ready-for-human`, selon le mapping de `.claude/pipeline.config.md` :
+`gh issue edit <N> --remove-label <label>`. Une issue fermée ne porte **aucun** rôle d'état ; le
+laisser fait apparaître des issues closes dans les files de `triage` et de `pr-paralleles`.
+Le label de catégorie (`bug` / `enhancement`) et le thème restent.
+
+La PR et la conversation qui l'a résolue ont pu acter des décisions, déplacer un contrat d'interface, déjà faire une partie d'un autre lot, ou rendre une
 hypothèse caduque ailleurs. **Immédiatement après le merge**, lancer le skill `repercussions` — la
 conversation qui a résolu l'issue est **encore en contexte**, c'est le moment où l'analyse est la
 plus riche. Même pour une **demande directe** sans issue liée, faire la passe : le delta mergé
