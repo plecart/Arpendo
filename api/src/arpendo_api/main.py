@@ -1,7 +1,7 @@
 """Hôte HTTP de la couche de services : la fabrique d'application FastAPI."""
 
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
 
@@ -20,17 +20,22 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     d'une application à l'autre. Les routes les récupèrent par les dépendances
     ``db.engine.Engine`` et ``core.valkey.Valkey``.
 
-    La libération est dans un ``finally`` : une exception au démarrage d'une ressource ne doit
-    pas laisser les précédentes ouvertes.
+    Chaque ressource est empilée sur un ``AsyncExitStack`` **dès sa naissance**, et la pile se
+    déroule en ordre inverse quoi qu'il arrive : si la ressource suivante échoue à naître, les
+    précédentes sont libérées ; si une fermeture lève, les autres sont fermées quand même. Une
+    suite de ``try``/``finally`` imbriqués donnerait la même garantie et deviendrait illisible à
+    la troisième ressource.
+
+    Ajouter une ressource, c'est donc deux lignes — la créer, l'empiler — au bon rang : l'ordre de
+    création est celui des dépendances, l'ordre de libération s'en déduit.
     """
     settings: Settings = app.state.settings
-    app.state.engine = create_engine(settings)
-    app.state.valkey = create_valkey(settings)
-    try:
+    async with AsyncExitStack() as ressources:
+        app.state.engine = create_engine(settings)
+        ressources.push_async_callback(app.state.engine.dispose)
+        app.state.valkey = create_valkey(settings)
+        ressources.push_async_callback(app.state.valkey.aclose)
         yield
-    finally:
-        await app.state.valkey.aclose()
-        await app.state.engine.dispose()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
