@@ -23,6 +23,24 @@ class _ConnectiviteFigee implements ConnectivityService {
   Future<bool> isOnline() async => enLigne;
 }
 
+/// Les quatre combinaisons de barres que [ApiConfig.url] doit toutes absorber.
+///
+/// La matrice entière, et pas seulement la barre en trop : la promesse porte
+/// aussi sur la barre manquante des deux côtés, où [Uri.resolve] perdrait le
+/// segment `/api`.
+const _compositionsDUrl = <(String, String)>[
+  ('https://exemple.test/api/', '/version'),
+  ('https://exemple.test/api/', 'version'),
+  ('https://exemple.test/api', '/version'),
+  ('https://exemple.test/api', 'version'),
+];
+
+/// Configuration des cas qui n'ont d'avis ni sur l'url ni sur le délai.
+///
+/// Le délai n'est pas nommé : sa valeur par défaut appartient à [ApiConfig], et
+/// la redire ici en ferait une seconde source à tenir.
+const _configParDefaut = ApiConfig(baseUrl: 'https://exemple.test/api');
+
 /// Construit un client de test.
 ///
 /// [transport] à `null` laisse [ApiClient] construire son client par défaut —
@@ -30,11 +48,10 @@ class _ConnectiviteFigee implements ConnectivityService {
 ApiClient _client(
   http.Client? transport, {
   bool enLigne = true,
-  String baseUrl = 'https://exemple.test/api',
-  Duration delai = ApiConfig.delaiParDefaut,
+  ApiConfig config = _configParDefaut,
 }) {
   final client = ApiClient(
-    config: ApiConfig(baseUrl: baseUrl, delai: delai),
+    config: config,
     clientVersion: '1.2.3',
     connectivite: _ConnectiviteFigee(enLigne: enLigne),
     client: transport,
@@ -127,20 +144,22 @@ void main() {
     expect(requeteRecue.headers['X-Client-Version'], '1.2.3');
   });
 
-  test("barres en trop ou en moins, l'url se compose sans perte", () async {
-    late Uri urlAppelee;
-    final client = _client(
-      MockClient((requete) async {
-        urlAppelee = requete.url;
-        return http.Response('{}', 200);
-      }),
-      baseUrl: 'https://exemple.test/api/',
-    );
+  for (final (base, chemin) in _compositionsDUrl) {
+    test("« $base » + « $chemin » se composent sans perte", () async {
+      late Uri urlAppelee;
+      final client = _client(
+        MockClient((requete) async {
+          urlAppelee = requete.url;
+          return http.Response('{}', 200);
+        }),
+        config: ApiConfig(baseUrl: base),
+      );
 
-    await client.getJson('/version');
+      await client.getJson(chemin);
 
-    expect(urlAppelee.toString(), 'https://exemple.test/api/version');
-  });
+      expect(urlAppelee.toString(), 'https://exemple.test/api/version');
+    });
+  }
 
   test('une réponse 500 devient une erreur http portant son statut', () async {
     final client = _client(MockClient((_) async => http.Response('', 500)));
@@ -177,10 +196,12 @@ void main() {
     // sans rien prouver.
     final client = _client(
       null,
-      baseUrl: await _serveurLocal((requete) {
-        requete.response.write('{}');
-        unawaited(requete.response.close());
-      }),
+      config: ApiConfig(
+        baseUrl: await _serveurLocal((requete) {
+          requete.response.write('{}');
+          unawaited(requete.response.close());
+        }),
+      ),
     );
     expect(await client.getJson('version'), <String, Object?>{});
 
@@ -198,8 +219,10 @@ void main() {
   test("le client par défaut borne l'attente des en-têtes", () async {
     final client = _client(
       null,
-      baseUrl: await _serveurLocal((_) {}),
-      delai: _delaiCourt,
+      config: ApiConfig(
+        baseUrl: await _serveurLocal((_) {}),
+        delai: _delaiCourt,
+      ),
     );
 
     await expectLater(
@@ -211,13 +234,15 @@ void main() {
   test("le client par défaut borne aussi l'attente du corps", () async {
     final client = _client(
       null,
-      baseUrl: await _serveurLocal((requete) {
-        // En-têtes et un premier morceau, puis plus rien : sans borne sur le
-        // flux, l'application attendrait ce corps indéfiniment.
-        requete.response.write('{"nom":');
-        unawaited(requete.response.flush());
-      }),
-      delai: _delaiCourt,
+      config: ApiConfig(
+        baseUrl: await _serveurLocal((requete) {
+          // En-têtes et un premier morceau, puis plus rien : sans borne sur le
+          // flux, l'application attendrait ce corps indéfiniment.
+          requete.response.write('{"nom":');
+          unawaited(requete.response.flush());
+        }),
+        delai: _delaiCourt,
+      ),
     );
 
     await expectLater(
@@ -234,7 +259,10 @@ void main() {
         await Future<void>.delayed(_delaiCourt * 4);
         return http.Response('{}', 200);
       }),
-      delai: _delaiCourt,
+      config: const ApiConfig(
+        baseUrl: 'https://exemple.test/api',
+        delai: _delaiCourt,
+      ),
     );
 
     expect(await client.getJson('version'), <String, Object?>{});
