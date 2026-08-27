@@ -69,8 +69,12 @@ une sonde de son cru.
 """
 
 
-async def _state_of(probe: Probe, request: Request) -> str:
-    """Rend ``ok`` si la sonde aboutit dans le délai, ``unreachable`` sinon.
+async def _state_of(name: str, probe: Probe, request: Request) -> tuple[str, str]:
+    """Rend ``(nom, "ok")`` si la sonde aboutit dans le délai, ``(nom, "unreachable")`` sinon.
+
+    Le nom voyage avec son état plutôt que d'être réapparié après coup : aucune séquence n'est
+    mise en regard d'une autre par position, donc aucune réponse ne peut attribuer à une
+    dépendance l'état d'une autre.
 
     Attrape ``Exception`` volontairement : du point de vue de l'appelant, une dépendance qui
     refuse la connexion, qui répond une erreur de protocole ou qui expire sont le même fait —
@@ -82,8 +86,8 @@ async def _state_of(probe: Probe, request: Request) -> str:
         async with asyncio.timeout(PROBE_TIMEOUT):
             await probe(request)
     except Exception:
-        return UNREACHABLE
-    return OK
+        return name, UNREACHABLE
+    return name, OK
 
 
 @router.get("/health")
@@ -103,8 +107,9 @@ async def health(request: Request, response: Response) -> dict[str, str]:
     La route ne nomme aucune dépendance : elle parcourt ``PROBES``. C'est la table qu'on étend,
     jamais ce code.
     """
-    results = await asyncio.gather(*(_state_of(probe, request) for probe in PROBES.values()))
-    states = dict(zip(PROBES, results, strict=True))
+    states = dict(
+        await asyncio.gather(*(_state_of(name, probe, request) for name, probe in PROBES.items()))
+    )
 
     healthy = all(state == OK for state in states.values())
     response.status_code = status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE
