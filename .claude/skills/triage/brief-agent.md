@@ -34,6 +34,17 @@ L'agent doit savoir quand il a terminé. Chaque brief d'agent doit comporter des
 
 Indique ce qui est hors périmètre. Cela empêche l'agent de sur-développer ou de faire des suppositions sur des fonctionnalités adjacentes.
 
+### Une dépendance verrouillée est une dépendance compilée
+
+Un brief qui **verrouille un paquet tiers** engage l'agent sur lui. Avant de l'écrire, si le
+paquet n'a pas été publié depuis plus d'un an, ou si le SDK épinglé a connu une rupture depuis sa
+dernière publication : **prouver qu'il compile** avec le SDK du projet, dans un scratch (un fichier
+qui importe et instancie un symbole du paquet, compilé — pas un simple `pub add --dry-run` ou
+`uv add --dry-run`, qui ne prouve que la résolution des versions). Inscrire dans le brief l'âge du
+paquet, le successeur éventuel, et **un critère « un test atteint le module qui importe le
+paquet »** : une table de constantes qui n'est référencée nulle part n'est pas compilée, et les
+gates du projet restent verts avec une dépendance cassée.
+
 ## Modèle
 
 ```markdown
