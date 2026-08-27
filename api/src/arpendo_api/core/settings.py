@@ -43,14 +43,18 @@ NonEmpty = Annotated[str, AfterValidator(_reject_blank)]
 """Une chaîne requise et non blanche — le type de tout réglage qu'on peut afficher."""
 
 Secret = Annotated[SecretStr, AfterValidator(_reject_blank_secret)]
-"""Une chaîne requise et non vide, mais **masquée** partout où les réglages s'affichent.
+"""Une chaîne requise et non blanche, mais **masquée** partout où les réglages s'affichent.
 
 Le type de tout réglage sensible : ``repr``, ``str`` et ``model_dump()`` en rendent
 ``SecretStr('**********')``, donc ni une trace, ni un journal, ni un rapport d'erreur qui
 sérialise les réglages ne peut le divulguer. La valeur ne s'obtient que par un
 ``.get_secret_value()`` explicite, et seule la fabrique qui la consomme a une raison de l'écrire.
 
-Tout futur secret — clé de session, DSN Sentry, jeton FCM — se déclare avec cet alias.
+Tout futur secret — clé de session, DSN Sentry, jeton FCM — se déclare avec cet alias. **Une règle
+ajoutée ici ne doit jamais rejeter sur le contenu** : pydantic recopie l'entrée *brute* dans le
+``input_value`` de sa ``ValidationError``, avant l'emballage. Refuser le blanc est sûr — la valeur
+imprimée est alors du blanc ; refuser un format ferait imprimer le secret dans la trace même que
+cet alias existe pour assainir.
 """
 
 
