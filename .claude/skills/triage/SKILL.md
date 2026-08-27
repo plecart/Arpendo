@@ -40,7 +40,7 @@ Six rôles d'**état** :
 (le rapporteur), le second attend **une session avec le mainteneur**. Une issue peut passer par les
 deux, dans cet ordre.
 
-Chaque issue triée doit porter exactement un rôle de catégorie et un rôle d'état. Si les rôles d'état entrent en conflit, signale-le et demande au mainteneur avant de faire quoi que ce soit d'autre.
+Chaque issue **ouverte** triée doit porter exactement un rôle de catégorie et un rôle d'état ; une issue **fermée** n'en porte aucun — `cycle-pr` retire l'état à la clôture (Étape 8), et `wontfix` est le seul rôle qui survit à une fermeture. Si les rôles d'état entrent en conflit, signale-le et demande au mainteneur avant de faire quoi que ce soit d'autre.
 
 Ce sont les noms de rôles canoniques ; le mapping vers les vrais labels GitHub est dans `.claude/pipeline.config.md` — sinon lancer `init-projet`.
 
