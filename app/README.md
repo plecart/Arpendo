@@ -66,6 +66,11 @@ Container(
 );
 ```
 
+**Un `Text` sans style explicite rend `type-body`.** Les créneaux Material du thème sont remplis
+par les jetons : `Theme.of(context).textTheme.bodyLarge` et `Typographie.body` donnent le même
+rendu, et les deux lectures sont interchangeables. Un écran n'a pas à choisir un style à la main
+pour du texte courant.
+
 **Les durées ne se lisent que par `Mouvement.of(context)`**, jamais depuis `JetonMouvement`
 directement : c'est ce passage obligé qui applique `MediaQuery.disableAnimations`, sans exception
 (§1.6). La sortie d'un jeton vaut toujours 75 % de son entrée et n'est jamais saisie à la main.
@@ -75,6 +80,9 @@ directement : c'est ce passage obligé qui applique `MediaQuery.disableAnimation
 1. **Vérifier qu'il est décidé dans la spec.** Le module transcrit, il n'arbitre pas. Une valeur
    absente du §1 est une décision à prendre là-bas d'abord — voir `.claude/rules/decisions-vs-doc.md`.
 2. L'ajouter au fichier de sa famille, avec son nom de jeton d'origine et son emploi en doc.
+   Pour un style, **déclarer chaque propriété, y compris quand elle vaut zéro** : `MaterialApp`
+   fusionne le thème avec la géométrie typographique de Material (`ThemeData.localize`), et ce
+   qu'un jeton laisse indéfini vient alors d'elle. Un jeton muet sur une propriété ne la rend pas.
 3. **Ne pas écrire de test qui recopie la valeur.** Les tests de `test/ui/core/theme_test.dart`
    portent sur des *comportements* — l'inversion de l'état pressé, la coupure des animations, le
    rapport de sortie. Un test qui compare une constante à la spec ne prouve que la copie.
