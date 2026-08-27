@@ -14,11 +14,15 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(const ArpendoApp());
+    final ecran = tester.element(find.byType(Scaffold));
 
     expect(
-      CouleursChrome.of(tester.element(find.byType(Scaffold))),
-      isNotNull,
-      reason: "l'extension de thème doit être posée à la racine",
+      CouleursChrome.of(ecran),
+      themeArpendo(Theme.of(ecran).brightness).extension<CouleursChrome>(),
+      reason:
+          "un écran doit lire les couleurs de chrome du mode appliqué : `of` lève "
+          "déjà si l'extension manque, mais rien ne dirait qu'elle vient d'un autre "
+          'thème que celui de la racine',
     );
   });
 
