@@ -130,6 +130,13 @@ Chaque commit suit **exactement** :
 
 ### 3.1 Modification — en TDD (tracer bullet vertical)
 
+**Frontières tierces : on vérifie, on ne suppose pas.** Avant d'appuyer un comportement sur une
+bibliothèque ou un framework tiers à une frontière (réseau, encodage, secrets, fusion avec un
+thème ou une config par défaut, cycle de vie de ressources), lire ce que fait réellement l'API —
+documentation via `context7` ou sources du paquet — et le noter dans les `Notes` de la PR avec sa
+référence. Les défauts les plus coûteux d'une PR « verte » sont des suppositions sur un paquet :
+un décodage par défaut, un retry silencieux, une fusion de valeurs, un `repr` qui affiche un secret.
+
 Implémenter **un comportement à la fois** en red-green-refactor. **Ne jamais** écrire tous les
 tests d'abord puis toute l'implémentation (slicing horizontal = mauvais tests) :
 
@@ -195,15 +202,39 @@ dans le titre. Puis enchaîner sur le commit suivant (retour 3.1).
 Si le commit touche l'**UI à valider visuellement** ou les **models / migrations**, rendre la
 main pour validation manuelle **avant** de committer.
 
-## Étape 4 — Auto-review de fin de PR (avant `git push`)
+## Étape 4 — Relecture indépendante de fin de PR (avant `git push`)
 
-Quand tous les commits sont faits, revue critique du **diff complet de la branche** (`main..HEAD`),
-en vision d'ensemble cette fois. Chercher : problèmes d'architecture (couplage, frontières),
-naming incohérent entre commits, edge cases / erreurs / race conditions, KISS/DRY/YAGNI à
-l'échelle de la PR — notamment la **duplication inter-commits**.
+Quand tous les commits sont faits, deux passes, dans cet ordre.
 
-Chaque problème trouvé → **un commit de fix dédié** (qui suit lui aussi le cycle complet 3.1→3.5).
-Une fois l'auto-review propre → `git push`.
+**4.1 Auto-review** — revue critique du **diff complet de la branche** (`main..HEAD`), en vision
+d'ensemble : problèmes d'architecture (couplage, frontières), naming incohérent entre commits,
+edge cases / erreurs / race conditions, KISS/DRY/YAGNI à l'échelle de la PR — notamment la
+**duplication inter-commits**.
+
+**4.2 Relecture par un contexte vierge — obligatoire.** L'auto-review est faite par la session qui
+a écrit le code, avec les hypothèses qui l'ont produit ; elle ne les met pas à l'épreuve. Lancer
+un **agent de relecture** (sous-agent, lecture seule, sans accès à cette conversation) qui reçoit
+**uniquement** :
+
+- le corps de l'issue et son brief d'agent (ou le briefing de l'Étape 1) ;
+- le diff `main..HEAD` et le droit de lire les fichiers touchés ;
+- `.claude/rules/contraintes.md`, `.claude/rules/cleanup-verbatim.md` et le prompt de relecture
+  **verbatim** ;
+- la consigne **frontières tierces** : pour chaque appel à une bibliothèque ou un framework tiers à
+  une frontière — réseau, sérialisation/encodage, secrets, fusion avec un thème ou une config par
+  défaut, cycle de vie de ressources — **vérifier le comportement réel** dans la documentation
+  (`context7`) ou dans les sources du paquet, jamais de mémoire, et signaler tout écart avec ce que
+  le code suppose.
+
+Il rend : chaque critère d'acceptation ✅ / ❌ / ⚠️ avec preuve, puis ses constats classés
+bloquant / important / mineur, chacun avec fichier et raison. **Ne pas discuter un constat depuis
+la mémoire de la session : le vérifier dans le code.**
+
+Chaque constat retenu → **un commit de fix dédié** (cycle complet 3.1→3.5). Relancer la relecture
+tant qu'il reste un bloquant ou un important. Les constats écartés sont notés avec leur raison —
+ils iront dans les `Notes` de la PR (Étape 5).
+
+Une fois la relecture propre → `git push`.
 
 ## Étape 5 — Finalisation de la PR (passage en ready for review)
 
@@ -229,8 +260,11 @@ body définitif, puis de sortir du draft.
 - [x] CI verte
 - [x] <vérifs manuelles si pertinent>
 
+## Relecture indépendante
+<verdict de l'agent de l'Étape 4.2 : constats corrigés (commit) / écartés (raison)>
+
 ## Notes
-<décisions, follow-ups différés, hors-scope>
+<décisions, follow-ups différés, hors-scope, comportements tiers vérifiés (doc citée)>
 ```
 
 Au-delà de **~10 fichiers** ou **~500 lignes** de diff, découper la PR.
