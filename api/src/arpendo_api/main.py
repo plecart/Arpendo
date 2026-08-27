@@ -31,11 +31,11 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     création est celui des dépendances, l'ordre de libération s'en déduit.
     """
     settings: Settings = app.state.settings
-    async with AsyncExitStack() as ressources:
+    async with AsyncExitStack() as resources:
         app.state.engine = create_engine(settings)
-        ressources.push_async_callback(app.state.engine.dispose)
+        resources.push_async_callback(app.state.engine.dispose)
         app.state.valkey = create_valkey(settings)
-        ressources.push_async_callback(app.state.valkey.aclose)
+        resources.push_async_callback(app.state.valkey.aclose)
         yield
 
 

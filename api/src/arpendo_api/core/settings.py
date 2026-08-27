@@ -6,7 +6,7 @@ from pydantic import AfterValidator, SecretStr
 from pydantic_settings import BaseSettings
 
 
-def _refuse_le_blanc(texte: str) -> str:
+def _reject_blank(text: str) -> str:
     """Rejette une valeur que le shell a posée mais qui ne porte rien.
 
     ``VALKEY_PASSWORD="   "`` n'est pas une variable absente : elle existe, elle est non vide, et
@@ -14,7 +14,7 @@ def _refuse_le_blanc(texte: str) -> str:
     ramène ce cas à celui qu'on sait déjà traiter — un démarrage qui échoue bruyamment.
 
     Args:
-        texte: la valeur brute lue dans l'environnement.
+        text: la valeur brute lue dans l'environnement.
 
     Returns:
         La valeur inchangée. On ne la rogne pas : c'est une validation, pas une correction, et
@@ -23,26 +23,26 @@ def _refuse_le_blanc(texte: str) -> str:
     Raises:
         ValueError: si la valeur ne contient que des blancs.
     """
-    if not texte.strip():
+    if not text.strip():
         raise ValueError("valeur vide ou faite uniquement de blancs")
-    return texte
+    return text
 
 
-def _refuse_le_secret_blanc(secret: SecretStr) -> SecretStr:
+def _reject_blank_secret(secret: SecretStr) -> SecretStr:
     """La même règle, appliquée sous l'emballage.
 
-    On rend le secret reçu plutôt qu'un emballage neuf : ``_refuse_le_blanc`` ne sert ici qu'à
+    On rend le secret reçu plutôt qu'un emballage neuf : ``_reject_blank`` ne sert ici qu'à
     lever, et sa valeur de retour n'a pas d'usage. Le message d'erreur, lui, ne cite jamais la
     valeur — pydantic nomme le champ, pas son contenu.
     """
-    _refuse_le_blanc(secret.get_secret_value())
+    _reject_blank(secret.get_secret_value())
     return secret
 
 
-NonEmpty = Annotated[str, AfterValidator(_refuse_le_blanc)]
+NonEmpty = Annotated[str, AfterValidator(_reject_blank)]
 """Une chaîne requise et non blanche — le type de tout réglage qu'on peut afficher."""
 
-Secret = Annotated[SecretStr, AfterValidator(_refuse_le_secret_blanc)]
+Secret = Annotated[SecretStr, AfterValidator(_reject_blank_secret)]
 """Une chaîne requise et non vide, mais **masquée** partout où les réglages s'affichent.
 
 Le type de tout réglage sensible : ``repr``, ``str`` et ``model_dump()`` en rendent
