@@ -11,9 +11,10 @@ from arpendo_api.core.settings import Settings
 def create_valkey(settings: Settings) -> Redis:
     """Ouvre le client Valkey de l'application, avec son pool de connexions.
 
-    Le mot de passe est passé à part plutôt qu'enfoui dans l'URL : il ne se retrouve donc ni dans
-    un journal, ni dans une trace d'erreur qui afficherait le DSN. Comme pour le moteur, aucune
-    connexion n'est ouverte ici — redis-py la crée au premier ordre.
+    Le mot de passe est passé à part plutôt qu'enfoui dans l'URL : afficher ``valkey_url`` reste
+    donc sans danger. C'est ici, et nulle part ailleurs, qu'on le déballe de son ``Secret`` — il
+    ne prend sa forme lisible que pour être remis à redis-py. Comme pour le moteur, aucune
+    connexion n'est ouverte ici : redis-py la crée au premier ordre.
 
     Args:
         settings: les réglages validés, dont ``valkey_url`` et ``valkey_password``.
@@ -21,7 +22,7 @@ def create_valkey(settings: Settings) -> Redis:
     Returns:
         Le client, à fermer par ``await client.aclose()``.
     """
-    return Redis.from_url(settings.valkey_url, password=settings.valkey_password)
+    return Redis.from_url(settings.valkey_url, password=settings.valkey_password.get_secret_value())
 
 
 def _from_state(request: Request) -> Redis:

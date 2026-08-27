@@ -1,12 +1,20 @@
+from collections.abc import Callable
+
 import pytest
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from arpendo_api.core.settings import Settings
 
+MOT_DE_PASSE_POSTGRESQL = "mot-de-passe-postgresql"
+MOT_DE_PASSE_VALKEY = "mot-de-passe-valkey"
+SECRETS = (MOT_DE_PASSE_POSTGRESQL, MOT_DE_PASSE_VALKEY)
+
 REQUISES = {
-    "DATABASE_URL": "postgresql+asyncpg://arpendo:arpendo@localhost:5432/arpendo",
-    "VALKEY_URL": "redis://localhost:6379/0",
-    "VALKEY_PASSWORD": "mot-de-passe",
+    "DATABASE_URL": (
+        f"postgresql+asyncpg://arpendo:{MOT_DE_PASSE_POSTGRESQL}@127.0.0.1:5432/arpendo"
+    ),
+    "VALKEY_URL": "redis://127.0.0.1:6379/0",
+    "VALKEY_PASSWORD": MOT_DE_PASSE_VALKEY,
 }
 
 
@@ -19,14 +27,18 @@ def environnement_complet(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv(nom, valeur)
 
 
-def test_les_reglages_lisent_les_variables_de_l_environnement(
-    environnement_complet: None,
+def _en_clair(valeur: str | SecretStr) -> str:
+    """La valeur d'un réglage, secret déballé — pour la confronter à l'environnement posé."""
+    return valeur.get_secret_value() if isinstance(valeur, SecretStr) else valeur
+
+
+@pytest.mark.parametrize("variable", sorted(REQUISES))
+def test_les_reglages_lisent_chaque_variable_de_l_environnement(
+    environnement_complet: None, variable: str
 ) -> None:
     reglages = Settings()
 
-    assert reglages.database_url == REQUISES["DATABASE_URL"]
-    assert reglages.valkey_url == REQUISES["VALKEY_URL"]
-    assert reglages.valkey_password == REQUISES["VALKEY_PASSWORD"]
+    assert _en_clair(getattr(reglages, variable.lower())) == REQUISES[variable]
 
 
 @pytest.mark.parametrize("manquante", sorted(REQUISES))
@@ -47,3 +59,16 @@ def test_une_variable_requise_vide_empeche_le_demarrage(
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+@pytest.mark.parametrize(
+    "afficher",
+    [repr, str, lambda reglages: str(reglages.model_dump())],
+    ids=["repr", "str", "model_dump"],
+)
+def test_afficher_les_reglages_ne_divulgue_aucun_secret(
+    environnement_complet: None, afficher: Callable[[Settings], str]
+) -> None:
+    affichage = afficher(Settings())
+
+    assert [secret for secret in SECRETS if secret in affichage] == []

@@ -2,10 +2,22 @@
 
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
 
 NonEmpty = Annotated[str, Field(min_length=1)]
+"""Une chaîne requise et non vide — le type de tout réglage qu'on peut afficher."""
+
+Secret = Annotated[SecretStr, Field(min_length=1)]
+"""Une chaîne requise et non vide, mais **masquée** partout où les réglages s'affichent.
+
+Le type de tout réglage sensible : ``repr``, ``str`` et ``model_dump()`` en rendent
+``SecretStr('**********')``, donc ni une trace, ni un journal, ni un rapport d'erreur qui
+sérialise les réglages ne peut le divulguer. La valeur ne s'obtient que par un
+``.get_secret_value()`` explicite, et seule la fabrique qui la consomme a une raison de l'écrire.
+
+Tout futur secret — clé de session, DSN Sentry, jeton FCM — se déclare avec cet alias.
+"""
 
 
 class Settings(BaseSettings):
@@ -25,16 +37,21 @@ class Settings(BaseSettings):
     authentifié « même sans port publié », donc dans les trois environnements — poste, CI,
     production.
 
+    Les champs sensibles sont des ``Secret`` : afficher les réglages ne révèle aucun mot de passe.
+
     Attributs :
         database_url: DSN PostgreSQL au format SQLAlchemy async (``postgresql+asyncpg://…``).
-        valkey_url: URL du serveur Valkey (``redis://hôte:port/base``), sans le mot de passe.
-        valkey_password: mot de passe Valkey, fourni séparément de l'URL.
+            Sensible : il porte le mot de passe de la base.
+        valkey_url: URL du serveur Valkey (``redis://hôte:port/base``), sans le mot de passe —
+            donc affichable.
+        valkey_password: mot de passe Valkey, fourni séparément de l'URL. Sensible.
 
     Exemple :
         >>> Settings()  # doctest: +SKIP
-        Settings(database_url='postgresql+asyncpg://…', valkey_url='redis://…', …)
+        Settings(database_url=SecretStr('**********'), valkey_url='redis://…',
+                 valkey_password=SecretStr('**********'))
     """
 
-    database_url: NonEmpty
+    database_url: Secret
     valkey_url: NonEmpty
-    valkey_password: NonEmpty
+    valkey_password: Secret
