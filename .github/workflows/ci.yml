@@ -72,11 +72,11 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Versions d'actions tenues à jour par Dependabot (cadrage §13.11).
       - name: Setup uv + Python
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10
         with:
           # Aucune version de Python ici : `uv sync` (recette `install-api`) lit
           # `api/.python-version`, source unique, et installe l'interpréteur qu'il faut.
@@ -92,7 +92,7 @@ jobs:
           pub-cache: true
 
       - name: Setup just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Install
         run: just install
