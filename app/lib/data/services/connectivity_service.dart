@@ -1,4 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/services.dart';
 
 /// Lit l'état du réseau du téléphone.
 ///
@@ -16,15 +17,25 @@ class ConnectivityService {
   /// Renvoie `true` dès qu'une interface est active, quel que soit son type
   /// (Wi-Fi, mobile, Ethernet, VPN…), `false` si le téléphone n'en a aucune.
   ///
-  /// N'échoue jamais sur un incident de plateforme (canal natif absent ou en
-  /// erreur) : la méthode suppose alors le réseau **présent**. C'est le choix
-  /// le moins nuisible du cadrage §10.3 — « serveur indisponible » invite à
-  /// garder l'application ouverte, là où « pas de connexion » enverrait le
-  /// joueur vérifier une connexion qui marche, et donc fermer l'application.
+  /// N'échoue pas sur un **incident de plateforme** — canal natif en erreur
+  /// ([PlatformException]) ou plugin absent de la build
+  /// ([MissingPluginException]) : la méthode suppose alors le réseau
+  /// **présent**. C'est le choix le moins nuisible du cadrage §10.3 —
+  /// « serveur indisponible » invite à garder l'application ouverte, là où
+  /// « pas de connexion » enverrait le joueur vérifier une connexion qui
+  /// marche, et donc fermer l'application.
+  ///
+  /// Toute **autre** erreur remonte. Rattraper `Exception` en bloc ferait
+  /// répondre « en ligne » à un bogue de cette classe aussi bien qu'à un
+  /// incident natif, et le mensonge serait indiscernable de la vérité. Ces
+  /// incidents ne laissent encore aucune trace : elle viendra avec Sentry
+  /// (#42), et surtout pas par un `print`.
   Future<bool> isOnline() async {
     try {
       return (await Connectivity().checkConnectivity()).hasConnectivity;
-    } on Exception {
+    } on PlatformException {
+      return true;
+    } on MissingPluginException {
       return true;
     }
   }

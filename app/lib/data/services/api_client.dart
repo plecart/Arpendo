@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -14,7 +15,7 @@ import 'connectivity_service.dart';
 class ApiConfig {
   const ApiConfig({required this.baseUrl, this.delai = delaiParDefaut});
 
-  /// Temps accordé par défaut à une requête complète.
+  /// Temps accordé par défaut à une tentative de transport.
   ///
   /// Dix secondes : assez pour une 4G chargée, assez peu pour que le message
   /// « serveur indisponible » (cadrage §10.3) arrive avant que le joueur ne
@@ -28,10 +29,12 @@ class ApiConfig {
   /// Racine de l'API, barre finale facultative.
   final String baseUrl;
 
-  /// Temps accordé à une requête complète, connexion et réponse confondues.
+  /// Temps accordé à **une tentative** de transport : l'arrivée des en-têtes,
+  /// puis chaque morceau du corps.
   ///
-  /// Un seul délai : la bibliothèque HTTP ne distingue pas l'établissement de
-  /// la connexion de l'attente de la réponse.
+  /// Ne borne pas une *séquence* de tentatives. Une enveloppe d'espacement
+  /// progressif passée à [ApiClient] enchaîne les siennes aussi longtemps
+  /// qu'elle veut ; c'est chacune, prise seule, qui est bornée.
   final Duration delai;
 
   /// Compose l'url absolue de [chemin] sous [baseUrl].
@@ -60,12 +63,18 @@ class ApiConfig {
 class ApiClient {
   /// [client] n'est fourni que par les tests et les futures enveloppes ; en
   /// production, le client crée le sien.
+  ///
+  /// **Fournir [client], c'est en céder la possession** : [close] ferme le
+  /// [http.Client] que ce client tient, qu'il l'ait créé ou reçu. Une seule
+  /// règle, sans drapeau de propriété — un appelant qui doit garder son client
+  /// vivant ne le donne pas, il en donne une enveloppe dont `close` ne fait
+  /// rien.
   ApiClient({
     required this.config,
     required this.clientVersion,
     required this.connectivite,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  }) : _client = client ?? _ClientBorne(http.Client(), config.delai);
 
   /// Nom de l'en-tête qui porte la version du client sur chaque requête.
   ///
@@ -87,27 +96,47 @@ class ApiClient {
   ///
   /// [chemin] est relatif à la racine de l'API, avec ou sans barre initiale.
   ///
+  /// Le corps est décodé en UTF-8 depuis ses octets, sans consulter
+  /// `Content-Type` : JSON est UTF-8 par définition (RFC 8259).
+  ///
   /// Lève [HorsLigne] si le téléphone n'a pas de réseau, [ServeurInjoignable]
   /// si le réseau est là mais que le serveur n'a pas répondu à temps,
   /// [ErreurHttp] si le serveur a répondu hors de la plage 2xx, et
   /// [ReponseInvalide] si le corps n'est pas un objet JSON exploitable.
   Future<Map<String, Object?>> getJson(String chemin) async {
     final reponse = await _envoyer(config.url(chemin));
-    return _objetJson(reponse.body);
+    return _objetJson(reponse.bodyBytes);
   }
+
+  /// Libère le [http.Client] détenu ; ce client n'est plus utilisable ensuite.
+  ///
+  /// Sans cet appel, les connexions persistantes du client restent ouvertes et
+  /// le processus Dart peut refuser de se terminer. À appeler par qui possède
+  /// le [ApiClient] — la racine de composition, ou le `tearDown` d'un test.
+  void close() => _client.close();
 
   /// Envoie la requête et n'en rend qu'une réponse de la plage 2xx.
   ///
-  /// Pose [enTeteVersion] et applique le délai de la configuration. Toute
-  /// panne de transport et tout dépassement de délai deviennent ici un échec
-  /// typé ; tout statut hors 2xx devient [ErreurHttp].
+  /// Pose [enTeteVersion]. Le délai, lui, n'est pas posé ici mais **dans le
+  /// client** — [_ClientBorne] par défaut, sinon l'enveloppe injectée : c'est
+  /// ce qui borne chaque tentative sans borner la séquence. Toute panne de
+  /// transport et tout dépassement de délai deviennent ici un échec typé ;
+  /// tout statut hors 2xx devient [ErreurHttp].
+  ///
+  /// Les trois familles d'échec de transport se rattrapent séparément parce
+  /// qu'aucune n'hérite des autres : [http.ClientException] pour ce que la
+  /// bibliothèque enveloppe elle-même, [IOException] pour ce qu'elle laisse
+  /// passer — [SocketException] hors de son chemin, et surtout [TlsException]
+  /// et [HandshakeException], le cas du portail captif —, [TimeoutException]
+  /// pour le délai. Sans la clause [IOException], une erreur de certificat
+  /// traverserait la frontière en exception brute.
   Future<http.Response> _envoyer(Uri url) async {
     final http.Response reponse;
     try {
-      reponse = await _client
-          .get(url, headers: {enTeteVersion: clientVersion})
-          .timeout(config.delai);
+      reponse = await _client.get(url, headers: {enTeteVersion: clientVersion});
     } on http.ClientException {
+      throw await _panneDeTransport();
+    } on IOException {
       throw await _panneDeTransport();
     } on TimeoutException {
       throw await _panneDeTransport();
@@ -127,19 +156,65 @@ class ApiClient {
       classifierPanneDeTransport(enLigne: await connectivite.isOnline());
 }
 
+/// Client qui borne chaque **tentative** de transport, jamais la séquence.
+///
+/// Applique son délai à deux attentes distinctes : l'arrivée des en-têtes, puis
+/// chaque morceau du corps. Borner le seul `send` ne suffirait pas — il rend
+/// dès les en-têtes reçus, et un serveur qui stalle ensuite bloquerait
+/// l'application sans fin, sans jamais devenir l'échec typé que promet
+/// [ApiClient].
+///
+/// C'est le client par défaut de [ApiClient], et lui seul : une enveloppe
+/// injectée (espacement progressif, jetons de session) n'est pas bornée, et sa
+/// séquence de tentatives est libre de durer. Le jour où une telle enveloppe
+/// existe et veut borner ses propres tentatives, cette classe devient publique
+/// — pas avant.
+class _ClientBorne extends http.BaseClient {
+  _ClientBorne(this._interne, this._delai);
+
+  final http.Client _interne;
+  final Duration _delai;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest requete) async {
+    final reponse = await _interne.send(requete).timeout(_delai);
+    return http.StreamedResponse(
+      reponse.stream.timeout(_delai),
+      reponse.statusCode,
+      contentLength: reponse.contentLength,
+      request: reponse.request,
+      headers: reponse.headers,
+      isRedirect: reponse.isRedirect,
+      persistentConnection: reponse.persistentConnection,
+      reasonPhrase: reponse.reasonPhrase,
+    );
+  }
+
+  @override
+  void close() => _interne.close();
+}
+
 /// Le statut appartient-il à la plage de succès HTTP ?
 bool _estSucces(int statut) => statut >= 200 && statut < 300;
 
-/// Décode [corps] en objet JSON.
+/// Décode [octets] en objet JSON, UTF-8 puis JSON.
 ///
-/// Lève [ReponseInvalide] si [corps] n'est pas du JSON, ou si sa racine n'est
-/// pas un objet — un tableau, un nombre et un corps vide sont tous invalides
-/// ici. Le corps d'une réponse est une frontière de confiance : rien n'entre
-/// dans l'application sans avoir la forme attendue.
-Map<String, Object?> _objetJson(String corps) {
+/// Prend les **octets** du corps et non son texte : `Content-Type` ne décide
+/// pas du jeu de caractères, JSON est UTF-8 par définition (RFC 8259). Lu par
+/// [http.Response.body], un corps servi sans `charset` sous un type autre que
+/// `application/json` serait décodé en latin1, et « Réessayer » arriverait en
+/// « RÃ©essayer ».
+///
+/// Lève [ReponseInvalide] si [octets] n'est pas de l'UTF-8 valide, si le texte
+/// obtenu n'est pas du JSON, ou si sa racine n'est pas un objet — un tableau,
+/// un nombre et un corps vide sont tous invalides ici. Les deux décodages
+/// échouent sur la même [FormatException], et c'est voulu : le corps d'une
+/// réponse est une frontière de confiance, et l'appelant n'a rien à faire de
+/// la couche qui a rejeté les octets.
+Map<String, Object?> _objetJson(List<int> octets) {
   final Object? decode;
   try {
-    decode = jsonDecode(corps);
+    decode = jsonDecode(utf8.decode(octets));
   } on FormatException {
     throw const ReponseInvalide();
   }

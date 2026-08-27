@@ -85,28 +85,17 @@ que `scaffoldBackgroundColor`, qui vaudra `surfaceDim` (« fond d'écran hors ca
 
 ## Réseau
 
-Tout ce qui parle au serveur passe par `lib/data/services/api_client.dart`. **Aucun appelant
-n'importe `package:http`** : seuls le client et ses futures enveloppes le connaissent, et
-`lib/data/services/connectivity_service.dart` est le seul fichier à importer
-`package:connectivity_plus`. Deux règles vérifiables d'un `grep`, et qui sont la raison d'être du
-module : le jour où la bibliothèque HTTP change, la liste des fichiers à toucher est courte et
-connue d'avance.
-
-`ApiClient` reçoit sa configuration (`ApiConfig` : url de base et délai), la version du client et
-le service de connectivité. Il ne connaît aucune valeur en dur. Tout échec sort en `ApiException`
-scellée — `HorsLigne`, `ServeurInjoignable`, `ErreurHttp`, `ReponseInvalide` — jamais en exception
-de transport, et sans jamais porter de texte destiné à l'écran (UX §13.3). La distinction entre
-« pas de réseau » et « serveur en panne » qu'impose le cadrage §10.3 se décide à un seul endroit,
-`classifierPanneDeTransport`, testé sans réseau.
-
-**L'étendre, c'est l'envelopper, pas le modifier.** Jetons de session, espacement progressif et
-idempotence des lots viendront comme des `BaseClient` passés au paramètre `client` du
-constructeur. Ajouter un verbe (POST, flux SSE) est une méthode de plus, qui naît avec son
-premier appelant — pas avant.
-
-Le client n'a pas encore d'appelant de production : sa suite de tests est son seul usage, sur le
-serveur simulé `MockClient` de `package:http/testing.dart`. L'url de base et la source de la
-version du client arriveront avec la racine de composition.
+Tout ce qui parle au serveur passe par `lib/data/services/api_client.dart`, seul fichier à importer
+`package:http` — comme `lib/data/services/connectivity_service.dart` est le seul à importer
+`package:connectivity_plus`. `ApiClient` reçoit sa configuration (`ApiConfig` : url de base et
+délai par tentative), la version du client et le service de connectivité, ne connaît aucune valeur
+en dur, et rend tout échec en `ApiException` scellée — `HorsLigne`, `ServeurInjoignable`,
+`ErreurHttp`, `ReponseInvalide` — jamais en exception de transport, jamais avec un texte destiné à
+l'écran (UX §13.3). Le corps est décodé en UTF-8 depuis ses octets, sans consulter `Content-Type` ;
+le délai borne **chaque tentative** de transport et non la séquence, de sorte qu'une enveloppe
+d'espacement progressif passée au paramètre `client` du constructeur puisse durer plus longtemps
+que lui ; `close()` libère le client détenu, créé ou injecté — l'injecter, c'est le céder.
+L'étendre, c'est l'envelopper, pas le modifier : un verbe de plus naît avec son premier appelant.
 
 > `connectivity_plus` fusionne la permission Android `ACCESS_NETWORK_STATE` dans le manifeste.
 > Elle est normale et n'affiche aucune invite, mais elle apparaît dans l'APK.

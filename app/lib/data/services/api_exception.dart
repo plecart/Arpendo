@@ -7,22 +7,33 @@
 /// §13.3) : il porte une raison typée, et l'appelant choisit le message.
 sealed class ApiException implements Exception {
   const ApiException();
+
+  /// Nom du cas, pour les journaux et les traces.
+  ///
+  /// Le défaut de [Object.toString] rend « Instance of 'HorsLigne' » : le nom
+  /// du cas noyé dans du bruit, sur la seule ligne qu'on lira d'un incident.
+  /// Défini ici plutôt que sur chaque cas — un cas ajouté demain se nomme sans
+  /// qu'on y pense, et rien ne peut être oublié.
+  ///
+  /// ponytail: repose sur `runtimeType`, que `flutter build --obfuscate`
+  /// mangle. L'option n'est pas utilisée par le projet ; si elle l'était, ces
+  /// noms redeviendraient des littéraux, un par cas.
+  @override
+  String toString() => '$runtimeType';
 }
 
 /// Le téléphone n'a aucune interface réseau active.
 ///
-/// Message attendu à l'écran : « Pas de connexion — capture en pause »
-/// (cadrage §10.3).
+/// Message attendu à l'écran : cadrage §10.3.
 final class HorsLigne extends ApiException {
   const HorsLigne();
 }
 
 /// Le réseau est présent, mais le serveur n'a pas répondu.
 ///
-/// Message attendu à l'écran : « Serveur indisponible — capture en pause.
-/// Garde l'application ouverte, la reprise est automatique » (cadrage §10.3).
-/// Ce message doit explicitement décourager de fermer l'application : sans
-/// lui, un incident serveur se transforme en perte de progression massive.
+/// Message attendu à l'écran : cadrage §10.3. Il doit décourager de fermer
+/// l'application — sans cela, un incident serveur se transforme en perte de
+/// progression massive.
 final class ServeurInjoignable extends ApiException {
   const ServeurInjoignable();
 }
@@ -37,17 +48,17 @@ final class ErreurHttp extends ApiException {
   /// Code de statut HTTP renvoyé par le serveur.
   final int statut;
 
-  /// Pour les journaux et les traces : un échec sans son statut ne dit rien.
+  /// Le nom du cas **et** son statut : un échec HTTP sans son code ne dit rien.
   @override
-  String toString() => 'ErreurHttp($statut)';
+  String toString() => '${super.toString()}($statut)';
 }
 
 /// Le serveur a répondu 2xx, avec un corps inexploitable.
 ///
-/// JSON invalide, corps vide, ou racine qui n'est pas un objet. Le corps d'une
-/// réponse est une frontière de confiance : sans ce cas, une régression du
-/// serveur ferait planter l'application en partie au lieu d'afficher un
-/// bandeau (spec UX §13.3).
+/// Octets qui ne sont pas de l'UTF-8, JSON invalide, corps vide, ou racine qui
+/// n'est pas un objet. Le corps d'une réponse est une frontière de confiance :
+/// sans ce cas, une régression du serveur ferait planter l'application en
+/// partie au lieu d'afficher un bandeau (spec UX §13.3).
 final class ReponseInvalide extends ApiException {
   const ReponseInvalide();
 }
