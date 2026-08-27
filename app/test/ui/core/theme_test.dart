@@ -25,6 +25,25 @@ void main() {
       expect(tabulaire.fontWeight, base.fontWeight);
       expect(tabulaire.height, base.height);
     });
+
+    for (final brightness in Brightness.values) {
+      testWidgets('les créneaux Material rendent les jetons — $brightness', (
+        tester,
+      ) async {
+        final creneaux = await _creneauxSous(tester, brightness);
+
+        for (final (nom, lire, jeton) in _creneauxJetons) {
+          expect(
+            _geometrie(lire(creneaux)),
+            _geometrie(jeton),
+            reason:
+                'ThemeData fusionne nos créneaux avec la typographie Material 3 : '
+                'ce que $nom laisse indéfini vient donc de Material. Lire un style '
+                'par le thème et le lire par son jeton doivent donner le même rendu',
+          );
+        }
+      });
+    }
   });
 
   group('couleurs de chrome', () {
@@ -117,6 +136,59 @@ void main() {
     });
   });
 }
+
+/// Chaque créneau Material que le projet remplit, avec le jeton qu'il doit rendre.
+///
+/// La table est écrite ici en regard de celle de `Typographie.creneauxMaterial` :
+/// c'est leur confrontation qui constitue le test. Les valeurs, elles, ne sont
+/// jamais recopiées — seul le jeton fait foi.
+final _creneauxJetons = <(String, TextStyle Function(TextTheme), TextStyle)>[
+  ('headlineLarge', (t) => t.headlineLarge!, Typographie.display),
+  ('headlineSmall', (t) => t.headlineSmall!, Typographie.title),
+  ('titleLarge', (t) => t.titleLarge!, Typographie.headline),
+  ('bodyLarge', (t) => t.bodyLarge!, Typographie.body),
+  ('labelLarge', (t) => t.labelLarge!, Typographie.label),
+  ('bodySmall', (t) => t.bodySmall!, Typographie.caption),
+];
+
+/// Les créneaux typographiques tels que les lit un écran sous le thème.
+///
+/// `Theme.of(context)` ne rend pas le `textTheme` de `themeArpendo` : `MaterialApp`
+/// y fusionne d'abord la géométrie typographique de la locale
+/// (`ThemeData.localize`), et c'est cette seconde fusion — invisible sur le
+/// `ThemeData` brut — qui décide du rendu. La lire ailleurs que dans un arbre de
+/// widgets laisserait passer précisément le défaut que ce test surveille.
+Future<TextTheme> _creneauxSous(
+  WidgetTester tester,
+  Brightness brightness,
+) async {
+  late TextTheme creneaux;
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: themeArpendo(brightness),
+      home: Builder(
+        builder: (context) {
+          creneaux = Theme.of(context).textTheme;
+          return const SizedBox.shrink();
+        },
+      ),
+    ),
+  );
+  return creneaux;
+}
+
+/// Les quatre propriétés qu'un jeton du §1.2 fixe, isolées du reste du style.
+///
+/// La fusion Material pose en plus une couleur, une famille, une décoration et
+/// un `debugLabel` — dont aucun jeton ne décide. Comparer les styles entiers
+/// échouerait donc sur des propriétés hors sujet ; c'est la géométrie qui porte
+/// l'échelle typographique, et elle seule qui doit survivre à la fusion.
+TextStyle _geometrie(TextStyle style) => TextStyle(
+  fontSize: style.fontSize,
+  height: style.height,
+  fontWeight: style.fontWeight,
+  letterSpacing: style.letterSpacing,
+);
 
 /// Les couleurs de chrome d'un thème, sans passer par un arbre de widgets.
 CouleursChrome _chromeDe(ThemeData theme) => theme.extension<CouleursChrome>()!;

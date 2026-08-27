@@ -20,6 +20,7 @@ abstract final class Typographie {
     fontSize: 32,
     height: 38 / 32,
     fontWeight: FontWeight.w700,
+    letterSpacing: 0,
   );
 
   /// `type-title` — titre de modale.
@@ -27,6 +28,7 @@ abstract final class Typographie {
     fontSize: 24,
     height: 30 / 24,
     fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
 
   /// `type-headline` — titre de section, nom d'écran.
@@ -34,6 +36,7 @@ abstract final class Typographie {
     fontSize: 20,
     height: 26 / 20,
     fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
 
   /// `type-body` — texte courant, **taille plancher de tout texte lisible**.
@@ -41,6 +44,7 @@ abstract final class Typographie {
     fontSize: 16,
     height: 24 / 16,
     fontWeight: FontWeight.w400,
+    letterSpacing: 0,
   );
 
   /// `type-label` — libellé de bouton, ligne de liste secondaire.
@@ -48,6 +52,7 @@ abstract final class Typographie {
     fontSize: 14,
     height: 20 / 14,
     fontWeight: FontWeight.w500,
+    letterSpacing: 0,
   );
 
   /// `type-caption` — horodatage, mention de fraîcheur, unité.
