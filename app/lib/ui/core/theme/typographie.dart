@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 /// plateforme. Seuls les deux styles monospace nomment une famille, parce que
 /// celle-là ne s'obtient pas par défaut.
 ///
-/// Les huit styles sont l'unique source de l'échelle. [texteTheme] les range dans
-/// les créneaux Material pour que les widgets du framework tombent juste ; les
+/// Les huit styles sont l'unique source de l'échelle. [creneauxMaterial] les range
+/// dans les créneaux Material pour que les widgets du framework tombent juste ; les
 /// écrans, eux, lisent les membres nommés — `Typographie.body` dit ce qu'il vaut,
 /// `bodyLarge` demande de se souvenir de la table de correspondance.
 ///
@@ -20,6 +20,7 @@ abstract final class Typographie {
     fontSize: 32,
     height: 38 / 32,
     fontWeight: FontWeight.w700,
+    letterSpacing: 0,
   );
 
   /// `type-title` — titre de modale.
@@ -27,6 +28,7 @@ abstract final class Typographie {
     fontSize: 24,
     height: 30 / 24,
     fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
 
   /// `type-headline` — titre de section, nom d'écran.
@@ -34,6 +36,7 @@ abstract final class Typographie {
     fontSize: 20,
     height: 26 / 20,
     fontWeight: FontWeight.w600,
+    letterSpacing: 0,
   );
 
   /// `type-body` — texte courant, **taille plancher de tout texte lisible**.
@@ -41,6 +44,7 @@ abstract final class Typographie {
     fontSize: 16,
     height: 24 / 16,
     fontWeight: FontWeight.w400,
+    letterSpacing: 0,
   );
 
   /// `type-label` — libellé de bouton, ligne de liste secondaire.
@@ -48,13 +52,16 @@ abstract final class Typographie {
     fontSize: 14,
     height: 20 / 14,
     fontWeight: FontWeight.w500,
+    letterSpacing: 0,
   );
 
   /// `type-caption` — horodatage, mention de fraîcheur, unité.
   ///
-  /// Seul style à porter un interlettrage positif : `+0,01 em`. Les petites
-  /// tailles se referment au soleil, et c'est le seul endroit où l'espacement
-  /// gagne de la lisibilité.
+  /// Seul style de l'échelle courante à porter un interlettrage positif :
+  /// `+0,01 em`. Les petites tailles se referment au soleil, et c'est le seul
+  /// endroit où l'espacement gagne de la lisibilité. [mono] et [monoDisplay] ont
+  /// le leur, mais il ne vient pas de là : c'est la lecture du code de partie qui
+  /// le dicte (§1.7).
   static const TextStyle caption = TextStyle(
     fontSize: 12,
     height: 16 / 12,
@@ -95,15 +102,25 @@ abstract final class Typographie {
 
   /// Les styles rangés dans les créneaux Material qui leur correspondent.
   ///
-  /// Six créneaux sur huit : `mono` et `mono-display` n'ont pas d'équivalent
-  /// Material et ne se lisent que par leur nom. Les créneaux non listés gardent
-  /// leur valeur Material — aucun jeton du projet ne les définit, et en inventer
-  /// une reviendrait à créer une valeur que la spécification n'a pas décidée.
+  /// Sept créneaux pour six styles : [body] en occupe deux, parce que `bodyMedium`
+  /// est le style d'un `Text` sans style explicite sous Material et que le §1.2
+  /// fait de `type-body` la taille plancher de tout texte lisible. [mono] et
+  /// [monoDisplay] n'ont pas d'équivalent Material et ne se lisent que par leur
+  /// nom. Les créneaux non listés gardent leur valeur Material — aucun jeton du
+  /// projet ne les définit, et en inventer une reviendrait à créer une valeur que
+  /// la spécification n'a pas décidée.
+  ///
+  /// **Chaque style déclare son interlettrage, y compris nul.** `MaterialApp`
+  /// fusionne cette table avec la géométrie typographique de la locale
+  /// (`ThemeData.localize`), et toute propriété laissée indéfinie vient alors de
+  /// Material — 0,5 sur `bodyLarge`, 0,1 sur `labelLarge`. Un jeton muet sur une
+  /// propriété ne la rend pas : il l'abandonne.
   static const TextTheme creneauxMaterial = TextTheme(
     headlineLarge: display,
     headlineSmall: title,
     titleLarge: headline,
     bodyLarge: body,
+    bodyMedium: body,
     labelLarge: label,
     bodySmall: caption,
   );

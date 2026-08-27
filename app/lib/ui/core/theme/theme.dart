@@ -30,13 +30,17 @@ ThemeData themeArpendo(Brightness brightness) => switch (brightness) {
 /// pour rien. Rendre le même objet règle le problème sans imposer un `==` et un
 /// `hashCode` à écrire à la main sur chaque extension future — et évite au
 /// passage de rebâtir deux `ThemeData` à chaque `build`.
-final ThemeData _clair = _construire(Brightness.light, _Palette.clair);
-final ThemeData _sombre = _construire(Brightness.dark, _Palette.sombre);
+final ThemeData _clair = _construire(_Palette.clair);
+final ThemeData _sombre = _construire(_Palette.sombre);
 
-ThemeData _construire(Brightness brightness, _Palette palette) {
+/// Le `ThemeData` d'une palette.
+///
+/// La palette porte son mode ; la fabrique n'a donc qu'un paramètre, et il n'y a
+/// pas d'appel à écrire qui apparierait la palette claire à [Brightness.dark].
+ThemeData _construire(_Palette palette) {
   return ThemeData(
     colorScheme: ColorScheme(
-      brightness: brightness,
+      brightness: palette.brightness,
       surface: palette.surface,
       surfaceDim: palette.surfaceDim,
       onSurface: palette.onSurface,
@@ -65,9 +69,9 @@ ThemeData _construire(Brightness brightness, _Palette palette) {
 /// Les couleurs de chrome du §1.5 qui n'ont pas de rôle Material 3.
 ///
 /// `accent-pressed` et `warning` sont les deux seules à ne correspondre à aucun
-/// créneau de `ColorScheme` ; les neuf autres y sont rangées par
-/// [themeArpendo]. Elles voyagent donc dans cette extension plutôt que d'être
-/// posées en dur au point d'usage.
+/// créneau de `ColorScheme` ; les neuf autres y sont rangées par [_construire].
+/// Elles voyagent donc dans cette extension plutôt que d'être posées en dur au
+/// point d'usage.
 @immutable
 class CouleursChrome extends ThemeExtension<CouleursChrome> {
   const CouleursChrome({required this.accentPressed, required this.warning});
@@ -120,10 +124,11 @@ class CouleursChrome extends ThemeExtension<CouleursChrome> {
 /// Les onze couleurs de chrome d'un mode, sous les noms de jetons du §1.5.
 ///
 /// Deux instances, une par mode, et une seule table de correspondance vers les
-/// rôles Material dans [themeArpendo] — le mapping n'est donc écrit qu'une fois.
+/// rôles Material dans [_construire] — le mapping n'est donc écrit qu'une fois.
 @immutable
 class _Palette {
   const _Palette({
+    required this.brightness,
     required this.surface,
     required this.surfaceDim,
     required this.onSurface,
@@ -137,6 +142,12 @@ class _Palette {
     required this.warning,
     required this.surAplat,
   });
+
+  /// Le mode dont cette palette est la lecture.
+  ///
+  /// Il appartient à la palette et non à l'appelant : c'est ce qui empêche
+  /// d'apparier les couleurs claires à [Brightness.dark].
+  final Brightness brightness;
 
   /// Fond de modale, de feuille.
   final Color surface;
@@ -186,6 +197,7 @@ class _Palette {
 
   /// Mode clair — le défaut.
   static const clair = _Palette(
+    brightness: Brightness.light,
     surface: Color(0xFFFDFBF6),
     surfaceDim: Color(0xFFF1EDE2),
     onSurface: Color(0xFF1A1D18),
@@ -203,6 +215,7 @@ class _Palette {
 
   /// Mode sombre — disponible, jamais imposé : il suit le réglage système.
   static const sombre = _Palette(
+    brightness: Brightness.dark,
     surface: Color(0xFF1A1E1A),
     surfaceDim: Color(0xFF101310),
     onSurface: Color(0xFFEDEAE0),

@@ -3,6 +3,7 @@ import 'package:arpendo/ui/core/theme/mouvement.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/core/theme/typographie.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -24,6 +25,50 @@ void main() {
       expect(tabulaire.fontSize, base.fontSize);
       expect(tabulaire.fontWeight, base.fontWeight);
       expect(tabulaire.height, base.height);
+    });
+
+    for (final brightness in Brightness.values) {
+      testWidgets('les créneaux Material rendent les jetons — $brightness', (
+        tester,
+      ) async {
+        final creneaux = await _creneauxSous(tester, brightness);
+
+        for (final (nom, lire, jeton) in _creneauxJetons) {
+          expect(
+            _geometrie(lire(creneaux)),
+            _geometrie(jeton),
+            reason:
+                'ThemeData fusionne nos créneaux avec la typographie Material 3 : '
+                'ce que $nom laisse indéfini vient donc de Material. Lire un style '
+                'par le thème et le lire par son jeton doivent donner le même rendu',
+          );
+        }
+      });
+    }
+
+    testWidgets('un texte sans style explicite rend le jeton body', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: themeArpendo(Brightness.light),
+          home: const Scaffold(body: Text('12 400')),
+        ),
+      );
+
+      final rendu = tester
+          .renderObject<RenderParagraph>(find.text('12 400'))
+          .text
+          .style!;
+
+      expect(
+        _geometrie(rendu),
+        _geometrie(Typographie.body),
+        reason:
+            'sous Material, un `Text` nu prend `bodyMedium` — 14/20 tant que le '
+            "créneau reste vide, hors des huit jetons du §1.2, alors que `type-body` "
+            'est la taille plancher de tout texte lisible',
+      );
     });
   });
 
@@ -117,6 +162,61 @@ void main() {
     });
   });
 }
+
+/// Chaque créneau Material que le projet remplit, avec le jeton qu'il doit rendre.
+///
+/// La table est écrite ici en regard de celle de `Typographie.creneauxMaterial` :
+/// c'est leur confrontation qui constitue le test. Les valeurs, elles, ne sont
+/// jamais recopiées — seul le jeton fait foi.
+final _creneauxJetons = <(String, TextStyle Function(TextTheme), TextStyle)>[
+  ('headlineLarge', (t) => t.headlineLarge!, Typographie.display),
+  ('headlineSmall', (t) => t.headlineSmall!, Typographie.title),
+  ('titleLarge', (t) => t.titleLarge!, Typographie.headline),
+  ('bodyLarge', (t) => t.bodyLarge!, Typographie.body),
+  ('bodyMedium', (t) => t.bodyMedium!, Typographie.body),
+  ('labelLarge', (t) => t.labelLarge!, Typographie.label),
+  ('bodySmall', (t) => t.bodySmall!, Typographie.caption),
+];
+
+/// Les créneaux typographiques tels que les lit un écran sous le thème.
+///
+/// `Theme.of(context)` ne rend pas le `textTheme` de `themeArpendo` : `MaterialApp`
+/// y fusionne d'abord la géométrie typographique de la locale
+/// (`ThemeData.localize`), et c'est cette seconde fusion — invisible sur le
+/// `ThemeData` brut — qui décide du rendu. La lire ailleurs que dans un arbre de
+/// widgets laisserait passer précisément le défaut que ce test surveille.
+Future<TextTheme> _creneauxSous(
+  WidgetTester tester,
+  Brightness brightness,
+) async {
+  late TextTheme creneaux;
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: themeArpendo(brightness),
+      home: Builder(
+        builder: (context) {
+          creneaux = Theme.of(context).textTheme;
+          return const SizedBox.shrink();
+        },
+      ),
+    ),
+  );
+  return creneaux;
+}
+
+/// La géométrie d'un style — ce que la fusion Material ne doit pas déplacer.
+///
+/// Elle pose en plus une couleur, une décoration, un `debugLabel` et la famille
+/// Roboto, qu'aucun des créneaux confrontés ici ne déclare : ce sont des
+/// propriétés héritées légitimement, et comparer les styles entiers échouerait
+/// sur elles. Restent les quatre que le §1.2 fixe créneau par créneau, et qui
+/// portent l'échelle typographique.
+TextStyle _geometrie(TextStyle style) => TextStyle(
+  fontSize: style.fontSize,
+  height: style.height,
+  fontWeight: style.fontWeight,
+  letterSpacing: style.letterSpacing,
+);
 
 /// Les couleurs de chrome d'un thème, sans passer par un arbre de widgets.
 CouleursChrome _chromeDe(ThemeData theme) => theme.extension<CouleursChrome>()!;
