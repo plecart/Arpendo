@@ -204,12 +204,13 @@ Future<TextTheme> _creneauxSous(
   return creneaux;
 }
 
-/// Les quatre propriétés qu'un jeton du §1.2 fixe, isolées du reste du style.
+/// La géométrie d'un style — ce que la fusion Material ne doit pas déplacer.
 ///
-/// La fusion Material pose en plus une couleur, une famille, une décoration et
-/// un `debugLabel` — dont aucun jeton ne décide. Comparer les styles entiers
-/// échouerait donc sur des propriétés hors sujet ; c'est la géométrie qui porte
-/// l'échelle typographique, et elle seule qui doit survivre à la fusion.
+/// Elle pose en plus une couleur, une décoration, un `debugLabel` et la famille
+/// Roboto, qu'aucun des créneaux confrontés ici ne déclare : ce sont des
+/// propriétés héritées légitimement, et comparer les styles entiers échouerait
+/// sur elles. Restent les quatre que le §1.2 fixe créneau par créneau, et qui
+/// portent l'échelle typographique.
 TextStyle _geometrie(TextStyle style) => TextStyle(
   fontSize: style.fontSize,
   height: style.height,

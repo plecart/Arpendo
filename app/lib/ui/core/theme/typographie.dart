@@ -57,9 +57,11 @@ abstract final class Typographie {
 
   /// `type-caption` — horodatage, mention de fraîcheur, unité.
   ///
-  /// Seul style à porter un interlettrage positif : `+0,01 em`. Les petites
-  /// tailles se referment au soleil, et c'est le seul endroit où l'espacement
-  /// gagne de la lisibilité.
+  /// Seul style de l'échelle courante à porter un interlettrage positif :
+  /// `+0,01 em`. Les petites tailles se referment au soleil, et c'est le seul
+  /// endroit où l'espacement gagne de la lisibilité. [mono] et [monoDisplay] ont
+  /// le leur, mais il ne vient pas de là : c'est la lecture du code de partie qui
+  /// le dicte (§1.7).
   static const TextStyle caption = TextStyle(
     fontSize: 12,
     height: 16 / 12,
