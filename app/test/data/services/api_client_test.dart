@@ -9,6 +9,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+/// Délai des cas qui attendent volontairement qu'il expire — assez court pour
+/// que la suite reste rapide, assez long pour ne pas dépendre de la charge.
+const _delaiCourt = Duration(milliseconds: 200);
+
 /// Connectivité figée : les tests décident de l'état du réseau sans y toucher.
 class _ConnectiviteFigee implements ConnectivityService {
   const _ConnectiviteFigee({required this.enLigne});
@@ -19,8 +23,12 @@ class _ConnectiviteFigee implements ConnectivityService {
   Future<bool> isOnline() async => enLigne;
 }
 
+/// Construit un client de test.
+///
+/// [transport] à `null` laisse [ApiClient] construire son client par défaut —
+/// le seul moyen d'exercer ce qu'il borne, puisqu'il est privé au module.
 ApiClient _client(
-  http.Client transport, {
+  http.Client? transport, {
   bool enLigne = true,
   String baseUrl = 'https://exemple.test/api',
   Duration delai = ApiConfig.delaiParDefaut,
@@ -34,6 +42,20 @@ ApiClient _client(
   // Chaque test exerce ainsi la règle « injecter un client, c'est le céder ».
   addTearDown(client.close);
   return client;
+}
+
+/// Serveur local qui n'écrit que ce que [repondre] veut bien écrire.
+///
+/// Rend l'url de base à donner à [ApiConfig] ; le serveur se ferme avec le
+/// test. Un [MockClient] ne conviendrait pas ici : ces cas portent sur ce que
+/// le client **par défaut** borne, donc sur un vrai transport.
+Future<String> _serveurLocal(
+  void Function(HttpRequest requete) repondre,
+) async {
+  final serveur = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+  addTearDown(() => serveur.close(force: true));
+  serveur.listen(repondre);
+  return 'http://${serveur.address.host}:${serveur.port}';
 }
 
 /// Transport qui note sa fermeture, et rien d'autre.
@@ -149,16 +171,73 @@ void main() {
     );
   }
 
-  test('passé le délai, le serveur est injoignable', () async {
+  test('close atteint le client par défaut, pas que son enveloppe', () async {
+    // Un serveur qui répond vraiment : sans lui, une requête d'après-fermeture
+    // échouerait de toute façon en délai dépassé, et le test passerait au vert
+    // sans rien prouver.
     final client = _client(
-      MockClient((_) => Completer<http.Response>().future),
-      delai: const Duration(milliseconds: 20),
+      null,
+      baseUrl: await _serveurLocal((requete) {
+        requete.response.write('{}');
+        unawaited(requete.response.close());
+      }),
+    );
+    expect(await client.getJson('version'), <String, Object?>{});
+
+    client.close();
+
+    // Un client `dart:io` fermé refuse toute requête suivante : c'est la seule
+    // trace observable, de l'extérieur, que la fermeture a bien traversé le
+    // client borné jusqu'au vrai transport.
+    await expectLater(
+      client.getJson('version'),
+      throwsA(isA<ServeurInjoignable>()),
+    );
+  });
+
+  test("le client par défaut borne l'attente des en-têtes", () async {
+    final client = _client(
+      null,
+      baseUrl: await _serveurLocal((_) {}),
+      delai: _delaiCourt,
     );
 
     await expectLater(
       client.getJson('version'),
       throwsA(isA<ServeurInjoignable>()),
     );
+  });
+
+  test("le client par défaut borne aussi l'attente du corps", () async {
+    final client = _client(
+      null,
+      baseUrl: await _serveurLocal((requete) {
+        // En-têtes et un premier morceau, puis plus rien : sans borne sur le
+        // flux, l'application attendrait ce corps indéfiniment.
+        requete.response.write('{"nom":');
+        unawaited(requete.response.flush());
+      }),
+      delai: _delaiCourt,
+    );
+
+    await expectLater(
+      client.getJson('version'),
+      throwsA(isA<ServeurInjoignable>()),
+    );
+  });
+
+  test("le délai ne coupe pas une enveloppe injectée qui réessaie", () async {
+    // Une enveloppe d'espacement progressif tient jusqu'à ~30 s (Territoire) :
+    // le délai borne ses tentatives, jamais la séquence qu'elle enchaîne.
+    final client = _client(
+      MockClient((_) async {
+        await Future<void>.delayed(_delaiCourt * 4);
+        return http.Response('{}', 200);
+      }),
+      delai: _delaiCourt,
+    );
+
+    expect(await client.getJson('version'), <String, Object?>{});
   });
 
   test('un corps 200 aux octets utf-8 invalides est invalide', () async {

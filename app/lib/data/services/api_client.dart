@@ -15,7 +15,7 @@ import 'connectivity_service.dart';
 class ApiConfig {
   const ApiConfig({required this.baseUrl, this.delai = delaiParDefaut});
 
-  /// Temps accordé par défaut à une requête complète.
+  /// Temps accordé par défaut à une tentative de transport.
   ///
   /// Dix secondes : assez pour une 4G chargée, assez peu pour que le message
   /// « serveur indisponible » (cadrage §10.3) arrive avant que le joueur ne
@@ -29,10 +29,12 @@ class ApiConfig {
   /// Racine de l'API, barre finale facultative.
   final String baseUrl;
 
-  /// Temps accordé à une requête complète, connexion et réponse confondues.
+  /// Temps accordé à **une tentative** de transport : l'arrivée des en-têtes,
+  /// puis chaque morceau du corps.
   ///
-  /// Un seul délai : la bibliothèque HTTP ne distingue pas l'établissement de
-  /// la connexion de l'attente de la réponse.
+  /// Ne borne pas une *séquence* de tentatives. Une enveloppe d'espacement
+  /// progressif passée à [ApiClient] enchaîne les siennes aussi longtemps
+  /// qu'elle veut ; c'est chacune, prise seule, qui est bornée.
   final Duration delai;
 
   /// Compose l'url absolue de [chemin] sous [baseUrl].
@@ -72,7 +74,7 @@ class ApiClient {
     required this.clientVersion,
     required this.connectivite,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  }) : _client = client ?? _ClientBorne(http.Client(), config.delai);
 
   /// Nom de l'en-tête qui porte la version du client sur chaque requête.
   ///
@@ -115,9 +117,11 @@ class ApiClient {
 
   /// Envoie la requête et n'en rend qu'une réponse de la plage 2xx.
   ///
-  /// Pose [enTeteVersion] et applique le délai de la configuration. Toute
-  /// panne de transport et tout dépassement de délai deviennent ici un échec
-  /// typé ; tout statut hors 2xx devient [ErreurHttp].
+  /// Pose [enTeteVersion]. Le délai, lui, n'est pas posé ici mais **dans le
+  /// client** — [_ClientBorne] par défaut, sinon l'enveloppe injectée : c'est
+  /// ce qui borne chaque tentative sans borner la séquence. Toute panne de
+  /// transport et tout dépassement de délai deviennent ici un échec typé ;
+  /// tout statut hors 2xx devient [ErreurHttp].
   ///
   /// Les trois familles d'échec de transport se rattrapent séparément parce
   /// qu'aucune n'hérite des autres : [http.ClientException] pour ce que la
@@ -129,9 +133,7 @@ class ApiClient {
   Future<http.Response> _envoyer(Uri url) async {
     final http.Response reponse;
     try {
-      reponse = await _client
-          .get(url, headers: {enTeteVersion: clientVersion})
-          .timeout(config.delai);
+      reponse = await _client.get(url, headers: {enTeteVersion: clientVersion});
     } on http.ClientException {
       throw await _panneDeTransport();
     } on IOException {
@@ -152,6 +154,44 @@ class ApiClient {
   /// panne » (cadrage §10.3).
   Future<ApiException> _panneDeTransport() async =>
       classifierPanneDeTransport(enLigne: await connectivite.isOnline());
+}
+
+/// Client qui borne chaque **tentative** de transport, jamais la séquence.
+///
+/// Applique son délai à deux attentes distinctes : l'arrivée des en-têtes, puis
+/// chaque morceau du corps. Borner le seul `send` ne suffirait pas — il rend
+/// dès les en-têtes reçus, et un serveur qui stalle ensuite bloquerait
+/// l'application sans fin, sans jamais devenir l'échec typé que promet
+/// [ApiClient].
+///
+/// C'est le client par défaut de [ApiClient], et lui seul : une enveloppe
+/// injectée (espacement progressif, jetons de session) n'est pas bornée, et sa
+/// séquence de tentatives est libre de durer. Le jour où une telle enveloppe
+/// existe et veut borner ses propres tentatives, cette classe devient publique
+/// — pas avant.
+class _ClientBorne extends http.BaseClient {
+  _ClientBorne(this._interne, this._delai);
+
+  final http.Client _interne;
+  final Duration _delai;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest requete) async {
+    final reponse = await _interne.send(requete).timeout(_delai);
+    return http.StreamedResponse(
+      reponse.stream.timeout(_delai),
+      reponse.statusCode,
+      contentLength: reponse.contentLength,
+      request: reponse.request,
+      headers: reponse.headers,
+      isRedirect: reponse.isRedirect,
+      persistentConnection: reponse.persistentConnection,
+      reasonPhrase: reponse.reasonPhrase,
+    );
+  }
+
+  @override
+  void close() => _interne.close();
 }
 
 /// Le statut appartient-il à la plage de succès HTTP ?
