@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:arpendo/data/services/api_client.dart';
 import 'package:arpendo/data/services/api_exception.dart';
@@ -30,9 +31,20 @@ ApiClient _client(
   client: transport,
 );
 
-/// Transport qui échoue avant d'avoir joint le serveur.
-http.Client _transportEnPanne() =>
-    MockClient((_) async => throw http.ClientException('transport'));
+/// Transport qui lève [erreur] avant d'avoir joint le serveur.
+http.Client _transportQuiLeve(Object erreur) =>
+    MockClient((_) async => throw erreur);
+
+/// Les familles de panne de transport que le client doit toutes classer.
+///
+/// `http` n'en enveloppe qu'une : `IOClient.send` convertit [SocketException]
+/// et [HttpException] en [http.ClientException], et laisse passer le reste —
+/// dont [HandshakeException], le cas du portail captif. En ajouter une famille
+/// est une ligne de plus ici.
+final _famillesDePanne = <(String, Object)>[
+  ('http', http.ClientException('transport')),
+  ('tls', const HandshakeException('poignée de main')),
+];
 
 void main() {
   test('une réponse 200 rend le corps JSON décodé', () async {
@@ -92,23 +104,25 @@ void main() {
     );
   });
 
-  test('sans réseau, une panne de transport laisse hors ligne', () async {
-    final client = _client(_transportEnPanne(), enLigne: false);
+  for (final (famille, panne) in _famillesDePanne) {
+    test('sans réseau, une panne $famille laisse hors ligne', () async {
+      final client = _client(_transportQuiLeve(panne), enLigne: false);
 
-    await expectLater(client.getJson('version'), throwsA(isA<HorsLigne>()));
-  });
+      await expectLater(client.getJson('version'), throwsA(isA<HorsLigne>()));
+    });
 
-  test(
-    'avec du réseau, une panne de transport rend le serveur injoignable',
-    () async {
-      final client = _client(_transportEnPanne());
+    test(
+      'avec du réseau, une panne $famille rend le serveur injoignable',
+      () async {
+        final client = _client(_transportQuiLeve(panne));
 
-      await expectLater(
-        client.getJson('version'),
-        throwsA(isA<ServeurInjoignable>()),
-      );
-    },
-  );
+        await expectLater(
+          client.getJson('version'),
+          throwsA(isA<ServeurInjoignable>()),
+        );
+      },
+    );
+  }
 
   test('passé le délai, le serveur est injoignable', () async {
     final client = _client(

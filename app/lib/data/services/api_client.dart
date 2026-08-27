@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -104,6 +105,14 @@ class ApiClient {
   /// Pose [enTeteVersion] et applique le délai de la configuration. Toute
   /// panne de transport et tout dépassement de délai deviennent ici un échec
   /// typé ; tout statut hors 2xx devient [ErreurHttp].
+  ///
+  /// Les trois familles d'échec de transport se rattrapent séparément parce
+  /// qu'aucune n'hérite des autres : [http.ClientException] pour ce que la
+  /// bibliothèque enveloppe elle-même, [IOException] pour ce qu'elle laisse
+  /// passer — [SocketException] hors de son chemin, et surtout [TlsException]
+  /// et [HandshakeException], le cas du portail captif —, [TimeoutException]
+  /// pour le délai. Sans la clause [IOException], une erreur de certificat
+  /// traverserait la frontière en exception brute.
   Future<http.Response> _envoyer(Uri url) async {
     final http.Response reponse;
     try {
@@ -111,6 +120,8 @@ class ApiClient {
           .get(url, headers: {enTeteVersion: clientVersion})
           .timeout(config.delai);
     } on http.ClientException {
+      throw await _panneDeTransport();
+    } on IOException {
       throw await _panneDeTransport();
     } on TimeoutException {
       throw await _panneDeTransport();
