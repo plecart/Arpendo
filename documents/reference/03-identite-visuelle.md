@@ -194,10 +194,11 @@ valide.**
 - **Justification par tes réponses :** duel 1 = A (« police système, sobre, invisible ») et
   10.3 = « la solution la plus simple à mettre en œuvre ». Dans cette direction, l'identité est
   portée par la couleur et le trait ; la typographie doit se taire.
-- **Échelle inchangée** (§1.2 de la spec). Traitement propre à la direction : graisse 400 partout
-  sauf `type-display` et `type-title`, interlettrage `+0,01 em` sur `type-caption` pour la tenue des
-  petites tailles au soleil, chiffres **tabulaires** (`fontFeatures: ['tnum']`) sur le score et le
-  timer, pour que les valeurs ne dansent pas quand elles changent.
+- **Échelle inchangée** (§1.2 de la spec). Traitement propre à la direction : graisse 400 par
+  défaut, les autres jetons montant selon le tableau du §1.2 sans dépasser 600 sauf
+  `type-display` ; interlettrage `+0,01 em` sur `type-caption` pour la tenue des petites tailles au
+  soleil ; chiffres **tabulaires** (`fontFeatures: ['tnum']`) sur le score et le timer, pour que les
+  valeurs ne dansent pas quand elles changent.
 - Le logotype n'est **pas** composé en Roboto : c'est un dessin (§1.5), livré en SVG.
 
 ### 1.4 Jetons de chrome

@@ -107,9 +107,8 @@ Aucun texte sous 12 dp. Le rendu doit suivre le réglage de taille de police du 
 **Traitement propre à l'identité** — il ne touche pas à l'échelle ci-dessus, qui reste invariante :
 
 - **Graisse 400 par défaut** : c'est celle du texte courant et de l'horodatage. Les six autres
-  jetons montent selon le tableau ci-dessus, et le gras franc — 700, puis 600 — reste réservé aux
-  deux plus gros, `type-display` et `type-title`. La direction est sobre ; le texte ne prend pas
-  de poids pour exister.
+  jetons montent selon le tableau ci-dessus, sans dépasser 600 sauf `type-display`. La direction
+  est sobre ; le texte ne prend pas de poids pour exister.
 - **Chiffres tabulaires** (`fontFeatures: [FontFeature.tabularFigures()]`) sur **le score du
   header, le timer, les scores de liste et le tableau des scores**. Sans eux, un score qui passe de
   12 400 à 12 300 fait danser toute la ligne — un défaut particulièrement visible sur une valeur

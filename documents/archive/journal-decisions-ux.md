@@ -271,3 +271,34 @@ de conception close pour corriger une erreur de rédaction : disproportionné.
 
 **§§ répercutés :** aucun. La phrase n'est citée nulle part ailleurs, et le tableau — seul objet
 que la spec et le code partagent — est inchangé.
+
+---
+
+## 18.4 Amendement du §1.3 de l'identité du 27 août 2026 — la source des graisses
+
+Suite directe du §18.3, découverte en fermant #60. **Aucune valeur ne change**, là non plus : le
+tableau du §1.2 fait toujours autorité et n'est pas touché.
+
+**Ce que le §18.3 avait manqué.** Il concluait « §§ répercutés : aucun. La phrase n'est citée nulle
+part ailleurs ». C'était faux : la même affirmation vivait dans `03-identite-visuelle.md` §1.3,
+sous la forme « graisse 400 partout sauf `type-display` et `type-title` ». Le §18.3 a donc amendé
+le **miroir** (spec UX §1.2, rang 2) en laissant la **source** (identité §1.3, rang 3) affirmer
+l'inverse pendant une journée.
+
+C'est exactement le cas que `.claude/pipeline.config.md` décrit pour le rang 3 : « le § concerné
+**et** son § miroir dans la spec UX — sinon les deux divergent ». La cascade avait été mesurée à
+zéro alors qu'elle valait un, faute d'avoir cherché la phrase par son **sens** plutôt que par ses
+mots : les deux formulations ne partagent aucune sous-chaîne commune.
+
+**Ce qui a été retenu :** une seule et même formulation dans les deux §§, vérifiable contre le
+tableau jeton par jeton — « graisse 400 par défaut, les autres jetons montant selon le tableau du
+§1.2 sans dépasser 600 sauf `type-display` ». Elle est vraie des huit jetons (`display` 700 ;
+`title` et `headline` 600 ; `label`, `mono` et `mono-display` 500 ; `body` et `caption` 400), là où
+la rédaction du §18.3 laissait encore « 600 réservé aux deux plus gros » alors que `type-headline`
+vaut 600.
+
+**§§ répercutés :** `02-specification-ux.md` §1.2 et `03-identite-visuelle.md` §1.3, ensemble.
+Rang 1 muet sur les graisses (le cadrage ne nomme que la famille Roboto), donc aucune ligne au
+journal des changements du cadrage. Aucune issue ouverte ne cite ces phrases — recherche sur
+« graisse », « type-headline », « type-label », « gras franc » : zéro. Le code n'est pas touché :
+il a toujours suivi le tableau.
