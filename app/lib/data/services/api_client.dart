@@ -87,13 +87,16 @@ class ApiClient {
   ///
   /// [chemin] est relatif à la racine de l'API, avec ou sans barre initiale.
   ///
+  /// Le corps est décodé en UTF-8 depuis ses octets, sans consulter
+  /// `Content-Type` : JSON est UTF-8 par définition (RFC 8259).
+  ///
   /// Lève [HorsLigne] si le téléphone n'a pas de réseau, [ServeurInjoignable]
   /// si le réseau est là mais que le serveur n'a pas répondu à temps,
   /// [ErreurHttp] si le serveur a répondu hors de la plage 2xx, et
   /// [ReponseInvalide] si le corps n'est pas un objet JSON exploitable.
   Future<Map<String, Object?>> getJson(String chemin) async {
     final reponse = await _envoyer(config.url(chemin));
-    return _objetJson(reponse.body);
+    return _objetJson(reponse.bodyBytes);
   }
 
   /// Envoie la requête et n'en rend qu'une réponse de la plage 2xx.
@@ -130,16 +133,24 @@ class ApiClient {
 /// Le statut appartient-il à la plage de succès HTTP ?
 bool _estSucces(int statut) => statut >= 200 && statut < 300;
 
-/// Décode [corps] en objet JSON.
+/// Décode [octets] en objet JSON, UTF-8 puis JSON.
 ///
-/// Lève [ReponseInvalide] si [corps] n'est pas du JSON, ou si sa racine n'est
-/// pas un objet — un tableau, un nombre et un corps vide sont tous invalides
-/// ici. Le corps d'une réponse est une frontière de confiance : rien n'entre
-/// dans l'application sans avoir la forme attendue.
-Map<String, Object?> _objetJson(String corps) {
+/// Prend les **octets** du corps et non son texte : `Content-Type` ne décide
+/// pas du jeu de caractères, JSON est UTF-8 par définition (RFC 8259). Lu par
+/// [http.Response.body], un corps servi sans `charset` sous un type autre que
+/// `application/json` serait décodé en latin1, et « Réessayer » arriverait en
+/// « RÃ©essayer ».
+///
+/// Lève [ReponseInvalide] si [octets] n'est pas de l'UTF-8 valide, si le texte
+/// obtenu n'est pas du JSON, ou si sa racine n'est pas un objet — un tableau,
+/// un nombre et un corps vide sont tous invalides ici. Les deux décodages
+/// échouent sur la même [FormatException], et c'est voulu : le corps d'une
+/// réponse est une frontière de confiance, et l'appelant n'a rien à faire de
+/// la couche qui a rejeté les octets.
+Map<String, Object?> _objetJson(List<int> octets) {
   final Object? decode;
   try {
-    decode = jsonDecode(corps);
+    decode = jsonDecode(utf8.decode(octets));
   } on FormatException {
     throw const ReponseInvalide();
   }

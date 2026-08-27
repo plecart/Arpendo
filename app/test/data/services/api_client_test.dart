@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:arpendo/data/services/api_client.dart';
 import 'package:arpendo/data/services/api_exception.dart';
@@ -40,6 +41,17 @@ void main() {
     );
 
     expect(await client.getJson('version'), {'version': '1.0.0'});
+  });
+
+  test("le corps est décodé en utf-8, quel que soit l'en-tête", () async {
+    final client = _client(
+      MockClient(
+        (_) async =>
+            http.Response.bytes(utf8.encode('{"nom":"Réessayer"}'), 200),
+      ),
+    );
+
+    expect(await client.getJson('version'), {'nom': 'Réessayer'});
   });
 
   test('toute requête porte la version du client', () async {
@@ -107,6 +119,17 @@ void main() {
     await expectLater(
       client.getJson('version'),
       throwsA(isA<ServeurInjoignable>()),
+    );
+  });
+
+  test('un corps 200 aux octets utf-8 invalides est invalide', () async {
+    final client = _client(
+      MockClient((_) async => http.Response.bytes([0x7b, 0xff, 0x7d], 200)),
+    );
+
+    await expectLater(
+      client.getJson('version'),
+      throwsA(isA<ReponseInvalide>()),
     );
   });
 
