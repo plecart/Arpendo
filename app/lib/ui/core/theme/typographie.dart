@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 /// plateforme. Seuls les deux styles monospace nomment une famille, parce que
 /// celle-là ne s'obtient pas par défaut.
 ///
-/// Les huit styles sont l'unique source de l'échelle. [texteTheme] les range dans
-/// les créneaux Material pour que les widgets du framework tombent juste ; les
+/// Les huit styles sont l'unique source de l'échelle. [creneauxMaterial] les range
+/// dans les créneaux Material pour que les widgets du framework tombent juste ; les
 /// écrans, eux, lisent les membres nommés — `Typographie.body` dit ce qu'il vaut,
 /// `bodyLarge` demande de se souvenir de la table de correspondance.
 ///
@@ -100,15 +100,25 @@ abstract final class Typographie {
 
   /// Les styles rangés dans les créneaux Material qui leur correspondent.
   ///
-  /// Six créneaux sur huit : `mono` et `mono-display` n'ont pas d'équivalent
-  /// Material et ne se lisent que par leur nom. Les créneaux non listés gardent
-  /// leur valeur Material — aucun jeton du projet ne les définit, et en inventer
-  /// une reviendrait à créer une valeur que la spécification n'a pas décidée.
+  /// Sept créneaux pour six styles : [body] en occupe deux, parce que `bodyMedium`
+  /// est le style d'un `Text` sans style explicite sous Material et que le §1.2
+  /// fait de `type-body` la taille plancher de tout texte lisible. [mono] et
+  /// [monoDisplay] n'ont pas d'équivalent Material et ne se lisent que par leur
+  /// nom. Les créneaux non listés gardent leur valeur Material — aucun jeton du
+  /// projet ne les définit, et en inventer une reviendrait à créer une valeur que
+  /// la spécification n'a pas décidée.
+  ///
+  /// **Chaque style déclare son interlettrage, y compris nul.** `MaterialApp`
+  /// fusionne cette table avec la géométrie typographique de la locale
+  /// (`ThemeData.localize`), et toute propriété laissée indéfinie vient alors de
+  /// Material — 0,5 sur `bodyLarge`, 0,1 sur `labelLarge`. Un jeton muet sur une
+  /// propriété ne la rend pas : il l'abandonne.
   static const TextTheme creneauxMaterial = TextTheme(
     headlineLarge: display,
     headlineSmall: title,
     titleLarge: headline,
     bodyLarge: body,
+    bodyMedium: body,
     labelLarge: label,
     bodySmall: caption,
   );
