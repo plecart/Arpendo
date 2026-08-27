@@ -24,12 +24,29 @@ ApiClient _client(
   bool enLigne = true,
   String baseUrl = 'https://exemple.test/api',
   Duration delai = ApiConfig.delaiParDefaut,
-}) => ApiClient(
-  config: ApiConfig(baseUrl: baseUrl, delai: delai),
-  clientVersion: '1.2.3',
-  connectivite: _ConnectiviteFigee(enLigne: enLigne),
-  client: transport,
-);
+}) {
+  final client = ApiClient(
+    config: ApiConfig(baseUrl: baseUrl, delai: delai),
+    clientVersion: '1.2.3',
+    connectivite: _ConnectiviteFigee(enLigne: enLigne),
+    client: transport,
+  );
+  // Chaque test exerce ainsi la règle « injecter un client, c'est le céder ».
+  addTearDown(client.close);
+  return client;
+}
+
+/// Transport qui note sa fermeture, et rien d'autre.
+class _TransportFermable extends http.BaseClient {
+  bool ferme = false;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest requete) async =>
+      http.StreamedResponse(const Stream.empty(), 200);
+
+  @override
+  void close() => ferme = true;
+}
 
 /// Transport qui lève [erreur] avant d'avoir joint le serveur.
 http.Client _transportQuiLeve(Object erreur) =>
@@ -47,6 +64,14 @@ final _famillesDePanne = <(String, Object)>[
 ];
 
 void main() {
+  test("close ferme le client injecté : l'injecter, c'est le céder", () {
+    final transport = _TransportFermable();
+
+    _client(transport).close();
+
+    expect(transport.ferme, isTrue);
+  });
+
   test('une réponse 200 rend le corps JSON décodé', () async {
     final client = _client(
       MockClient((_) async => http.Response('{"version":"1.0.0"}', 200)),

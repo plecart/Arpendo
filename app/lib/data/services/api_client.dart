@@ -61,6 +61,12 @@ class ApiConfig {
 class ApiClient {
   /// [client] n'est fourni que par les tests et les futures enveloppes ; en
   /// production, le client crée le sien.
+  ///
+  /// **Fournir [client], c'est en céder la possession** : [close] ferme le
+  /// [http.Client] que ce client tient, qu'il l'ait créé ou reçu. Une seule
+  /// règle, sans drapeau de propriété — un appelant qui doit garder son client
+  /// vivant ne le donne pas, il en donne une enveloppe dont `close` ne fait
+  /// rien.
   ApiClient({
     required this.config,
     required this.clientVersion,
@@ -99,6 +105,13 @@ class ApiClient {
     final reponse = await _envoyer(config.url(chemin));
     return _objetJson(reponse.bodyBytes);
   }
+
+  /// Libère le [http.Client] détenu ; ce client n'est plus utilisable ensuite.
+  ///
+  /// Sans cet appel, les connexions persistantes du client restent ouvertes et
+  /// le processus Dart peut refuser de se terminer. À appeler par qui possède
+  /// le [ApiClient] — la racine de composition, ou le `tearDown` d'un test.
+  void close() => _client.close();
 
   /// Envoie la requête et n'en rend qu'une réponse de la plage 2xx.
   ///
