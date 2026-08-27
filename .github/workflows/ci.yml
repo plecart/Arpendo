@@ -75,8 +75,12 @@ jobs:
       - uses: actions/checkout@v7
 
       # Versions d'actions tenues à jour par Dependabot (cadrage §13.11).
+      #
+      # Version exacte, pas de majeur flottant : `setup-uv` ne publie plus de tag `vN` depuis
+      # sa v8 (« Remove update-major-minor-tags workflow »). `@v10` n'existe pas et fait échouer
+      # le workflow avant la première étape. Dependabot monte ce tag exact comme un autre.
       - name: Setup uv + Python
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           # Aucune version de Python ici : `uv sync` (recette `install-api`) lit
           # `api/.python-version`, source unique, et installe l'interpréteur qu'il faut.
