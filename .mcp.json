@@ -14,7 +14,8 @@
         "@mapbox/mcp-devkit-server"
       ],
       "env": {
-        "MAPBOX_ACCESS_TOKEN": "${MAPBOX_DEVKIT_TOKEN}"
+        "MAPBOX_ACCESS_TOKEN": "${MAPBOX_DEVKIT_TOKEN}",
+        "PATH": "C:/Program Files/nodejs;C:/Windows/system32;C:/Windows"
       }
     }
   }

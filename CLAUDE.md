@@ -54,10 +54,25 @@ de validation du skill sont du **traitement local** : ils n'appellent
 aucune API et fonctionnent même avec un jeton factice. Le jeton ne sert qu'à laisser le serveur
 démarrer. Distinct des deux jetons de l'app (`mapbox-token-security`).
 
-**Pourquoi `cmd /c npx` et non `npx` :** Claude Code lance le serveur par un `spawn` sans shell.
-Sous Windows, `npx` sans extension est un script POSIX que le système ne sait pas exécuter —
-`spawn npx ENOENT`, et le serveur remonte en `failed` / `Connection closed`. `cmd /c` résout
-`npx.cmd`. **Déclaration spécifique à Windows** : sur un poste Unix, revenir à `"command": "npx"`.
+**Deux réglages spécifiques à Windows, tous deux nécessaires** — sur un poste Unix, remettre
+`"command": "npx"` et supprimer la clé `PATH` :
+
+1. **`cmd /c npx` et non `npx`.** Claude Code lance le serveur par un `spawn` sans shell. Sous
+   Windows, `npx` sans extension est un script POSIX que le système ne sait pas exécuter —
+   `spawn npx ENOENT`, le serveur remonte en `failed` / `Connection closed`. `cmd /c` résout
+   `npx.cmd`.
+2. **`PATH` épinglé sur `C:/Program Files/nodejs`.** Le poste porte **deux liens Node
+   concurrents** : `C:\Program Files
+odejs` → v24.3.0, et `%NVM_SYMLINK%` = `C:
+vm4w
+odejs`
+   → v18.17.1. L'hôte d'extension VS Code résout `npx` par le second et démarre le serveur en
+   Node 18, qui ne connaît pas `import … with { type: 'json' }` → `SyntaxError: Unexpected token
+   'with'`. Le paquet exige Node ≥ 22. Épingler le `PATH` du serveur le rend indépendant de nvm.
+
+**Diagnostic d'un serveur MCP en `failed` :** ne pas deviner — lire la `stderr` réelle dans
+`~/AppData/Roaming/Code/logs/<horodatage>/window1/exthost/Anthropic.claude-code/Claude VSCode.log`.
+`node -v` dans un terminal ne dit **rien** de la version que l'hôte d'extension utilisera.
 
 ## Minimalisme (`ponytail`)
 
