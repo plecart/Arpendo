@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 
 import pytest
 from fastapi import FastAPI
@@ -6,6 +6,28 @@ from httpx import ASGITransport, AsyncClient
 
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
+
+
+def reglages_surcharges(surcharges: Mapping[str, str]) -> Settings:
+    """Les réglages de l'environnement, amendés — et **revalidés**.
+
+    `model_copy(update=…)` poserait les valeurs telles quelles, sans repasser par les validateurs :
+    un test pourrait alors décrire une configuration que `Settings` refuse en production, et
+    prouver quelque chose d'une application qui ne démarrerait jamais. On reconstruit donc plutôt
+    qu'on ne modifie.
+
+    Args:
+        surcharges: les champs à remplacer, par nom d'attribut. Vide, on rend l'environnement tel
+            qu'il est.
+
+    Returns:
+        Des réglages valides, secrets compris — `model_dump()` rend les `SecretStr` intacts, et
+        la revalidation les réaccepte sans les aplatir en `'**********'`.
+
+    Raises:
+        pydantic.ValidationError: si la surcharge décrit un environnement invalide.
+    """
+    return Settings.model_validate({**Settings().model_dump(), **surcharges})
 
 
 @pytest.fixture
@@ -22,8 +44,7 @@ def settings(request: pytest.FixtureRequest) -> Settings:
         @pytest.mark.parametrize("settings", [{"valkey_url": "redis://127.0.0.1:1/0"}],
                                  indirect=True)
     """
-    surcharges: dict[str, str] = getattr(request, "param", {})
-    return Settings().model_copy(update=surcharges)
+    return reglages_surcharges(getattr(request, "param", {}))
 
 
 @pytest.fixture

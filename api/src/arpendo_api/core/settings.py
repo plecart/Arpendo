@@ -2,13 +2,47 @@
 
 from typing import Annotated
 
-from pydantic import Field, SecretStr
+from pydantic import AfterValidator, SecretStr
 from pydantic_settings import BaseSettings
 
-NonEmpty = Annotated[str, Field(min_length=1)]
-"""Une chaîne requise et non vide — le type de tout réglage qu'on peut afficher."""
 
-Secret = Annotated[SecretStr, Field(min_length=1)]
+def _refuse_le_blanc(texte: str) -> str:
+    """Rejette une valeur que le shell a posée mais qui ne porte rien.
+
+    ``VALKEY_PASSWORD="   "`` n'est pas une variable absente : elle existe, elle est non vide, et
+    une longueur minimale la laisserait passer. Elle n'authentifie pourtant rien. Refuser le blanc
+    ramène ce cas à celui qu'on sait déjà traiter — un démarrage qui échoue bruyamment.
+
+    Args:
+        texte: la valeur brute lue dans l'environnement.
+
+    Returns:
+        La valeur inchangée. On ne la rogne pas : c'est une validation, pas une correction, et
+        rogner en silence masquerait un ``.env`` mal écrit au lieu de le signaler.
+
+    Raises:
+        ValueError: si la valeur ne contient que des blancs.
+    """
+    if not texte.strip():
+        raise ValueError("valeur vide ou faite uniquement de blancs")
+    return texte
+
+
+def _refuse_le_secret_blanc(secret: SecretStr) -> SecretStr:
+    """La même règle, appliquée sous l'emballage.
+
+    On rend le secret reçu plutôt qu'un emballage neuf : ``_refuse_le_blanc`` ne sert ici qu'à
+    lever, et sa valeur de retour n'a pas d'usage. Le message d'erreur, lui, ne cite jamais la
+    valeur — pydantic nomme le champ, pas son contenu.
+    """
+    _refuse_le_blanc(secret.get_secret_value())
+    return secret
+
+
+NonEmpty = Annotated[str, AfterValidator(_refuse_le_blanc)]
+"""Une chaîne requise et non blanche — le type de tout réglage qu'on peut afficher."""
+
+Secret = Annotated[SecretStr, AfterValidator(_refuse_le_secret_blanc)]
 """Une chaîne requise et non vide, mais **masquée** partout où les réglages s'affichent.
 
 Le type de tout réglage sensible : ``repr``, ``str`` et ``model_dump()`` en rendent
@@ -28,8 +62,8 @@ class Settings(BaseSettings):
     instance, pour qu'ajouter un serveur ne demande que des variables d'environnement. Le ``.env``
     du poste est chargé en amont, par le justfile en local et par Compose dans les conteneurs.
 
-    Aucun champ n'a de valeur par défaut et tous refusent la chaîne vide : construire ``Settings``
-    sans l'une des variables, ou avec une variable posée mais vide, lève une
+    Aucun champ n'a de valeur par défaut et tous refusent le blanc : construire ``Settings``
+    sans l'une des variables, ou avec une variable posée mais vide ou faite d'espaces, lève une
     ``pydantic.ValidationError``. Cet échec est voulu bruyant et immédiat — une api qui démarre
     avec une configuration trouée échoue plus tard, plus loin, et sur une erreur moins lisible.
 
