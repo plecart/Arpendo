@@ -40,20 +40,24 @@ il renvoie la doc à jour de la lib demandée, ce qui économise des tokens et �
 périmées. Déclaré dans `.mcp.json` à la racine (scope projet), **sans clé API** : les quotas
 de l'offre gratuite s'appliquent. Vérifier avec `claude mcp list`.
 
-Second serveur déclaré dans `.mcp.json` : **`mapbox-devkit`** (`@mapbox/mcp-devkit-server`, stdio
-via `npx`), qui fournit les outils du skill `mapbox-style-quality` — `validate_expression_tool`,
-`validate_geojson_tool`, `color_contrast_checker_tool`, `compare_styles_tool`,
-`style_optimization_tool` — plus la gestion des styles et des jetons du compte. Il lit le jeton
+Second serveur déclaré dans `.mcp.json` : **`mapbox-devkit`** (`@mapbox/mcp-devkit-server`, stdio),
+qui fournit **23 outils**, dont ceux du skill `mapbox-style-quality` : `validate_expression_tool`,
+`validate_geojson_tool`, `check_color_contrast_tool`, `compare_styles_tool`, `optimize_style_tool`,
+`validate_style_tool` — plus la gestion des styles et des jetons du compte. Il lit le jeton
 dans la variable d'environnement **`MAPBOX_DEVKIT_TOKEN`**, posée dans le bloc `env` de
 `.claude/settings.local.json` (fichier ignoré par git, lu par Claude Code au lancement — ni
 variable système, ni `.env` de l'app, que Claude Code ne lit pas) : un
 jeton **public `pk.` aux portées publiques par défaut** (`styles:read`, `styles:tiles`,
 `fonts:read`, `datasets:read`). **Ne demander ni `styles:list` ni `styles:write`** : ce sont des
-portées *secrètes*, Mapbox émettrait alors un jeton `sk.` — inutilement puissant ici. Les cinq
-outils du skill (`validate_expression_tool`, `validate_geojson_tool`, `color_contrast_checker_tool`,
-`compare_styles_tool`, `style_optimization_tool`) sont du **traitement local** : ils n'appellent
+portées *secrètes*, Mapbox émettrait alors un jeton `sk.` — inutilement puissant ici. Les outils
+de validation du skill sont du **traitement local** : ils n'appellent
 aucune API et fonctionnent même avec un jeton factice. Le jeton ne sert qu'à laisser le serveur
 démarrer. Distinct des deux jetons de l'app (`mapbox-token-security`).
+
+**Pourquoi `cmd /c npx` et non `npx` :** Claude Code lance le serveur par un `spawn` sans shell.
+Sous Windows, `npx` sans extension est un script POSIX que le système ne sait pas exécuter —
+`spawn npx ENOENT`, et le serveur remonte en `failed` / `Connection closed`. `cmd /c` résout
+`npx.cmd`. **Déclaration spécifique à Windows** : sur un poste Unix, revenir à `"command": "npx"`.
 
 ## Minimalisme (`ponytail`)
 

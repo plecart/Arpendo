@@ -6,8 +6,10 @@
     },
     "mapbox-devkit": {
       "type": "stdio",
-      "command": "npx",
+      "command": "cmd",
       "args": [
+        "/c",
+        "npx",
         "-y",
         "@mapbox/mcp-devkit-server"
       ],
