@@ -157,6 +157,29 @@ fichier du skill n'a pas encore été mis à jour.
 **stable**, hors du dépôt. Ne jamais l'ancrer sur le répertoire courant : `pr-paralleles` travaille
 dans des **git worktrees** éphémères, et un journal écrit là disparaît avec le worktree.
 
+## Orchestration — Agent Teams à trois étages
+
+La session principale est le **lead** (Fable). Elle garde ce qui demande le plus de jugement :
+briefing, planification, arbitrages `decisions-vs-doc`, cleanup pass, review avant merge, dialogue
+avec l'utilisateur. Le reste se délègue à des équipiers définis dans `.claude/agents/` — **le
+modèle n'est pas choisi par tâche, il est choisi par rôle** au moment de créer l'équipier :
+
+| Rôle | Modèle | Confier |
+|---|---|---|
+| `developpeur` | Opus | l'implémentation TDD d'un brief borné, la correction de tests rouges, la relecture d'un diff |
+| `executant` | Sonnet | tests / lint / format, exploration et cartographie du code, edits entièrement spécifiés |
+
+Invoquer par le nom du rôle : « spawn a teammate using the `executant` agent type to … ». Un
+équipier créé sans rôle ni modèle tombe sur Opus (`CLAUDE_CODE_SUBAGENT_MODEL`, réglage
+utilisateur) — jamais sur Fable.
+
+**Une commande ponctuelle se lance soi-même.** Un équipier démarre avec un contexte complet ; le
+déléguer coûte plus qu'un `git status` ou un `flutter test` isolé. La délégation ne paie que pour
+un **bloc de travail** : une tranche d'issue, une suite à faire passer au vert, une cartographie.
+
+Limites connues : une équipe par session, pas d'équipes imbriquées, `/resume` ne restaure pas les
+équipiers, mode `in-process` seulement sous Windows / VS Code.
+
 ## Skills de la pipeline
 
 Chaque skill s'invoque par sa **commande homonyme** (`/triage`, `/cycle-pr`, `/plan-qa`…) ou se
