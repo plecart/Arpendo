@@ -190,9 +190,10 @@ l'adaptive icon soit la seule ressource d'icône.
 | `opacity` d'un trait | `android:strokeAlpha` |
 
 Le `<group>` qui enveloppe les trois tracés ne vient pas du SVG : il réduit le signe dans la zone
-sûre du masque (66/108, échelle 0,85 autour du centre) et porte le décalage de 2 % vers le haut
-que demande le §1.5 (`translateY = -2.16`). Le calque `<monochrome>` réutilise le premier plan : il
-est déjà d'une seule couleur, et Android ne teinte que par son alpha.
+sûre du masque (66/108, échelle 0,85 autour du centre), et rien d'autre — le décalage de 2 % vers le
+haut que demande le §1.5 est déjà dans les coordonnées du SVG (hexagone centré en y = 51), il ne se
+rajoute pas. Le calque `<monochrome>` réutilise le premier plan : il est déjà d'une seule couleur,
+et Android en remplace la couleur par celle du thème en ne gardant que l'alpha.
 
 **Une retouche du SVG se recopie ici**, attribut par attribut ; le drawable ne se retouche jamais
 seul. L'icône 512 × 512 de la fiche Play s'exporte du même SVG.
