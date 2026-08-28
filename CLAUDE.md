@@ -29,8 +29,11 @@ thème — si ce champ est vide, ces deux propositions ne se déclenchent jamais
 
 ## Vocabulaire
 
-Utiliser le glossaire de domaine du projet (`UBIQUITOUS_LANGUAGE.md` s'il existe) dans les
-noms de tests, les titres d'issues et de PR. Respecter les ADR de la zone touchée.
+Le glossaire de domaine du projet est [`UBIQUITOUS_LANGUAGE.md`](UBIQUITOUS_LANGUAGE.md), à la
+racine. Employer ses termes **tels quels** dans les noms de tests, de modules, de tables et de
+champs, ainsi que dans les titres d'issues et de PR, et jamais les synonymes qu'il déclare
+interdits. Il est **extrait** de `documents/reference/` : un terme qui y manque se cherche, il ne
+s'invente pas — la marche à suivre est dans son préambule. Respecter les ADR de la zone touchée.
 
 ## Documentation des bibliothèques
 
