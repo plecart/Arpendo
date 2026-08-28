@@ -5,15 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/allonger_arb.dart' show marqueurDebut, marqueurFin;
 
+/// L'accroche de la marque, seul texte que l'app sache rendre aujourd'hui.
+Widget accroche(BuildContext context) =>
+    Text(AppLocalizations.of(context).demarrageAccroche);
+
 /// Les composants dont on vérifie le rendu sous la locale allongée.
 ///
 /// **Toute issue qui ajoute un composant portant du texte l'ajoute ici.** La
 /// liste est le seul endroit à tenir : le test qui la parcourt, lui, ne bouge
 /// pas, et couvre le nouveau composant sans une ligne de plus.
-final composants = <String, WidgetBuilder>{
-  "l'accroche de la marque": (context) =>
-      Text(AppLocalizations.of(context).demarrageAccroche),
-};
+final composants = <String, WidgetBuilder>{"l'accroche de la marque": accroche};
 
 /// Écran de référence de conception (spec UX §0) : le cas le plus contraint.
 const ecranDeReference = Size(360, 800);
@@ -33,18 +34,13 @@ Widget sousLocale(Locale locale, WidgetBuilder constructeur) => MaterialApp(
 
 void main() {
   testWidgets("l'accroche rend le texte cité du cadrage §1", (tester) async {
-    await tester.pumpWidget(
-      sousLocale(
-        const Locale('fr'),
-        (context) => Text(AppLocalizations.of(context).demarrageAccroche),
-      ),
-    );
+    await tester.pumpWidget(sousLocale(const Locale('fr'), accroche));
 
     expect(find.text('prends du terrain'), findsOneWidget);
   });
 
   for (final MapEntry(key: nom, value: constructeur) in composants.entries) {
-    testWidgets('$nom : tout son texte vient de l\'ARB, sans déborder', (
+    testWidgets("$nom : tout son texte vient de l'ARB, sans déborder", (
       tester,
     ) async {
       tester.view.physicalSize = ecranDeReference;
