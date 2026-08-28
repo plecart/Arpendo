@@ -17,9 +17,10 @@ d'abord, iOS ensuite · **Langue :** français seul au MVP, architecture i18n d�
 1. `documents/reference/01-cadrage.md` — **§19 en premier**, c'est l'instruction de reprise.
 2. `documents/reference/02-specification-ux.md` — la spécification d'interface.
 3. Ce README, section « Ce qui reste ouvert ».
+4. `UBIQUITOUS_LANGUAGE.md` — le vocabulaire du domaine, extrait de ces deux documents.
 
-**Ne rouvre aucune décision de ces deux documents sans élément nouveau.** Chacune porte sa
-justification ; les rouvrir sans raison coûte plus que ce qu'elle rapporte.
+**Ne rouvre aucune décision du cadrage ni de la spécification UX sans élément nouveau.** Chacune
+porte sa justification ; les rouvrir sans raison coûte plus que ce qu'elle rapporte.
 
 ---
 
@@ -133,10 +134,9 @@ UX**.
 | 2 | **La page web de suppression de compte n'existe pas.** Le cadrage §12.2 la donne comme **obligatoire pour Google Play** — « chemin dans l'app **et** URL web ». L'app a son chemin ; la page reste due | Avant la publication |
 | 3 | **La modale « Mes hexagones »** — spécifiée au §7.6 du cadrage, **reportée post-MVP**. Ne bloque rien | Post-MVP |
 | 4 | **Aucun jeton Mapbox.** Deux sont nécessaires, à ne pas confondre : le jeton **public** (`pk.*`) part dans l'APK pour charger les tuiles — il en est extractible, c'est le risque de facture n°1 du cadrage §13.10 (portées de lecture seules, alerte de budget dès le premier dollar) ; le jeton de **téléchargement** (`sk.*`, portée `DOWNLOADS:READ`) ne sert qu'à récupérer le SDK Android au moment du build et ne doit jamais partir dans l'APK. Ce dernier devra **aussi** exister en secret GitHub Actions (`MAPBOX_DOWNLOADS_TOKEN`) : le step Build de la CI en aura besoin dès que `mapbox_maps_flutter` sera une dépendance | Avant la première dépendance `mapbox_maps_flutter` |
-| 5 | **`UBIQUITOUS_LANGUAGE.md` n'existe pas.** `CLAUDE.md` s'en sert pour nommer tests, issues et PR. Le vocabulaire est arrêté dans le cadrage mais n'est extrait nulle part | Avant les premières issues |
-| 6 | **Le sous-ensemble Phosphor n'est pas embarqué.** Le paquet `phosphor_icons` déclare **six graisses** ; le §1.8 n'en emploie qu'une, et les cinq autres pèsent **2,58 Mo** dans l'AAB — mesurés. Un sous-ensemble embarqué — police ou SVG — les supprimerait et rendrait l'inventaire indépendant du paquet | Post-MVP |
-| 7 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |
-| 8 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
+| 5 | **Le sous-ensemble Phosphor n'est pas embarqué.** Le paquet `phosphor_icons` déclare **six graisses** ; le §1.8 n'en emploie qu'une, et les cinq autres pèsent **2,58 Mo** dans l'AAB — mesurés. Un sous-ensemble embarqué — police ou SVG — les supprimerait et rendrait l'inventaire indépendant du paquet | Post-MVP |
+| 6 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |
+| 7 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
 
 **Tout le reste est clos.** Cadrage, spécification UX, identité visuelle et retour de maquette ont
 été arbitrés et intégrés. Les journaux §18.1 à §18.5 du cadrage disent ce qui a changé et pourquoi ;
