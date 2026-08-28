@@ -28,7 +28,13 @@ from arpendo_api.db.engine import create_engine
 
 
 def _run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=Base.metadata)
+    """Joue les migrations sur une connexion synchrone — ce qu'Alembic sait piloter.
+
+    ``compare_type`` est explicite bien qu'il soit le défaut depuis Alembic 1.12 : sans lui,
+    changer le type d'une colonne ne produirait aucune migration, et un défaut de bibliothèque
+    n'est pas un endroit où lire une décision du projet.
+    """
+    context.configure(connection=connection, target_metadata=Base.metadata, compare_type=True)
     with context.begin_transaction():
         context.run_migrations()
 

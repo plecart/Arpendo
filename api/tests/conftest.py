@@ -6,9 +6,20 @@ from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.schema import CreateIndex, CreateTable
 
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
+
+
+def ddl(element: CreateTable | CreateIndex) -> str:
+    """Le SQL qu'un élément de schéma produirait sur PostgreSQL — sans base ni connexion.
+
+    Les conventions de `db.base` s'observent dans le DDL compilé : c'est là, et nulle part dans
+    l'objet Python, qu'un `Mapped[int]` devient un `BIGINT`.
+    """
+    return str(element.compile(dialect=postgresql.dialect()))
 
 
 def reglages_surcharges(surcharges: Mapping[str, str]) -> Settings:

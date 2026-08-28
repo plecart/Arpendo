@@ -75,6 +75,11 @@ d'`alembic.ini` : l'URL vient de `Settings`, comme pour l'application. Les scrip
 | L'appliquer sur le poste | `just migrate` |
 | L'appliquer dans un conteneur éphémère | `docker compose -f infra/docker-compose.yml --env-file .env run --rm api alembic upgrade head` — c'est ce que la CI de déploiement déclenchera (cadrage §13.9 règle 3) |
 
+**`just migrate` ne dit rien quand il travaille** : les messages « Running upgrade … » passent par
+le logger d'Alembic, qu'aucun handler ne configure — le logging est le sujet de #42, et un
+`alembic.ini` n'existe pas ici. **Le code de retour est le signal** ; pour voir l'état,
+`just migrate && cd api && uv run alembic current`.
+
 **Jamais au démarrage** : rien dans `main.py` n'appelle Alembic. Une migration se joue une fois,
 hors du cycle de vie des conteneurs.
 

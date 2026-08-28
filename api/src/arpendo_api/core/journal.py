@@ -23,7 +23,9 @@ class DomainEvent(Base):
         id: identifiant UUIDv7 (§12.4) — triable et non énumérable. Généré côté Python, à
             l'insertion. **Seul point d'appel de ``uuid6``** : Python 3.14 apporte
             ``uuid.uuid7()`` ; à la mise à jour de ``api/.python-version``, remplacer l'appel et
-            retirer la dépendance.
+            retirer la dépendance. ``uuid6.uuid7()`` rend une *sous-classe* de ``uuid.UUID`` —
+            transparente pour SQLAlchemy et asyncpg, mais le type concret changera à cette
+            bascule.
         game_id: la partie concernée, absente pour un événement hors partie.
         type: nature de l'événement, texte libre — énumération ouverte, typée en Python par #44,
             jamais un ``ENUM`` SQL, qui ferait une migration de chaque nouveau type.

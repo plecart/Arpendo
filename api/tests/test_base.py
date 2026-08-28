@@ -4,8 +4,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from conftest import ddl
 from sqlalchemy import Index
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CreateIndex, CreateTable
 
@@ -24,10 +24,6 @@ class Mesure(Base):
     libelle: Mapped[str]
     charge: Mapped[dict[str, Any]]
     survenu_a: Mapped[datetime]
-
-
-def ddl(element: CreateTable | CreateIndex) -> str:
-    return str(element.compile(dialect=postgresql.dialect()))
 
 
 def test_les_annotations_python_donnent_les_types_du_cadrage() -> None:
