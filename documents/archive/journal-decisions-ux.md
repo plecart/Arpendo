@@ -343,10 +343,10 @@ l'avertissement de sécurité du §6.
 |---|---|
 | L'encadré §0 affirmait que l'avertissement du §6 « reprend le cadrage §16 littéralement ». Le §16 du cadrage n'écrit aucun texte — il exige « avertissement de sécurité à l'onboarding + clause CGU » | Le texte reste intouché comme demandé ; la phrase du §6 devient « Le §16 du cadrage exige cet avertissement sans en écrire le texte ; il est arrêté ici » |
 | La réécriture fixée par l'identité §1.7 pour la priorité 6 — « **Le réseau** ne répond plus. » — nomme une cause sur un bandeau qui vaut « quelle qu'en soit la cause », et recrée le piège que le cadrage §10.3 interdit : un serveur en panne lu comme une 4G défaillante, donc une app relancée et un service tué | Rang 1 l'emporte : « Coupure de plus de 5 min. Tes pas ne comptent pas pour l'instant. » (+25 %) — sans cause nommée, et juste dans la durée puisque le bandeau persiste tant que la coupure dure ; l'identité §1.7 est alignée |
-| Le cadrage (rang 1) porte lui-même huit textes de l'interface — §4.3, §4.4, §9.3, §10.1, §10.3 — alors que l'encadré n'en identifiait que deux comme « cités du cadrage ». L'encadré et l'identité prescrivent explicitement la réécriture de deux d'entre eux | **Arrêt `decisions-vs-doc`, tranché par le porteur le 28 août 2026 : la décision gagne.** Sept des huit sont réécrits (« Connexion instable » reste) et le cadrage est amendé à la source — §4.3, §4.4, §9.3, §10.1, §10.3, journal §18.5, reprise §19 ; les sept lignes correspondantes sont marquées « cadrage amendé » ci-dessous, et deux autres en découlent (la notification « serveur », le corps 2 de la modale de départ). L'alternative, garder ces textes en registre « annonce », aurait laissé en l'état les mauvaises nouvelles les plus visibles du jeu — celles pour lesquelles la règle de ton existe |
+| Le cadrage (rang 1) porte lui-même huit des textes à réécrire — §4.3, §4.4, §9.3, §10.1, §10.3 — alors que l'encadré n'en identifiait que deux comme « cités du cadrage ». L'encadré et l'identité prescrivent explicitement la réécriture de deux d'entre eux | **Arrêt `decisions-vs-doc`, tranché par le porteur le 28 août 2026 : la décision gagne.** Sept des huit sont réécrits (« Connexion instable » reste) et le cadrage est amendé à la source — §4.3, §4.4, §9.3, §10.1, §10.3, journal §18.5, reprise §19 ; les sept lignes correspondantes sont marquées « cadrage amendé » ci-dessous, et deux autres en découlent (la notification « serveur », le corps 2 de la modale de départ). L'alternative, garder ces textes en registre « annonce », aurait laissé en l'état les mauvaises nouvelles les plus visibles du jeu — celles pour lesquelles la règle de ton existe |
 | Le corps 1 de la modale de départ (§7.4), une fois réécrit, dit déjà « redeviennent libres » ; le corps 2 le répétait | Le corps 2 ne garde que la possibilité de revenir |
 
-**Inventaire.** 171 chaînes entre « » relues : 138 inchangées, 33 réécrites, aucune au-delà de +28 %.
+**Inventaire.** 176 chaînes entre « » relues : 143 inchangées, 33 réécrites, aucune au-delà de +28 %.
 
 | § | Avant | Après | Δ | Motif |
 |---|---|---|---|---|
@@ -400,6 +400,8 @@ l'avertissement de sécurité du §6.
 | §5.1 | « Durée de la partie » | *inchangé* |  | libellé |
 | §5.1 | « 30 min » | *inchangé* |  | étiquette |
 | §5.1 | « 1 mois » | *inchangé* |  | étiquette |
+| §5.1 | « 48 h » | *inchangé* |  | étiquette |
+| §5.1 | « 1 semaine » | *inchangé* |  | étiquette |
 | §5.1 | « 24 heures » | *inchangé* |  | valeur annoncée |
 | §5.1 | « 24 h » | *inchangé* |  | valeur |
 | §5.1 | « Pas de connexion — impossible de créer une partie. » | « Pas de réseau. La partie n'est pas créée. » | -18 % | cause puis conséquence ; le bouton reste actif |
@@ -431,7 +433,10 @@ l'avertissement de sécurité du §6.
 | §7.1 | « 09:47 » | *inchangé* |  | format de timer |
 | §7.1 | « Terminée » | *inchangé* |  | état |
 | §7.1 | « — hex · — pts » | *inchangé* |  | état de chargement |
+| §7.0 | « Partie » | *inchangé* |  | bouton d'action de l'écran Jeu |
+| §7.2 | « Recentrer » | *inchangé* |  | bouton flottant |
 | §7.3 | « C'est bon, tu peux la reprendre. » | « Tu peux la reprendre. » | -34 % | interjection retirée ; bonne nouvelle plate |
+| §7.4 | « Joueurs » | *inchangé* |  | onglet |
 | §7.4 | « 5 joueurs · fin dans 2 j 04 h » | *inchangé* |  | en-tête |
 | §7.4 | « hex · pts » | *inchangé* |  | en-tête de colonne |
 | §7.4 | « (toi) » | *inchangé* |  | marque |

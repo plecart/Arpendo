@@ -409,8 +409,8 @@ participants, flux, invitation, scores, confirmations — s'ouvre **par-dessus**
 **Pendant les étapes 2 à 3**, l'écran affiché est un **écran d'attente neutre** : logo, accroche
 « prends du terrain », et un indicateur de progression indéterminé après **600 ms** seulement —
 en dessous, l'indicateur clignote et donne une impression de lenteur là où il n'y en a pas.
-Si le serveur ne répond pas à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer » (réseau
-absent : bandeau priorité 5).
+Serveur injoignable à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer » (réseau absent :
+bandeau priorité 5).
 Ne jamais router vers le Menu par défaut : un joueur dont la partie est en cours verrait
 « Créer une partie » et croirait sa partie perdue.
 
