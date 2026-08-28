@@ -30,10 +30,10 @@ thème — si ce champ est vide, ces deux propositions ne se déclenchent jamais
 ## Vocabulaire
 
 Le glossaire de domaine du projet est [`UBIQUITOUS_LANGUAGE.md`](UBIQUITOUS_LANGUAGE.md), à la
-racine. Employer ses termes **tels quels** dans les noms de tests, de modules, de tables et de
-champs, ainsi que dans les titres d'issues et de PR, et jamais les synonymes qu'il déclare
-interdits. Il est **extrait** de `documents/reference/` : un terme qui y manque se cherche, il ne
-s'invente pas — la marche à suivre est dans son préambule. Respecter les ADR de la zone touchée.
+racine : employer ses termes et éviter les synonymes qu'il déclare interdits, dans la portée et
+selon les règles d'emploi que son préambule fixe. Les **identifiants techniques** — tables,
+colonnes, champs — n'en relèvent pas : ils restent ceux que fixe le cadrage, en anglais.
+Respecter les ADR de la zone touchée.
 
 ## Documentation des bibliothèques
 
