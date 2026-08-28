@@ -303,9 +303,10 @@ journal des changements du cadrage. Aucune issue ouverte ne cite ces phrases —
 « graisse », « type-headline », « type-label », « gras franc » : zéro. Le code n'est pas touché :
 il a toujours suivi le tableau.
 
+
 ---
 
-## 18.5 Passe de ton du 27 août 2026 — les textes de l'interface
+## 18.5 Passe de ton des 27 et 28 août 2026 — les textes de l'interface
 
 Issue #29, PR #67. Le seul point de conception laissé ouvert par la phase d'identité (cadrage
 §18.4, §19 point 4) : les textes de la spécification avaient été rédigés **avant** que le registre
@@ -343,10 +344,10 @@ l'avertissement de sécurité du §6.
 |---|---|
 | L'encadré §0 affirmait que l'avertissement du §6 « reprend le cadrage §16 littéralement ». Le §16 du cadrage n'écrit aucun texte — il exige « avertissement de sécurité à l'onboarding + clause CGU » | Le texte reste intouché comme demandé ; la phrase du §6 devient « Le §16 du cadrage exige cet avertissement sans en écrire le texte ; il est arrêté ici » |
 | La réécriture fixée par l'identité §1.7 pour la priorité 6 — « **Le réseau** ne répond plus. » — nomme une cause sur un bandeau qui vaut « quelle qu'en soit la cause », et recrée le piège que le cadrage §10.3 interdit : un serveur en panne lu comme une 4G défaillante, donc une app relancée et un service tué | Rang 1 l'emporte : « Coupure depuis plus de 5 min. Tes pas ne comptent pas pour l'instant. » — l'identité §1.7 est alignée |
-| Le cadrage (rang 1) porte lui-même huit des textes à réécrire — §4.3, §4.4, §9.3, §10.1, §10.3 — alors que l'encadré n'en identifiait que deux comme « cités du cadrage ». L'encadré et l'identité prescrivent explicitement la réécriture de deux d'entre eux | **Arrêt `decisions-vs-doc`, question posée au porteur dans la PR #67.** Les neuf lignes marquées « en attente — Q1 » ci-dessous en dépendent |
-| Le corps 1 de la modale de départ (§7.4), une fois réécrit, dit déjà « redeviennent libres » ; le corps 2 le répétait | Dépend du même arrêt |
+| Le cadrage (rang 1) porte lui-même huit des textes à réécrire — §4.3, §4.4, §9.3, §10.1, §10.3 — alors que l'encadré n'en identifiait que deux comme « cités du cadrage ». L'encadré et l'identité prescrivent explicitement la réécriture de deux d'entre eux | **Arrêt `decisions-vs-doc`, tranché par le porteur le 28 août 2026 : la décision gagne.** Le cadrage est amendé à la source — §4.3, §4.4, §9.3, §10.1, §10.3, journal §18.5, reprise §19 — et les neuf textes concernés sont réécrits ci-dessous (marqués « cadrage amendé »). L'alternative, garder ces huit textes en registre « annonce », aurait laissé en l'état les mauvaises nouvelles les plus visibles du jeu — celles pour lesquelles la règle de ton existe |
+| Le corps 1 de la modale de départ (§7.4), une fois réécrit, dit déjà « redeviennent libres » ; le corps 2 le répétait | Le corps 2 ne garde que la possibilité de revenir |
 
-**Inventaire.** 171 chaînes entre « » relues : 138 inchangées, 24 réécrites, 9 en attente.
+**Inventaire.** 171 chaînes entre « » relues : 138 inchangées, 33 réécrites, aucune au-delà de +28 %.
 
 | § | Avant | Après | Δ | Motif |
 |---|---|---|---|---|
@@ -357,16 +358,16 @@ l'avertissement de sécurité du §6.
 | §2.4 p1 | « Réglages » | *inchangé* |  | libellé d'action |
 | §2.4 p2 | « Android ne redemandera plus. Ouvre les réglages pour autoriser la localisation. » | *inchangé* |  | explique déjà : ce qui se passe, puis quoi faire |
 | §2.4 p3 | « Tu es toujours dans la partie. Autorise la localisation pour reprendre la capture. » | *inchangé* |  | explique déjà |
-| §2.4 p4 | « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | **en attente — Q1** |  | cadrage §10.3 |
-| §2.4 p5 | « Pas de connexion — capture en pause » | **en attente — Q1** |  | cadrage §10.3 |
-| §2.4 p6 | « Capture en pause — tes déplacements ne comptent plus » | **en attente — Q1** |  | cadrage §10.1 |
-| §2.4 p7 | « Trop rapide — capture en pause » | **en attente — Q1** |  | cadrage §4.3 |
+| §2.4 p4 | « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | « Le serveur ne répond pas. Garde l'application ouverte, la reprise est automatique. » | -15 % | nomme la cause et garde l'instruction du cadrage §10.3 (ne pas fermer l'app) — cadrage amendé |
+| §2.4 p5 | « Pas de connexion — capture en pause » | « Pas de réseau. La reprise est automatique. » | +20 % | cause ; pendant les 5 premières minutes les positions sont gardées (cadrage §10.1) — cadrage amendé |
+| §2.4 p6 | « Capture en pause — tes déplacements ne comptent plus » | « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » | +17 % | réécriture de l'identité §1.7, sans nommer de cause (cadrage §10.3) — cadrage amendé |
+| §2.4 p7 | « Trop rapide — capture en pause » | « Trop vite : tes pas ne comptent pas. » | +20 % | cause puis conséquence, même conséquence que la priorité 6 — cadrage amendé |
 | §2.4 p8 | « Cette tuile est à Alice. » | *inchangé* |  | explique déjà (cadrage §18.4) |
 | §2.4 p8 | « Tu pourras la reprendre dans 1 min 12 s. » | *inchangé* |  | explique déjà ; le futur date un moment à venir (cadrage §18.4) |
 | §2.4 p9 | « Connexion instable » | *inchangé* |  | constat court, rien n'est perdu, rien à faire (cadrage §10.1) |
 | §2.4 p10 | « Ta progression s'arrêtera si ton téléphone redémarre » | *inchangé* |  | cité du cadrage §9.2 — garde-fou 1 |
 | §2.4 p10 | « Masquer pour cette partie » | *inchangé* |  | libellé d'action |
-| §2.4 p11 | « Tu ne seras pas prévenu si la capture s'arrête. » | **en attente — Q1** |  | cadrage §9.3 |
+| §2.4 p11 | « Tu ne seras pas prévenu si la capture s'arrête. » | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | +13 % | forme genrée (« prévenu ») neutralisée ; « avertir » comme l'amorce §10.3 — cadrage amendé |
 | §2.4 p12 | « Une nouvelle version est disponible. » | *inchangé* |  | information plate |
 | §2.4 p12 | « Mettre à jour » | *inchangé* |  | libellé d'action |
 | §2.4 p13 | « Hors ligne trop longtemps : 12 captures perdues. » | « La coupure a duré trop longtemps : 12 captures sont perdues. » | +25 % | cause puis conséquence, en phrase |
@@ -468,8 +469,8 @@ l'avertissement de sécurité du §6.
 | §7.4 | « Rejoins ma partie sur Arpendo, le code est K7MQ4P. / Arpendo, c'est un jeu de territoire : tu colores les hexagones où tu marches. / https://play.google.com/… » | *inchangé* |  | message de partage : sans emoji, factuel |
 | §7.4 | « Impossible de charger le code. » | « Le code n'est pas arrivé. » | -17 % | forme commune des échecs de chargement |
 | §7.4 | « Quitter définitivement ? » | *inchangé* |  | titre |
-| §7.4 | « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. » | **en attente — Q1** |  | cadrage §4.4 |
-| §7.4 | « Tes hexagones redeviennent libres pour tous les joueurs. Tu peux rejoindre à nouveau, mais tu repartiras de zéro. » | **en attente — Q1** |  | dépend du corps 1 |
+| §7.4 | « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. » | « Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras pas. » | +16 % | réécriture fixée par l'identité §1.7 — cadrage amendé |
+| §7.4 | « Tes hexagones redeviennent libres pour tous les joueurs. Tu peux rejoindre à nouveau, mais tu repartiras de zéro. » | « Tu peux rejoindre à nouveau, mais tu repars de zéro. » | -54 % | la conséquence pour les autres est déjà dans le corps 1 ; au présent |
 | §7.4 | « Écris **définitivement** pour confirmer » | *inchangé* |  | libellé de champ |
 | §7.4 | « Quitter définitivement » | *inchangé* |  | libellé d'action |
 | §7.4 | « Tu as quitté la partie. » | *inchangé* |  | constat |
@@ -508,8 +509,8 @@ l'avertissement de sécurité du §6.
 | §9 | « Impossible de charger le classement. » | « Le classement n'est pas arrivé. » | -14 % | forme commune des échecs de chargement |
 | §10.1 | « Capture en cours » | *inchangé* |  | nom de canal Android |
 | §10.2 | « 124 hex · 2 j 04 h restantes » | *inchangé* |  | valeur |
-| §10.2 | « Capture en pause — hors ligne » | **en attente — Q1** |  | cadrage §10.3 |
-| §10.2 | « Serveur indisponible — la reprise est automatique » | **en attente — Q1** |  | dérivé du cadrage §10.3 |
+| §10.2 | « Capture en pause — hors ligne » | « Hors ligne : tes pas ne comptent pas. » | +28 % | notification : court, même conséquence que le bandeau — cadrage amendé |
+| §10.2 | « Serveur indisponible — la reprise est automatique » | « Le serveur ne répond pas. La reprise est automatique. » | +8 % | même cause que le bandeau 4, sans l'instruction — une notification n'a pas d'action |
 | §10.2 | « Localisation désactivée — capture arrêtée » | « Sans localisation, la capture est arrêtée. » | +2 % | cause puis conséquence, en phrase |
 | §10.2 | « Partie terminée » | *inchangé* |  | état |
 | §10.3 | « Arpendo t'avertit si la capture s'arrête, et quand la partie se termine. » | *inchangé* |  | amorce, explique déjà |

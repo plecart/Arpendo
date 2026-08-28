@@ -492,14 +492,14 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 1 | Localisation de base refusée | bloquant | « Sans ta position, Arpendo ne sait pas où tu marches. » | « Réglages » |
 | 2 | Localisation de base refusée, **après 2 refus** | bloquant | « Android ne redemandera plus. Ouvre les réglages pour autoriser la localisation. » | « Réglages » |
 | 3 | Permission retirée **en cours de partie** | bloquant | « Tu es toujours dans la partie. Autorise la localisation pour reprendre la capture. » | « Réglages » |
-| 4 | Serveur injoignable, réseau présent, **coupure < 5 min** | avertissement | « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | — |
-| 5 | Réseau absent, **coupure < 5 min** | avertissement | « Pas de connexion — capture en pause » | — |
-| 6 | Coupure **≥ 5 min**, quelle qu'en soit la cause | avertissement | « Capture en pause — tes déplacements ne comptent plus » | « Réessayer » *(après ~30 s de plus)* |
-| 7 | Vitesse au-dessus du plafond | avertissement | « Trop rapide — capture en pause » | — |
+| 4 | Serveur injoignable, réseau présent, **coupure < 5 min** | avertissement | « Le serveur ne répond pas. Garde l'application ouverte, la reprise est automatique. » | — |
+| 5 | Réseau absent, **coupure < 5 min** | avertissement | « Pas de réseau. La reprise est automatique. » | — |
+| 6 | Coupure **≥ 5 min**, quelle qu'en soit la cause | avertissement | « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » | « Réessayer » *(après ~30 s de plus)* |
+| 7 | Vitesse au-dessus du plafond | avertissement | « Trop vite : tes pas ne comptent pas. » | — |
 | 8 | Verrou de vol actif, vol tenté | info | *« Cette tuile est à Alice. »* + *« Tu pourras la reprendre dans 1 min 12 s. »* | — |
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
-| 11 | Notifications refusées | avertissement | « Tu ne seras pas prévenu si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
+| 11 | Notifications refusées | avertissement | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
 | 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · fermer |
 | 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
@@ -1545,7 +1545,7 @@ l'effet cesse. Motifs :
 | Cas | Déclencheur | Texte | Fin |
 |---|---|---|---|
 | **Verrou de vol** | Le joueur entre dans un hexagone appartenant à un autre joueur alors que `last_steal_at` + recharge est dans le futur | **Deux lignes.** *« Cette tuile est à Alice. »* en `type-label`, puis *« Tu pourras la reprendre dans 1 min 12 s. »* en `type-caption`, décompté à la seconde | À 0, le message se remplace 3 s par « Tu peux la reprendre. » puis disparaît |
-| **Vitesse** | La moyenne glissante dépasse 50 km/h **et** le joueur traverse des hexagones capturables | « Trop rapide — capture en pause » | Dès que la vitesse repasse sous le seuil |
+| **Vitesse** | La moyenne glissante dépasse 50 km/h **et** le joueur traverse des hexagones capturables | « Trop vite : tes pas ne comptent pas. » | Dès que la vitesse repasse sous le seuil |
 
 Le second déclencheur est doublement conditionné : afficher « trop rapide » à un passager de train
 qui traverse un désert d'hexagones neutres qu'il ne voulait pas capturer serait une nuisance. Le
@@ -1832,16 +1832,15 @@ ensemble, et « Quitter la partie » ne peut donc jamais être confondu avec « 
 **La modale de confirmation** (§2.6, `saisieRequise: true`), inchangée :
 
 > **Titre** — « Quitter définitivement ? »
-> **Corps** — « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est
-> irréversible. » *(les nombres sont réels, jamais des exemples)*
-> **Corps 2** — « Tes hexagones redeviennent libres pour tous les joueurs. Tu peux rejoindre à
-> nouveau, mais tu repartiras de zéro. »
+> **Corps** — « Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les
+> récupéreras pas. » *(le nombre est réel, jamais un exemple)*
+> **Corps 2** — « Tu peux rejoindre à nouveau, mais tu repars de zéro. »
 > **Champ** — libellé « Écris **définitivement** pour confirmer »
 > **Action** — « Quitter définitivement » — désactivée tant que le champ ne correspond pas
 > **Annuler** — « Annuler »
 
-Le corps 2 énonce la conséquence pour les autres et la possibilité de revenir : sans lui, le joueur
-ignore qu'il peut rejoindre, et le message ressemble à une suppression de compte.
+Le corps 1 dit la conséquence pour les autres ; le corps 2 dit la possibilité de revenir : sans lui,
+le joueur ignore qu'il peut rejoindre, et le message ressemble à une suppression de compte.
 
 **Après confirmation :** la modale Paramètres et l'écran Jeu se ferment **immédiatement**, route
 vers le Menu. Le créneau de partie active se libère tout de suite ; la neutralisation continue en
@@ -2067,9 +2066,9 @@ dans un tiroir de notifications rempli.
 | **Nominal, en mouvement** | « Arpendo » | *« 124 hex · 2 j 04 h restantes »* |
 | **Nominal, immobile** | « Arpendo » | *« 124 hex · 2 j 04 h restantes »* — identique. Le mode veille (§9.1) n'est pas un incident, il n'a rien à signaler |
 | **Connexion instable** | « Arpendo » | « Connexion instable » |
-| **Hors ligne au-delà de 5 min** | « Arpendo » | « Capture en pause — hors ligne » |
-| **Serveur injoignable** | « Arpendo » | « Serveur indisponible — la reprise est automatique » |
-| **Trop rapide** | « Arpendo » | « Trop rapide — capture en pause » |
+| **Hors ligne au-delà de 5 min** | « Arpendo » | « Hors ligne : tes pas ne comptent pas. » |
+| **Serveur injoignable** | « Arpendo » | « Le serveur ne répond pas. La reprise est automatique. » |
+| **Trop rapide** | « Arpendo » | « Trop vite : tes pas ne comptent pas. » |
 | **Localisation retirée** | « Arpendo » | « Sans localisation, la capture est arrêtée. » |
 | **Partie terminée** | « Arpendo » | *« Partie terminée »* — puis le service s'arrête et la notification disparaît |
 
@@ -2095,7 +2094,7 @@ Traitement retenu — **quatrième niveau du modèle de permissions** (§13) :
   avec une phrase d'amorce : « Arpendo t'avertit si la capture s'arrête, et quand la partie se
   termine. »
 - Refusée : le jeu **fonctionne intégralement**, capture comprise. Bandeau priorité 11 :
-  « Tu ne seras pas prévenu si la capture s'arrête. » + « Réglages » · « Masquer pour cette
+  « Arpendo ne peut pas t'avertir si la capture s'arrête. » + « Réglages » · « Masquer pour cette
   partie ».
 - Pastille d'alerte permanente sur « Permissions » dans la modale Paramètres (§8.1).
 - **Compensation au premier plan** : pour ces joueurs, le bilan de retour du §7.1 et le bandeau de

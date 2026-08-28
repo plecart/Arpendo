@@ -11,8 +11,8 @@
 > retour visible du plafond de vitesse (§4.3).
 > La **phase d'identité visuelle a eu lieu** — voir `03-identite-visuelle.md`, direction
 > **« Relevé »** retenue, valeurs intégrées dans la spec UX et ici (journal §18.3).
-> Reste à produire : **un point ouvert** — la passe de ton sur les ~80 textes de la spécification,
-> signalée en tête de `02-specification-ux.md` — puis le **PDF de spécification**.
+> La **passe de ton** sur les textes de la spécification est faite (journal §18.5). Reste à produire :
+> le **PDF de spécification** (§17).
 >
 > **Architecture d'hébergement arrêtée :** un **serveur unique en UE**, tout en **conteneurs
 > Docker** (`caddy`, `api`, `worker`, `valkey`), plus **un seul service managé : PostgreSQL**.
@@ -166,7 +166,7 @@ ni déconnecté : il traverse sans prendre de tuiles.
   surtout des faux positifs pénibles (cycliste en descente, joggeur au GPS qui dérive).
 
 **Retour visible au joueur — ajouté le 12 août 2026.** Pendant le dépassement, le client affiche
-**« Trop rapide — capture en pause »**, via le **composant de bandeau unique** de §9.3.
+**« Trop vite : tes pas ne comptent pas. »**, via le **composant de bandeau unique** de §9.3.
 
 - **Motif :** c'est exactement le raisonnement qui a justifié le compte à rebours du verrou de vol
   en §4.2 — *« sans lui, marcher sur une tuile adverse sans rien obtenir passera pour un bug »*.
@@ -201,7 +201,8 @@ Ceci **remplace** l'ancienne décision « tous les modes de déplacement autoris
 **Contraintes d'implémentation :**
 
 - **Double confirmation obligatoire**, avec le mot « définitivement » et le décompte affiché
-  (« Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. »).
+  (« Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras
+  pas. »).
   Sans cela, confusion garantie entre « quitter la partie » et « fermer l'app ».
 - **Neutralisation asynchrone par lots** : sur une partie d'un mois, cela peut représenter des
   dizaines de milliers de lignes. Jamais dans la requête HTTP. Diffusion temps réel progressive
@@ -624,7 +625,7 @@ ouverte, vidant sa batterie pour rien.
 |---|---|
 | **Localisation de base refusée** | Carte masquée, bandeau bloquant + bouton vers les réglages. **Création/participation bloquée.** Modale Paramètres **toujours accessible** |
 | **Base accordée, arrière-plan refusé** | Jeu complet. Bandeau avertisseur non bloquant, deux boutons : « Réglages » / « Masquer pour cette partie ». Pastille permanente sur « Permissions » dans la modale |
-| **Notifications refusées** (`POST_NOTIFICATIONS`) | Jeu complet, **capture comprise**. Bandeau avertisseur non bloquant : « Tu ne seras pas prévenu si la capture s'arrête. », mêmes deux boutons. Pastille permanente sur « Permissions » |
+| **Notifications refusées** (`POST_NOTIFICATIONS`) | Jeu complet, **capture comprise**. Bandeau avertisseur non bloquant : « Arpendo ne peut pas t'avertir si la capture s'arrête. », mêmes deux boutons. Pastille permanente sur « Permissions » |
 | **Tout accordé** | Aucun bandeau, aucune pastille |
 
 > **Pourquoi un quatrième niveau — ajouté le 12 août 2026.** Depuis Android 13, afficher une
@@ -678,7 +679,7 @@ souterrain, zone blanche), **pas** permettre des heures de jeu hors ligne déver
 | Phase | Ce qui se passe | Affichage |
 |---|---|---|
 | **0 à 5 min** | Capture optimiste maintenue, positions empilées localement | Bandeau discret : « Connexion instable » |
-| **Au-delà de 5 min** | Capture arrêtée, file locale purgée, carte **navigable** mais couche de jeu à **60 % d'opacité** | Bandeau persistant : « Capture en pause — tes déplacements ne comptent plus » |
+| **Au-delà de 5 min** | Capture arrêtée, file locale purgée, carte **navigable** mais couche de jeu à **60 % d'opacité** | Bandeau persistant : « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » |
 | **Après ~30 s de plus** | Idem, tentatives espacées | Même bandeau + bouton « Réessayer » |
 
 **Au retour du réseau :** reprise **silencieuse**. Le bandeau disparaît, les couleurs reviennent,
@@ -714,7 +715,7 @@ un bandeau ne sert à rien, personne ne le voit. La fenêtre de 5 min s'applique
 joueur perd des captures sans pouvoir réagir.
 
 - **La notification permanente devient le canal d'alerte** : son texte passe à
-  « Capture en pause — hors ligne ». Gratuit, la notification existe déjà.
+  « Hors ligne : tes pas ne comptent pas. ». Gratuit, la notification existe déjà.
   ⚠️ **Sauf si le joueur a refusé `POST_NOTIFICATIONS`** (§9.3, quatrième niveau) : ce canal
   n'existe alors pas, et le message au retour au premier plan devient le **seul** recours. Il n'est
   donc jamais optionnel.
@@ -727,9 +728,9 @@ l'app — donc **tuent le service** — et signalent un bug qui n'en est pas un.
 
 Android expose l'état de connectivité réseau, donc deux messages distincts :
 
-- Réseau absent → « Pas de connexion — capture en pause »
-- Réseau présent, serveur injoignable → « Serveur indisponible — capture en pause.
-  **Garde l'application ouverte, la reprise est automatique.** »
+- Réseau absent → « Pas de réseau. La reprise est automatique. »
+- Réseau présent, serveur injoignable → « Le serveur ne répond pas. **Garde l'application
+  ouverte, la reprise est automatique.** »
 
 Le second **doit explicitement décourager de fermer l'app**, sinon un incident serveur se
 transforme en perte de progression massive.
@@ -1815,11 +1816,25 @@ résumée ci-dessous et intégrée à `02-specification-ux.md` :
   **§7.6**, **post-MVP**.
 - **Le header du Jeu à 200 % de taille de police** : tranché — repli sur deux lignes à 88 dp
   au-delà de `textScaler` 1,3, sans jamais rapetisser le texte (spec UX §7.1).
-- **Reste ouvert, un point.** **Le ton d'écriture n'a pas été répercuté sur les ~80 textes de la spec**,
-  rédigés avant que le ton soit arrêté et dans un registre que le questionnaire n'a pas retenu. Une
-  passe dédiée est nécessaire — un corpus mixte serait pire que le corpus actuel.
-  **(a) est à trancher avant l'implémentation de l'écran Jeu** ; **(b) avant que les clés i18n
-  existent.**
+- **Un point restait ouvert : le ton d'écriture n'avait pas été répercuté sur les ~80 textes de la
+  spec**, rédigés avant que le ton soit arrêté. **Traité le 28 août 2026 — voir §18.5.**
+
+### 18.5 Révision du 28 août 2026, après la passe de ton
+
+La passe de ton sur les textes de `02-specification-ux.md` (issue #29) a réécrit les textes
+d'interface que ce document cite lui-même. **Aucune règle ne change** : seule la formulation que
+voit le joueur. Le raisonnement et la table complète sont dans
+`documents/archive/journal-decisions-ux.md` §18.5.
+
+| Ancienne décision | Nouvelle décision |
+|---|---|
+| §4.3 : « Trop rapide — capture en pause » | « Trop vite : tes pas ne comptent pas. » |
+| §4.4 : « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. » | « Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras pas. » — le décompte reste affiché ; les points, qui n'en sont que le centuple, ne sont plus répétés |
+| §9.3 : « Tu ne seras pas prévenu si la capture s'arrête. » | « Arpendo ne peut pas t'avertir si la capture s'arrête. » — plus de forme genrée |
+| §10.1 : « Capture en pause — tes déplacements ne comptent plus » | « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » — sans nommer de cause, puisque ce bandeau vaut pour le réseau absent comme pour le serveur en panne (§10.3) |
+| §10.3 : « Capture en pause — hors ligne » (notification) | « Hors ligne : tes pas ne comptent pas. » |
+| §10.3 : « Pas de connexion — capture en pause » / « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | « Pas de réseau. La reprise est automatique. » / « Le serveur ne répond pas. Garde l'application ouverte, la reprise est automatique. » — le second décourage toujours de fermer l'app |
+| §18.4 et §19 : la passe de ton « reste ouverte » | **Faite.** Aucun point de conception ouvert |
 
 ---
 
@@ -1827,7 +1842,7 @@ résumée ci-dessous et intégrée à `02-specification-ux.md` :
 
 1. **Ne rouvrir aucune section 1 à 17 : toutes sont closes**, étude technique (§13), chiffrage et
    arbitrage §7.5 compris. Les justifications y figurent — ne pas relancer un arbitrage sans
-   élément nouveau. Le seul point encore ouvert est celui listé en fin de §18.3.
+   élément nouveau. Aucun point ne reste ouvert : voir §18.5.
 2. **La phase UX est faite.** `02-specification-ux.md` est la spécification d'interface : elle
    tranche les 10 points que §15 laissait ouverts, fixe la palette joueur (10 valeurs validées) et
    les tokens de conception. **Ne pas rouvrir ses décisions non plus** ; elle a ses propres
@@ -1836,10 +1851,8 @@ résumée ci-dessous et intégrée à `02-specification-ux.md` :
    raisonnement et les directions écartées sont dans `03-identite-visuelle.md` ; ses valeurs
    sont **déjà intégrées** dans la spec UX et ici (§18.3). Ne pas la rouvrir sans élément nouveau —
    et noter que l'accent n'est pas librement choisissable : voir la contrainte 1 du §18.3.
-4. **Un seul point de conception reste ouvert** : la **passe de ton sur les ~80 textes de la
-   spécification**, signalée par un encadré en tête de `02-specification-ux.md`. **À faire avant que
-   les clés i18n existent** — après, ce n'est plus une réécriture de document mais une migration de
-   ressources.
+4. **La passe de ton est faite** (28 août 2026, §18.5) : les textes de `02-specification-ux.md` sont
+   dans le registre de l'identité (§1.7), et les clés i18n peuvent être créées.
 5. **Une maquette de référence existe** : `documents/maquettes/claude-design-v2/ecran-jeu.html`,
    huit planches. **Inspiration, pas norme** — en cas de divergence, la spécification l'emporte.
 6. **Reprendre ensuite au §17 — la rédaction du PDF de spécification complète.**
