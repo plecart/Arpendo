@@ -33,7 +33,8 @@ Toujours par `just`, jamais par `flutter` nu (c'est le SDK global qui répondrai
 dépendra de la séquence de démarrage. Elle applique le thème dans les deux modes, en
 `ThemeMode.system`. Les couches UI (vues + ViewModels) et Data (repositories + services) naissent
 avec leur premier contenu, sous `lib/ui/` et `lib/data/` — aucun dossier n'est créé avant :
-`lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP.
+`lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP,
+`lib/l10n/` depuis les textes.
 
 ## Thème — les jetons de conception
 
@@ -90,6 +91,56 @@ directement : c'est ce passage obligé qui applique `MediaQuery.disableAnimation
 **Le thème de composant n'existe pas encore.** `FilledButtonThemeData`, `InputDecorationTheme` et
 leurs semblables naissent avec le premier composant qui les réclame, écran sous les yeux — de même
 que `scaffoldBackgroundColor`, qui vaudra `surfaceDim` (« fond d'écran hors carte », §1.5).
+
+## Textes — l'ARB et la locale allongée
+
+`lib/l10n/app_fr.arb` est la **seule source versionnée** des textes de l'interface. Tout ce qui
+s'affiche en vient : aucune chaîne en dur dans `lib/` (cadrage §12.6). Les textes eux-mêmes sont
+arrêtés par la spec UX — l'ARB les transcrit, il ne les rédige pas.
+
+| Fichier | Versionné | Rôle |
+|---|---|---|
+| `lib/l10n/app_fr.arb` | oui | la source : une clé, sa valeur, sa `description` |
+| `lib/l10n/app_fr_XA.arb` | non | locale de test, dérivée par `tool/allonger_arb.dart` |
+| `lib/l10n/generated/` | non | `AppLocalizations`, écrite par `flutter gen-l10n` |
+| `l10n.yaml` | oui | la configuration de la génération |
+
+`just l10n` réécrit les deux dérivés. Elle est appelée par `just install-app`, donc par
+`just install` : un clone neuf n'a rien de plus à lancer, en CI comme sur un poste.
+
+### Ajouter une clé
+
+1. **Vérifier que le texte est arrêté dans la spec.** Un texte entre « guillemets français » y est
+   définitif (UX §0). Un texte absent est une décision à prendre là-bas d'abord — voir
+   `.claude/rules/decisions-vs-doc.md`.
+2. L'ajouter à `app_fr.arb` sous une clé en **camelCase français préfixée par son composant ou son
+   écran** (`demarrageAccroche`, `bandeauPasDeConnexion`), jamais par le § : les § bougent, les
+   composants non.
+3. Lui donner une `description` qui **cite le §** d'où vient le texte. `gen-l10n` la rend en
+   doc-comment du getter : elle se lit au point d'usage, sans ouvrir la spec.
+4. Un texte **cité mot pour mot du cadrage** porte
+   `"description": "Cité — cadrage §x.y, ne pas modifier"`. C'est la marque qui interdit de le
+   réécrire en passant.
+5. `just l10n`, puis lire le texte par `AppLocalizations.of(context).maCle`. Le getter n'est
+   **jamais nul** (`nullable-getter: false`) : aucun `!` au point d'usage.
+6. Si la clé arrive avec un composant, **ajouter ce composant à `composants`** dans
+   `test/l10n/fr_xa_test.dart`.
+
+### Ce que prouve le test `fr-XA`
+
+`tool/allonger_arb.dart` dérive `app_fr_XA.arb` de `app_fr.arb` : chaque valeur est allongée de
+30 % et encadrée des marqueurs `⟦…⟧`, les `{placeholders}` et les métadonnées `@` traversant
+intacts. `test/l10n/fr_xa_test.dart` pompe chaque composant de sa liste sous `Locale('fr', 'XA')`,
+sur l'écran de référence 360 × 800 dp, et exige deux choses du même rendu :
+
+- **aucun débordement** — la tolérance de +30 % de longueur exigée par la spec UX §0 ;
+- **tout `Text` porte les marqueurs** — un littéral en dur n'en a pas, et fait rougir le test.
+
+C'est la seule barrière contre les chaînes en dur : il n'y a pas de lint dédié. Un composant
+absent de la liste n'est pas couvert, d'où l'étape 6 ci-dessus.
+
+`fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
+test de `test/app_test.dart` le vérifie.
 
 ## Réseau
 
