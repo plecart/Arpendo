@@ -13,6 +13,7 @@ def test_la_table_du_journal_porte_les_colonnes_du_brief() -> None:
 
     assert "CREATE TABLE domain_event" in table
     assert "id UUID NOT NULL" in table
+    assert "game_id UUID" in table
     assert DomainEvent.__table__.c.game_id.nullable
     assert "type TEXT NOT NULL" in table
     assert "payload JSONB NOT NULL" in table
