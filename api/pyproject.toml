@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Arpendo — couche de services du jeu, servie par l'api HTTP."
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.19.1",
     "asyncpg>=0.31.0",
     "fastapi>=0.141.1",
     "pydantic-settings>=2",
@@ -43,3 +44,13 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.16.4",
 ]
+
+
+[tool.alembic]
+# Sans `alembic.ini` : l'URL de la base vient de `Settings` (cadrage §13.9 règle 5) et le logging
+# est le sujet de #42 — l'ini n'aurait rien porté. `%(here)s` est le dossier de ce fichier :
+# `api/` sur le poste, `/app` dans le conteneur, où les scripts entrent par le `COPY src` du
+# Dockerfile. Même commande partout : `alembic upgrade head`.
+script_location = "%(here)s/src/arpendo_api/db/migrations"
+# Date en tête du nom de fichier : les migrations se lisent dans l'ordre où elles sont nées.
+file_template = "%%(year)d_%%(month).2d_%%(day).2d_%%(rev)s_%%(slug)s"

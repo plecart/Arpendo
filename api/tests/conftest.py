@@ -1,6 +1,9 @@
 from collections.abc import AsyncIterator, Mapping
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
@@ -64,3 +67,22 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Client HTTP branché directement sur l'application, sans réseau ni serveur."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture(scope="session")
+def alembic_config() -> Config:
+    """La configuration d'Alembic — `[tool.alembic]` du `pyproject.toml`, sans `alembic.ini`.
+
+    Chemin absolu : la suite peut être lancée d'ailleurs que depuis `api/`.
+    """
+    return Config(toml_file=str(Path(__file__).resolve().parent.parent / "pyproject.toml"))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def schema(alembic_config: Config) -> None:
+    """Monte le schéma à `head` avant la suite : après `just up`, `just test` se suffit.
+
+    Synchrone, et c'est nécessaire : `env.py` appelle `asyncio.run()`, qui refuse de démarrer
+    dans une boucle déjà en cours — celle qu'un test asynchrone aurait ouverte.
+    """
+    command.upgrade(alembic_config, "head")

@@ -52,6 +52,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - typecheck    : `just typecheck`
 - build        : `just build`
 - run local    : `just up`
+- migrate      : `just migrate`               # `alembic upgrade head` sur la base du `.env`
+- migration    : `just migration MSG`         # autogenerate — fichier à relire avant commit (zone sensible)
 
 > **`just test` exige `just up`** : les tests d'`api/` parlent à un vrai PostgreSQL et à un vrai
 > Valkey. Ils lisent leurs coordonnées dans le `.env` de la racine (`set dotenv-load` du
