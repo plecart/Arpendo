@@ -17,7 +17,7 @@ d'abord, iOS ensuite · **Langue :** français seul au MVP, architecture i18n d�
 1. `documents/reference/01-cadrage.md` — **§19 en premier**, c'est l'instruction de reprise.
 2. `documents/reference/02-specification-ux.md` — la spécification d'interface.
 3. Ce README, section « Ce qui reste ouvert ».
-4. `UBIQUITOUS_LANGUAGE.md` — le vocabulaire du domaine, extrait de ces deux documents.
+4. `UBIQUITOUS_LANGUAGE.md` — le vocabulaire du domaine, extrait du cadrage et de la spec UX.
 
 **Ne rouvre aucune décision du cadrage ni de la spécification UX sans élément nouveau.** Chacune
 porte sa justification ; les rouvrir sans raison coûte plus que ce qu'elle rapporte.
