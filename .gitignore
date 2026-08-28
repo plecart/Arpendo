@@ -69,5 +69,11 @@ doc/api/
 # FVM Version Cache
 .fvm/
 
+# i18n — dérivés de `lib/l10n/app_fr.arb`, régénérés par `just l10n` (appelée par
+# `just install`). L'ARB `fr` est la SEULE source versionnée des textes : commiter la locale
+# `fr-XA` ou les classes générées ouvrirait une seconde source, qui dériverait en silence.
+app/lib/l10n/app_fr_XA.arb
+app/lib/l10n/generated/
+
 # Généré par l'outil Flutter à chaque build, dans les sources Android de l'app
 **/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java

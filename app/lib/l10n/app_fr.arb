@@ -1,0 +1,8 @@
+{
+  "@@locale": "fr",
+
+  "demarrageAccroche": "prends du terrain",
+  "@demarrageAccroche": {
+    "description": "Cité — cadrage §1, ne pas modifier. Accroche de la marque, sous le logotype : écran d'attente de la séquence de démarrage (UX §2.1), Connexion (UX §4), Accueil (UX §5)."
+  }
+}
