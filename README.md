@@ -137,6 +137,7 @@ UX**.
 | 5 | **Le sous-ensemble Phosphor n'est pas embarqué.** Le paquet `phosphor_icons` déclare **six graisses** ; le §1.8 n'en emploie qu'une, et les cinq autres pèsent **2,58 Mo** dans l'AAB — mesurés. Un sous-ensemble embarqué — police ou SVG — les supprimerait et rendrait l'inventaire indépendant du paquet | Post-MVP |
 | 6 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |
 | 7 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
+| 8 | **`uuid6` génère les UUIDv7 de l'api** — un seul point d'appel, `core/journal.py`. Python 3.14 apporte `uuid.uuid7()` : à la mise à jour de `api/.python-version`, remplacer l'appel et retirer la dépendance | Au passage à Python 3.14 |
 
 **Tout le reste est clos.** Cadrage, spécification UX, identité visuelle et retour de maquette ont
 été arbitrés et intégrés. Les journaux §18.1 à §18.5 du cadrage disent ce qui a changé et pourquoi ;
