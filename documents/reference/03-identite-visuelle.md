@@ -414,16 +414,16 @@ d'exclamation, aucune interjection, aucun superlatif. On énonce ce qui est. Qua
 marche pas, on dit **ce qui se passe** puis **ce qu'on peut faire** — jamais l'inverse, et jamais
 d'excuse.
 
-**Trois textes réels de la spécification, réécrits :**
+**Trois textes de la spécification, avant et après la passe de ton du 28 août 2026 (#29) :**
 
-| § | Texte actuel | Réécriture « Relevé » |
+| § | Avant | En vigueur |
 |---|---|---|
-| §2.4, priorité 6 | « Capture en pause — tes déplacements ne comptent plus » | **« Le réseau ne répond plus. Tes pas ne comptent pas pour l'instant. »** |
+| §2.4, priorité 6 | « Capture en pause — tes déplacements ne comptent plus » | **« Coupure de plus de 5 min. Tes pas ne comptent pas pour l'instant. »** — sans nommer de cause : le bandeau vaut pour le réseau absent comme pour le serveur en panne, que le cadrage §10.3 impose de distinguer |
 | §7.4, modale de départ | « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. » | **« Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras pas. »** |
 | §13.1, flux vide | « Rien ne s'est encore passé. Le premier bilan arrive dans 5 minutes. » | **« Rien à relever pour l'instant. Le premier bilan tombe dans 5 minutes. »** |
 
-Les trois obéissent à la règle du §0.3 : la panne s'explique, la perte se constate sans dramatiser,
-l'attente se date.
+Les trois obéissent à la règle du §0.3 : la panne dit sa conséquence, la perte se constate sans
+dramatiser, l'attente se date.
 
 ### 1.8 Ce que cette direction rend impossible ou difficile
 
