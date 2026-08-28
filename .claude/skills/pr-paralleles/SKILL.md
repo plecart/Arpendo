@@ -67,8 +67,8 @@ changement d'état) :
 
 | Issue | PR | Branche | Worktree | Session | État |
 |-------|----|---------|----------|---------|------|
-| #51 | #62 (draft) | feat/extraction-pdf | ../app--51 | à lancer | 🟡 en cours |
-| #52 | #63 (draft) | fix/quota-upload | ../app--52 | à lancer | 🟡 en cours |
+| #51 | #62 (draft) | feat/extraction-pdf | ../app--51 | prompt remis | 🟡 en cours |
+| #52 | #63 (draft) | fix/quota-upload | ../app--52 | prompt remis | 🟡 en cours |
 ```
 
 États : `🟡 en cours` → `🔵 en review` → `🟢 mergée` → `⚪ worktree nettoyé`.
@@ -77,16 +77,32 @@ La colonne **PR** se remplit dès l'Étape 2 de `cycle-pr` : chaque session ouvr
 d'écrire la moindre ligne**. C'est ce qui rend le lot lisible d'un coup d'œil — et détectable par
 `repercussions`.
 
-### 5. Lancer une session par worktree
+### 5. Préparer le prompt de chaque session
 
-Donner à l'utilisateur, pour chaque worktree, la commande exacte à lancer dans un **nouveau
-terminal/onglet** :
+L'utilisateur **ouvre lui-même** ses sessions — application de bureau Claude Code ou extension
+VS Code, sur le dossier du worktree — jamais par une commande `claude` dans un terminal. Le skill
+ne donne donc pas une commande : il donne, pour chaque worktree, **un prompt prêt à coller**, dans
+un bloc de code, précédé d'une seule ligne : « ouvre une session sur `<chemin absolu du
+worktree>` et colle ceci ».
+
+Le prompt, dans cet ordre :
 
 ```
-cd ../<repo>--<numéro-issue> && claude
+/i-have-adhd
+
+Tu travailles dans le worktree `<chemin absolu>` (branche `<branche>`), dédié à l'issue #N.
+Vérifie-le d'abord : `git rev-parse --show-toplevel` doit rendre ce chemin, sinon arrête-toi.
+Charge le skill `task-observer` (session longue ; le journal est hors du worktree, chemin dans
+CLAUDE.md). Lis CLAUDE.md, .claude/pipeline.config.md et ta mémoire de phase.
+
+Réalise le cycle complet de l'issue #N avec /cycle-pr N — brief : commentaire de l'issue.
+<une ligne par point de vigilance propre à cette issue : HITL attendu, fichier partagé avec une
+autre PR du lot et ordre de merge, décision verrouillée à ne pas rouvrir>
 ```
 
-Puis, dans cette session, l'instruction d'amorçage : « implémente l'issue #N en suivant `cycle-pr` ».
+Le prompt commence par `/i-have-adhd` parce que la préférence ne survit pas d'une session à
+l'autre ; la vérification du chemin existe parce qu'un prompt collé dans la mauvaise session
+travaillerait sur `main` ou sur le worktree d'une autre issue, sans rien signaler.
 
 Chaque session est **indépendante** : elle déroule le briefing pré-PR, **ouvre sa PR draft**, puis
 le cycle de commit, l'auto-review, et sort du draft en fin de parcours. Les worktrees partageant le
