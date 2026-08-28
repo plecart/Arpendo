@@ -303,7 +303,6 @@ journal des changements du cadrage. Aucune issue ouverte ne cite ces phrases —
 « graisse », « type-headline », « type-label », « gras franc » : zéro. Le code n'est pas touché :
 il a toujours suivi le tableau.
 
-
 ---
 
 ## 18.5 Passe de ton des 27 et 28 août 2026 — les textes de l'interface
@@ -331,8 +330,8 @@ du « tout ou rien » :
    un joueur masculin ; l'app ne connaît pas le genre et les clés ARB de #38 figeront la forme.
    Les deux sont reformulés sans participe accordé.
 4. **Les libellés d'action, les valeurs, les formats et les noms ne bougent pas** — ils n'ont pas
-   de registre. Deux exceptions, pour interjection : « Oui, c'est mon pseudo » et « C'est bon, tu
-   peux la reprendre ».
+   de registre. Un seul libellé change, pour son interjection : « Oui, c'est mon pseudo » ; le
+   message « C'est bon, tu peux la reprendre » perd la sienne pour la même raison.
 
 **Intouchés par consigne** : « Ta progression s'arrêtera si ton téléphone redémarre » (cadrage
 §9.2), « aucune capture pour l'instant » (cadrage §7.5), « dernière capture il y a 2 h » (idem) et
@@ -343,8 +342,8 @@ l'avertissement de sécurité du §6.
 | Écart | Traitement |
 |---|---|
 | L'encadré §0 affirmait que l'avertissement du §6 « reprend le cadrage §16 littéralement ». Le §16 du cadrage n'écrit aucun texte — il exige « avertissement de sécurité à l'onboarding + clause CGU » | Le texte reste intouché comme demandé ; la phrase du §6 devient « Le §16 du cadrage exige cet avertissement sans en écrire le texte ; il est arrêté ici » |
-| La réécriture fixée par l'identité §1.7 pour la priorité 6 — « **Le réseau** ne répond plus. » — nomme une cause sur un bandeau qui vaut « quelle qu'en soit la cause », et recrée le piège que le cadrage §10.3 interdit : un serveur en panne lu comme une 4G défaillante, donc une app relancée et un service tué | Rang 1 l'emporte : « Coupure depuis plus de 5 min. Tes pas ne comptent pas pour l'instant. » — l'identité §1.7 est alignée |
-| Le cadrage (rang 1) porte lui-même huit des textes à réécrire — §4.3, §4.4, §9.3, §10.1, §10.3 — alors que l'encadré n'en identifiait que deux comme « cités du cadrage ». L'encadré et l'identité prescrivent explicitement la réécriture de deux d'entre eux | **Arrêt `decisions-vs-doc`, tranché par le porteur le 28 août 2026 : la décision gagne.** Le cadrage est amendé à la source — §4.3, §4.4, §9.3, §10.1, §10.3, journal §18.5, reprise §19 — et les neuf textes concernés sont réécrits ci-dessous (marqués « cadrage amendé »). L'alternative, garder ces huit textes en registre « annonce », aurait laissé en l'état les mauvaises nouvelles les plus visibles du jeu — celles pour lesquelles la règle de ton existe |
+| La réécriture fixée par l'identité §1.7 pour la priorité 6 — « **Le réseau** ne répond plus. » — nomme une cause sur un bandeau qui vaut « quelle qu'en soit la cause », et recrée le piège que le cadrage §10.3 interdit : un serveur en panne lu comme une 4G défaillante, donc une app relancée et un service tué | Rang 1 l'emporte : « Coupure de plus de 5 min. Tes pas ne comptent pas pour l'instant. » (+25 %) — sans cause nommée, et juste dans la durée puisque le bandeau persiste tant que la coupure dure ; l'identité §1.7 est alignée |
+| Le cadrage (rang 1) porte lui-même huit textes de l'interface — §4.3, §4.4, §9.3, §10.1, §10.3 — alors que l'encadré n'en identifiait que deux comme « cités du cadrage ». L'encadré et l'identité prescrivent explicitement la réécriture de deux d'entre eux | **Arrêt `decisions-vs-doc`, tranché par le porteur le 28 août 2026 : la décision gagne.** Sept des huit sont réécrits (« Connexion instable » reste) et le cadrage est amendé à la source — §4.3, §4.4, §9.3, §10.1, §10.3, journal §18.5, reprise §19 ; les sept lignes correspondantes sont marquées « cadrage amendé » ci-dessous, et deux autres en découlent (la notification « serveur », le corps 2 de la modale de départ). L'alternative, garder ces textes en registre « annonce », aurait laissé en l'état les mauvaises nouvelles les plus visibles du jeu — celles pour lesquelles la règle de ton existe |
 | Le corps 1 de la modale de départ (§7.4), une fois réécrit, dit déjà « redeviennent libres » ; le corps 2 le répétait | Le corps 2 ne garde que la possibilité de revenir |
 
 **Inventaire.** 171 chaînes entre « » relues : 138 inchangées, 33 réécrites, aucune au-delà de +28 %.
@@ -360,7 +359,7 @@ l'avertissement de sécurité du §6.
 | §2.4 p3 | « Tu es toujours dans la partie. Autorise la localisation pour reprendre la capture. » | *inchangé* |  | explique déjà |
 | §2.4 p4 | « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | « Le serveur ne répond pas. Garde l'application ouverte, la reprise est automatique. » | -15 % | nomme la cause et garde l'instruction du cadrage §10.3 (ne pas fermer l'app) — cadrage amendé |
 | §2.4 p5 | « Pas de connexion — capture en pause » | « Pas de réseau. La reprise est automatique. » | +20 % | cause ; pendant les 5 premières minutes les positions sont gardées (cadrage §10.1) — cadrage amendé |
-| §2.4 p6 | « Capture en pause — tes déplacements ne comptent plus » | « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » | +17 % | réécriture de l'identité §1.7, sans nommer de cause (cadrage §10.3) — cadrage amendé |
+| §2.4 p6 | « Capture en pause — tes déplacements ne comptent plus » | « Coupure de plus de 5 min. Tes pas ne comptent pas pour l'instant. » | +25 % | réécriture de l'identité §1.7, sans nommer de cause (cadrage §10.3) — cadrage amendé |
 | §2.4 p7 | « Trop rapide — capture en pause » | « Trop vite : tes pas ne comptent pas. » | +20 % | cause puis conséquence, même conséquence que la priorité 6 — cadrage amendé |
 | §2.4 p8 | « Cette tuile est à Alice. » | *inchangé* |  | explique déjà (cadrage §18.4) |
 | §2.4 p8 | « Tu pourras la reprendre dans 1 min 12 s. » | *inchangé* |  | explique déjà ; le futur date un moment à venir (cadrage §18.4) |
@@ -466,7 +465,7 @@ l'avertissement de sécurité du §6.
 | §7.4 | « Donne ce code à tes amis pour qu'ils rejoignent la partie. » | *inchangé* |  | explique déjà |
 | §7.4 | « Le code reste valide pendant toute la partie. » | *inchangé* |  | information plate |
 | §7.4 | « Code copié » | *inchangé* |  | accusé de réception |
-| §7.4 | « Rejoins ma partie sur Arpendo, le code est K7MQ4P. / Arpendo, c'est un jeu de territoire : tu colores les hexagones où tu marches. / https://play.google.com/… » | *inchangé* |  | message de partage : sans emoji, factuel |
+| §7.4 | « Rejoins ma partie sur Arpendo, le code est K7MQ4P. / Arpendo, c'est un jeu de territoire : tu colores les hexagones où tu marches. / https://play.google.com/… » | *inchangé* |  | message de partage, cité en abrégé (trois lignes, §7.4) : sans emoji, factuel |
 | §7.4 | « Impossible de charger le code. » | « Le code n'est pas arrivé. » | -17 % | forme commune des échecs de chargement |
 | §7.4 | « Quitter définitivement ? » | *inchangé* |  | titre |
 | §7.4 | « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. » | « Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras pas. » | +16 % | réécriture fixée par l'identité §1.7 — cadrage amendé |

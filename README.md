@@ -139,7 +139,7 @@ UX**.
 | 8 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
 
 **Tout le reste est clos.** Cadrage, spécification UX, identité visuelle et retour de maquette ont
-été arbitrés et intégrés. Les journaux §18.1 à §18.4 du cadrage disent ce qui a changé et pourquoi ;
+été arbitrés et intégrés. Les journaux §18.1 à §18.5 du cadrage disent ce qui a changé et pourquoi ;
 ils existent pour éviter qu'une décision close soit rouverte sans élément nouveau.
 
 ---

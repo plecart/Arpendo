@@ -165,8 +165,8 @@ ni déconnecté : il traverse sans prendre de tuiles.
   son siège. Il ne s'agit pas de policer les modes de déplacement. Descendre le seuil créerait
   surtout des faux positifs pénibles (cycliste en descente, joggeur au GPS qui dérive).
 
-**Retour visible au joueur — ajouté le 12 août 2026.** Pendant le dépassement, le client affiche
-**« Trop vite : tes pas ne comptent pas. »**, via le **composant de bandeau unique** de §9.3.
+**Retour visible au joueur — ajouté le 12 août 2026.** Pendant le dépassement, le client affiche,
+via le **composant de bandeau unique** de §9.3 : **« Trop vite : tes pas ne comptent pas. »**
 
 - **Motif :** c'est exactement le raisonnement qui a justifié le compte à rebours du verrou de vol
   en §4.2 — *« sans lui, marcher sur une tuile adverse sans rien obtenir passera pour un bug »*.
@@ -679,7 +679,7 @@ souterrain, zone blanche), **pas** permettre des heures de jeu hors ligne déver
 | Phase | Ce qui se passe | Affichage |
 |---|---|---|
 | **0 à 5 min** | Capture optimiste maintenue, positions empilées localement | Bandeau discret : « Connexion instable » |
-| **Au-delà de 5 min** | Capture arrêtée, file locale purgée, carte **navigable** mais couche de jeu à **60 % d'opacité** | Bandeau persistant : « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » |
+| **Au-delà de 5 min** | Capture arrêtée, file locale purgée, carte **navigable** mais couche de jeu à **60 % d'opacité** | Bandeau persistant : « Coupure de plus de 5 min. Tes pas ne comptent pas pour l'instant. » |
 | **Après ~30 s de plus** | Idem, tentatives espacées | Même bandeau + bouton « Réessayer » |
 
 **Au retour du réseau :** reprise **silencieuse**. Le bandeau disparaît, les couleurs reviennent,
@@ -1749,7 +1749,7 @@ manquante. Elle a été arbitrée et répercutée ici. **Le reste du cadrage n'a
 | §10.3 : « la notification permanente devient le canal d'alerte » | **Conditionné.** Sans la permission, ce canal n'existe pas et le message au retour au premier plan devient le seul recours — il n'est donc jamais optionnel |
 | §14.2 : trois notifications push au MVP | **Inchangées, mais non garanties.** Le tableau des scores doit s'ouvrir de lui-même à la réouverture de l'app, sans dépendre d'un tap sur une notification |
 | §5.2 : « passer à 50 joueurs sans migration **ni changement de rendu** » | **Corrigé.** Sans migration de **données**, oui ; le rendu ajoute un **second calque de motif** (`fill-pattern` ignore `fill-color`) et 5 images monochromes. Recette écrite d'avance, rien livré au MVP. Coût aujourd'hui : nul. La décision produit — `color_id` × `pattern_id` — est confirmée et renforcée : aucune palette de 10 couleurs n'est lisible en niveaux de gris, les motifs sont nécessaires |
-| §4.3 : plafond de 50 km/h **sans aucun retour visuel** | **Comblé.** Le client affiche « Trop rapide — capture en pause » via le composant de bandeau unique, sur un **drapeau envoyé par le serveur** — le calcul reste intégralement serveur. Même besoin et même composant que le compte à rebours du verrou de vol (§4.2) : expliquer une action sans effet. Coût : un booléen dans la réponse aux lots de positions |
+| §4.3 : plafond de 50 km/h **sans aucun retour visuel** | **Comblé.** Le client affiche « Trop vite : tes pas ne comptent pas. » (formulation révisée le 28 août 2026, §18.5) via le composant de bandeau unique, sur un **drapeau envoyé par le serveur** — le calcul reste intégralement serveur. Même besoin et même composant que le compte à rebours du verrou de vol (§4.2) : expliquer une action sans effet. Coût : un booléen dans la réponse aux lots de positions |
 
 **Aucun point de la phase UX ne reste ouvert.** Les trois écarts relevés ont été arbitrés le
 12 août 2026 et sont intégrés ci-dessus.
@@ -1831,7 +1831,7 @@ voit le joueur. Le raisonnement et la table complète sont dans
 | §4.3 : « Trop rapide — capture en pause » | « Trop vite : tes pas ne comptent pas. » |
 | §4.4 : « Tu perds tes 1 247 hexagones et tes 124 700 points. Cette action est irréversible. » | « Tu laisses 1 247 hexagones derrière toi. Ils redeviennent libres, et tu ne les récupéreras pas. » — le décompte reste affiché ; les points, qui n'en sont que le centuple, ne sont plus répétés |
 | §9.3 : « Tu ne seras pas prévenu si la capture s'arrête. » | « Arpendo ne peut pas t'avertir si la capture s'arrête. » — plus de forme genrée |
-| §10.1 : « Capture en pause — tes déplacements ne comptent plus » | « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » — sans nommer de cause, puisque ce bandeau vaut pour le réseau absent comme pour le serveur en panne (§10.3) |
+| §10.1 : « Capture en pause — tes déplacements ne comptent plus » | « Coupure de plus de 5 min. Tes pas ne comptent pas pour l'instant. » — sans nommer de cause, puisque ce bandeau vaut pour le réseau absent comme pour le serveur en panne (§10.3) |
 | §10.3 : « Capture en pause — hors ligne » (notification) | « Hors ligne : tes pas ne comptent pas. » |
 | §10.3 : « Pas de connexion — capture en pause » / « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | « Pas de réseau. La reprise est automatique. » / « Le serveur ne répond pas. Garde l'application ouverte, la reprise est automatique. » — le second décourage toujours de fermer l'app |
 | §18.4 et §19 : la passe de ton « reste ouverte » | **Faite.** Aucun point de conception ouvert |

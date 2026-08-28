@@ -409,7 +409,8 @@ participants, flux, invitation, scores, confirmations — s'ouvre **par-dessus**
 **Pendant les étapes 2 à 3**, l'écran affiché est un **écran d'attente neutre** : logo, accroche
 « prends du terrain », et un indicateur de progression indéterminé après **600 ms** seulement —
 en dessous, l'indicateur clignote et donne une impression de lenteur là où il n'y en a pas.
-En cas d'échec réseau à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer ».
+Si le serveur ne répond pas à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer » (réseau
+absent : bandeau priorité 5).
 Ne jamais router vers le Menu par défaut : un joueur dont la partie est en cours verrait
 « Créer une partie » et croirait sa partie perdue.
 
@@ -494,7 +495,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 3 | Permission retirée **en cours de partie** | bloquant | « Tu es toujours dans la partie. Autorise la localisation pour reprendre la capture. » | « Réglages » |
 | 4 | Serveur injoignable, réseau présent, **coupure < 5 min** | avertissement | « Le serveur ne répond pas. Garde l'application ouverte, la reprise est automatique. » | — |
 | 5 | Réseau absent, **coupure < 5 min** | avertissement | « Pas de réseau. La reprise est automatique. » | — |
-| 6 | Coupure **≥ 5 min**, quelle qu'en soit la cause | avertissement | « Coupure depuis 5 min. Tes pas ne comptent pas pour l'instant. » | « Réessayer » *(après ~30 s de plus)* |
+| 6 | Coupure **≥ 5 min**, quelle qu'en soit la cause | avertissement | « Coupure de plus de 5 min. Tes pas ne comptent pas pour l'instant. » | « Réessayer » *(après ~30 s de plus)* |
 | 7 | Vitesse au-dessus du plafond | avertissement | « Trop vite : tes pas ne comptent pas. » | — |
 | 8 | Verrou de vol actif, vol tenté | info | *« Cette tuile est à Alice. »* + *« Tu pourras la reprendre dans 1 min 12 s. »* | — |
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
@@ -2209,8 +2210,8 @@ succès : le retour de la carte **est** le message.
 3. **Arrière-plan** — **jamais dans la même séquence.** Demandée quand le joueur revient dans l'app
    après une première session de jeu, avec l'amorce « Avec cette autorisation, la capture reprend
    toute seule après un redémarrage de ton téléphone. » Enchaîner trois demandes système à
-   l'inscription maximise les
-   refus, et le refus de la localisation d'arrière-plan est définitif au second essai.
+   l'inscription maximise les refus, et le refus de la localisation d'arrière-plan est définitif au
+   second essai.
 4. **Exemption d'optimisation de batterie** — proposée depuis la ligne « Permissions » et dans le
    bandeau de niveau 2, jamais en interruption. C'est un réglage constructeur, pas une permission
    Android standard.
