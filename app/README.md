@@ -173,6 +173,29 @@ composant ne se teste pas de cette façon.
 
 `fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
 test de `test/app_test.dart` le vérifie.
+## Icône de lancement
+
+`documents/assets/icone-app.svg` est la **source unique** de l'icône (identité visuelle §1.5,
+variante A″2). Android la reçoit en adaptive icon — `res/mipmap-anydpi-v26/ic_launcher.xml`
+déclare le fond, le premier plan et le calque monochrome — transcrite **à la main** dans
+`res/drawable/ic_launcher_foreground.xml` et `res/values/ic_launcher_background.xml`. Aucun
+script, aucun rasteriseur, aucun PNG : `minSdk` vaut 26 (Android 8.0, cadrage §1) pour que
+l'adaptive icon soit la seule ressource d'icône.
+
+| Dans le SVG | Dans les ressources Android |
+|---|---|
+| `<rect fill>` | `<color name="ic_launcher_background">` |
+| `<path d>` | `<path android:pathData>` — chaîne recopiée caractère pour caractère |
+| `<circle cx cy r>` | `<path>` de deux arcs `A r r 0 1 0 …` de même centre et rayon, seule transcription admise |
+| `opacity` d'un trait | `android:strokeAlpha` |
+
+Le `<group>` qui enveloppe les trois tracés ne vient pas du SVG : il réduit le signe dans la zone
+sûre du masque (66/108, échelle 0,85 autour du centre) et porte le décalage de 2 % vers le haut
+que demande le §1.5 (`translateY = -2.16`). Le calque `<monochrome>` réutilise le premier plan : il
+est déjà d'une seule couleur, et Android ne teinte que par son alpha.
+
+**Une retouche du SVG se recopie ici**, attribut par attribut ; le drawable ne se retouche jamais
+seul. L'icône 512 × 512 de la fiche Play s'exporte du même SVG.
 
 ## Réseau
 

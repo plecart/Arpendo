@@ -25,6 +25,8 @@ position périme à la première édition du document.
 
 ## Stack
 - langages : Dart, Python
+- cible mobile : **Android 8.0 (API 26) minimum** — `minSdk = 26` dans `app/android/app/build.gradle.kts`
+  (cadrage §1) ; iOS en phase 2
 - frameworks : Flutter + `mapbox_maps_flutter` v11.27, Tracelet (géoloc arrière-plan) ; FastAPI +
   Pydantic ; Caddy, Valkey, PostgreSQL, Docker Compose
 - gestionnaire de paquets : `uv` (Python), `pub` (Dart)

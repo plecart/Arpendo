@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "com.arpendo.game"
-        minSdk = flutter.minSdkVersion
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
