@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'l10n/generated/app_localizations.dart';
 import 'ui/core/theme/theme.dart';
 
 void main() {
@@ -21,6 +22,13 @@ class ArpendoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // La liste générée porte déjà les trois délégués `Global*Localizations`
+      // du SDK, en plus de celui des textes de l'app.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      // Une seule locale livrée (cadrage §12.6). `fr-XA`, générée à côté pour
+      // la vérification de longueur, est une locale de test : les tests la
+      // pompent, l'application ne l'offre jamais.
+      supportedLocales: const [Locale('fr')],
       theme: themeArpendo(Brightness.light),
       darkTheme: themeArpendo(Brightness.dark),
       themeMode: ThemeMode.system,

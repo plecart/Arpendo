@@ -1,0 +1,18 @@
+# Configuration de `flutter gen-l10n` — lue par la recette `just l10n`, jamais appelée à la main.
+#
+# `app_fr.arb` est la seule source versionnée ; `app_fr_XA.arb` est dérivée par
+# `tool/allonger_arb.dart` juste avant la génération, et la sortie de `gen-l10n` est ignorée par
+# git. Le paquet synthétique n'existe plus depuis Flutter 3.35 (`--synthetic-package` est déclaré
+# DEPRECATED et refuse d'être activé) : la classe est écrite dans `lib/`, et s'importe par un
+# chemin de paquet ordinaire.
+arb-dir: lib/l10n
+template-arb-file: app_fr.arb
+output-dir: lib/l10n/generated
+output-localization-file: app_localizations.dart
+
+# `AppLocalizations.of(context)` rend une valeur non nulle : aucun `!` aux points d'usage.
+nullable-getter: false
+
+# `just fmt-check-app` passe `dart format` sur tout `app/`, la sortie de `gen-l10n` comprise.
+# Sans ce drapeau, la vérification de format échouerait sur du code que personne n'écrit.
+format: true

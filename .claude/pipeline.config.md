@@ -42,6 +42,7 @@ position périme à la première édition du document.
 Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape absente du projet.
 Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est modifier le justfile**.
 - install      : `just install`
+- textes app   : `just l10n`                 # dérive `fr-XA` puis génère `AppLocalizations`
 - test         : `just test`                  # suite complète
 - test ciblé api : `just test-one <chemin|motif>`     # une seule cible, pour la boucle TDD
 - test ciblé app : `just test-one-app <chemin>`       # chemin relatif à `app/`

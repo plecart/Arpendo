@@ -10,7 +10,14 @@ dependencies:
   connectivity_plus: ^7.3.1
   flutter:
     sdk: flutter
+  # Délégués `Global*Localizations` du SDK, montés par la classe générée depuis
+  # `lib/l10n/app_fr.arb` (cadrage §12.6 : aucune chaîne en dur).
+  flutter_localizations:
+    sdk: flutter
   http: ^1.6.0
+  # Exigée par le code que `gen-l10n` produit. La contrainte est laissée au SDK,
+  # qui épingle la version que sa propre génération attend.
+  intl: any
   # Jeu d'icônes unique de l'interface, graisse Regular (spec UX §1.8). Seul
   # `lib/ui/core/theme/icones.dart` l'importe.
   phosphor_icons: ^3.0.1
@@ -26,3 +33,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Exigé par `flutter gen-l10n` : sans ce drapeau, l'outil refuse d'écrire la
+  # classe. Il ne suffit pas pour autant — c'est `just l10n` qui dérive d'abord
+  # la locale `fr-XA`, que la génération seule ignorerait.
+  generate: true
