@@ -31,6 +31,12 @@ def test_un_seul_index_ordonne_par_partie_puis_dans_le_temps() -> None:
 
 
 def test_l_identifiant_par_defaut_est_un_uuid_v7() -> None:
+    """Le câblage du défaut est vérifié sans insérer : SQLAlchemy ne l'applique qu'à l'insertion.
+
+    `ColumnDefault.arg` est la fabrique telle que la colonne l'a reçue ; on l'appelle avec le
+    contexte d'exécution que SQLAlchemy lui passerait — `None` suffit, `uuid6.uuid7` l'ignore.
+    Tester `uuid6.uuid7()` directement prouverait la bibliothèque, pas le câblage.
+    """
     default = DomainEvent.__table__.c.id.default
     assert default is not None
 

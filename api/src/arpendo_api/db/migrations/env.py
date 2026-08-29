@@ -40,6 +40,16 @@ def _run_migrations(connection: Connection) -> None:
 
 
 async def _run_async(engine: AsyncEngine) -> None:
+    """Ouvre une connexion, y joue les migrations, et libère le moteur quoi qu'il arrive.
+
+    Le moteur naît et meurt avec la commande : une migration est un processus court, il n'y a
+    pas de pool à garder chaud. Le ``finally`` couvre l'échec d'une migration comme celui de la
+    connexion elle-même — sans lui, un ``upgrade`` rouge laisserait des connexions ouvertes
+    jusqu'à la fin du processus.
+
+    Args:
+        engine: le moteur async de l'application, construit depuis ``Settings``.
+    """
     try:
         async with engine.connect() as connection:
             await connection.run_sync(_run_migrations)

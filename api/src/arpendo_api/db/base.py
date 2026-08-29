@@ -20,8 +20,8 @@ Les contraintes et index sont **nommés par convention** — ``pk_<table>``, ``f
 <table visée>``, ``uq_…``, ``ck_…``, ``ix_<table>_<colonnes>``. Sans nom déterministe, PostgreSQL en
 invente un, et une migration de descente ne sait pas quoi retirer.
 
-Ajouter un modèle, c'est hériter de ``Base`` et annoter ; ajouter une convention, c'est une entrée
-dans l'une des deux tables ci-dessous.
+Ajouter un modèle, c'est hériter de ``Base`` et annoter ; ajouter une convention, c'est une
+entrée dans l'un des deux dictionnaires de la classe ci-dessous.
 """
 
 from datetime import datetime
