@@ -1,1 +1,1 @@
-"""Persistance — tout ce qui touche PostgreSQL : moteur, base déclarative, puis sessions."""
+"""Persistance — tout ce qui touche PostgreSQL : moteur, base déclarative, sessions."""

@@ -9,6 +9,7 @@ from arpendo_api.core import health
 from arpendo_api.core.settings import Settings
 from arpendo_api.core.valkey import create_valkey
 from arpendo_api.db.engine import create_engine
+from arpendo_api.db.session import create_sessionmaker
 
 
 @asynccontextmanager
@@ -28,12 +29,15 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     la troisième ressource.
 
     Ajouter une ressource, c'est donc deux lignes — la créer, l'empiler — au bon rang : l'ordre de
-    création est celui des dépendances, l'ordre de libération s'en déduit.
+    création est celui des dépendances, l'ordre de libération s'en déduit. Une *fabrique*, elle,
+    ne s'empile pas : la fabrique de sessions ne détient rien à fermer, c'est le moteur qu'elle
+    référence qui est libéré.
     """
     settings: Settings = app.state.settings
     async with AsyncExitStack() as resources:
         app.state.engine = create_engine(settings)
         resources.push_async_callback(app.state.engine.dispose)
+        app.state.sessionmaker = create_sessionmaker(app.state.engine)
         app.state.valkey = create_valkey(settings)
         resources.push_async_callback(app.state.valkey.aclose)
         yield
