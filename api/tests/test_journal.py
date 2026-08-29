@@ -1,11 +1,14 @@
 """Le journal d'événements de domaine (cadrage §12.6) : la table `domain_event`."""
 
 import uuid
+from typing import ClassVar
 
+import pytest
 from conftest import ddl
+from pydantic import ValidationError
 from sqlalchemy.schema import CreateIndex, CreateTable
 
-from arpendo_api.core.journal import DomainEvent
+from arpendo_api.core.journal import EVENTS, DomainEvent, Event
 
 
 def test_la_table_du_journal_porte_les_colonnes_du_brief() -> None:
@@ -44,3 +47,54 @@ def test_l_identifiant_par_defaut_est_un_uuid_v7() -> None:
 
     assert isinstance(identifiant, uuid.UUID)
     assert identifiant.version == 7
+
+
+class Capture(Event):
+    """Un type d'événement de test — #44 n'en livre aucun de métier.
+
+    Les identifiants de type sont préfixés `test.` dans toute la suite : le registre est un
+    dictionnaire de module, donc partagé par tous les tests, et un identifiant qui ressemblerait à
+    un type de production laisserait croire qu'il en existe un.
+    """
+
+    type: ClassVar[str] = "test.captured"
+
+    hexagones: int
+
+
+def test_une_sous_classe_s_inscrit_au_registre_sous_son_identifiant_de_type() -> None:
+    """Déclarer la classe suffit : rien à inscrire à la main, donc rien à oublier d'inscrire."""
+    assert EVENTS["test.captured"] is Capture
+
+
+def test_un_identifiant_de_type_deja_inscrit_leve_a_la_declaration() -> None:
+    """Sans cette garde, la seconde classe remplacerait la première en silence.
+
+    L'erreur se paie alors très loin de sa cause : un abonné décode un message dans la mauvaise
+    classe, des semaines après le copier-coller qui a dupliqué l'identifiant.
+    """
+    with pytest.raises(ValueError, match="test.captured"):
+
+        class Doublon(Event):  # noqa: F841 — la déclaration EST le comportement éprouvé
+            type: ClassVar[str] = "test.captured"
+
+
+def test_un_evenement_neuf_n_a_ni_partie_ni_identifiant_ni_horodatage() -> None:
+    """Les trois champs que la publication remplit sont vides tant qu'elle n'a pas eu lieu.
+
+    Ils ne sont pas facultatifs par commodité : leur absence *dit* que l'événement n'est pas encore
+    dans le journal, et leur présence qu'il y est, avec l'`id` qui servira de `Last-Event-ID`.
+    """
+    evenement = Capture(hexagones=3)
+
+    assert (evenement.game_id, evenement.id, evenement.occurred_at) == (None, None, None)
+
+
+def test_une_cle_inconnue_est_refusee_au_decodage() -> None:
+    """Le fil est une frontière, même entre deux processus à nous.
+
+    Sans `extra="forbid"`, pydantic **jette la clé en silence** — mesuré : le décodage réussit et
+    l'écart entre ce qui a été publié et ce qui a été reçu ne se voit nulle part.
+    """
+    with pytest.raises(ValidationError):
+        Capture.model_validate({"hexagones": 3, "inconnue": 1})

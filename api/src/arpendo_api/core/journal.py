@@ -1,15 +1,19 @@
 """Le journal d'événements de domaine — la table ``domain_event`` (cadrage §12.6).
 
 Tout ce qui arrive dans une partie s'y écrit, structuré : c'est la source de l'audit, du
-débogage et du flux d'activité (§11). Ce module ne porte que le **modèle** ; la publication, le
-typage des événements et leur consommation par le worker viennent avec le bus (#44).
+débogage et du flux d'activité (§11).
+
+Le module porte **la ligne et le type** : ``DomainEvent`` est ce qu'on écrit en base, ``Event`` ce
+qu'on publie, et ``EVENTS`` le registre qui rend à un message reçu la classe qui l'a produit. Il
+ignore tout du transport — c'est ``core.bus`` qui persiste et publie.
 """
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 import uuid6
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Index, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -27,8 +31,9 @@ class DomainEvent(Base):
             transparente pour SQLAlchemy et asyncpg, mais le type concret changera à cette
             bascule.
         game_id: la partie concernée, absente pour un événement hors partie.
-        type: nature de l'événement, texte libre — énumération ouverte, typée en Python par #44,
-            jamais un ``ENUM`` SQL, qui ferait une migration de chaque nouveau type.
+        type: nature de l'événement — l'identifiant que déclare la sous-classe d'``Event``.
+            Énumération ouverte, jamais un ``ENUM`` SQL, qui ferait une migration de chaque
+            nouveau type ; c'est le registre, côté Python, qui la ferme à la lecture.
         payload: la charge utile, propre à chaque type.
         occurred_at: horodatage avec fuseau, posé par la base (``now()``) sauf si l'appelant en
             fournit un — un événement rejoué garde sa date d'origine.
@@ -46,3 +51,62 @@ class DomainEvent(Base):
     type: Mapped[str]
     payload: Mapped[dict[str, Any]]
     occurred_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+EVENTS: dict[str, type["Event"]] = {}
+"""Les types d'événements du domaine, sous l'identifiant qui les désigne sur le fil.
+
+**Déclarer une sous-classe d'``Event``, c'est ajouter une entrée ici** — l'inscription est faite
+par ``__init_subclass__``, donc aucun type ne peut exister sans être décodable, et aucune liste
+centrale n'est à tenir à jour. C'est ce dictionnaire que le bus interroge pour rendre à un message
+la classe qui l'a produit.
+"""
+
+
+class Event(BaseModel):
+    """Un événement de domaine, typé — ce qu'on publie, par opposition à la ligne qu'on journalise.
+
+    Une sous-classe déclare son identifiant de type et ses champs propres ::
+
+        class TileCaptured(Event):
+            type: ClassVar[str] = "tile.captured"
+
+            tile: int
+
+    #44 ne livre **aucun type métier** : le premier vient avec le domaine Partie.
+
+    Attributs :
+        type: l'identifiant du type, **déclaré dans le corps de la sous-classe**. En anglais,
+            pointé, ``entité.participe`` : c'est un identifiant technique, stocké tel quel dans la
+            colonne ``type`` du journal, donc soumis à la même règle que les noms de tables.
+        game_id: la partie concernée. Absent, l'événement est journalisé et **jamais publié** — il
+            n'a pas de canal.
+        id: l'identifiant de la ligne, ``None`` tant que l'événement n'est pas publié. C'est
+            l'UUIDv7 du journal, donc le futur ``Last-Event-ID`` de la SSE (§13.3).
+        occurred_at: l'horodatage de la ligne, ``None`` tant que l'événement n'est pas publié.
+
+    ``extra="forbid"`` : à la réception, une clé que la classe ne connaît pas fait échouer le
+    décodage au lieu d'être jetée en silence. Le fil est une frontière, même entre nos propres
+    processus.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    type: ClassVar[str]
+
+    game_id: uuid.UUID | None = None
+    id: uuid.UUID | None = None
+    occurred_at: datetime | None = None
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Inscrit la sous-classe au registre, sous l'identifiant qu'elle déclare.
+
+        Raises:
+            ValueError: si l'identifiant est déjà pris. Deux classes sous le même identifiant, et
+                la seconde remplacerait la première en silence : les abonnés décoderaient alors
+                dans la mauvaise classe, longtemps après le copier-coller qui en est la cause.
+        """
+        super().__init_subclass__(**kwargs)
+        if cls.type in EVENTS:
+            raise ValueError(f"identifiant de type déjà inscrit : {cls.type}")
+        EVENTS[cls.type] = cls
