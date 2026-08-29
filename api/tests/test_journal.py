@@ -4,7 +4,7 @@ import uuid
 from typing import ClassVar
 
 import pytest
-from conftest import ddl
+from conftest import Capture, ddl
 from pydantic import ValidationError
 from sqlalchemy.schema import CreateIndex, CreateTable
 
@@ -47,19 +47,6 @@ def test_l_identifiant_par_defaut_est_un_uuid_v7() -> None:
 
     assert isinstance(identifiant, uuid.UUID)
     assert identifiant.version == 7
-
-
-class Capture(Event):
-    """Un type d'événement de test — #44 n'en livre aucun de métier.
-
-    Les identifiants de type sont préfixés `test.` dans toute la suite : le registre est un
-    dictionnaire de module, donc partagé par tous les tests, et un identifiant qui ressemblerait à
-    un type de production laisserait croire qu'il en existe un.
-    """
-
-    type: ClassVar[str] = "test.captured"
-
-    hexagones: int
 
 
 def test_une_sous_classe_s_inscrit_au_registre_sous_son_identifiant_de_type() -> None:
