@@ -1,6 +1,7 @@
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/allonger_arb.dart' show marqueurDebut, marqueurFin;
@@ -14,6 +15,11 @@ Widget accroche(BuildContext context) =>
 /// **Toute issue qui ajoute un composant portant du texte l'ajoute ici.** La
 /// liste est le seul endroit à tenir : le test qui la parcourt, lui, ne bouge
 /// pas, et couvre le nouveau composant sans une ligne de plus.
+///
+/// Deux angles morts connus, faute d'un cas réel qui les justifie : un texte
+/// coupé par un `ClipRect` ou un `OverflowBox` parent — le paragraphe, lui,
+/// n'est pas tronqué — et un littéral dans un `SelectableText`, qui construit
+/// un `EditableText` et non un `RichText`. Aucun des deux n'existe dans `lib/`.
 final composants = <String, WidgetBuilder>{"l'accroche de la marque": accroche};
 
 /// Écran de référence de conception (spec UX §0) : le cas le plus contraint.
@@ -40,7 +46,7 @@ void main() {
   });
 
   for (final MapEntry(key: nom, value: constructeur) in composants.entries) {
-    testWidgets("$nom : tout son texte vient de l'ARB, sans déborder", (
+    testWidgets("$nom : son texte vient de l'ARB, sans déborder ni couper", (
       tester,
     ) async {
       tester.view.physicalSize = ecranDeReference;
@@ -51,21 +57,31 @@ void main() {
         sousLocale(const Locale('fr', 'XA'), constructeur),
       );
 
-      final textes = tester
-          .widgetList<Text>(find.byType(Text))
-          .map((t) => t.data);
+      // Tout texte rendu passe par un `RichText`, `Text` comme `Text.rich` :
+      // c'est le seul point de passage qui les voie tous, et son objet de
+      // rendu porte à la fois le texte à plat et l'indicateur de troncature.
+      final paragraphes = tester.renderObjectList<RenderParagraph>(
+        find.byType(RichText),
+      );
       expect(
-        textes,
+        paragraphes,
         isNotEmpty,
         reason: 'un composant qui ne rend aucun texte ne prouve rien',
       );
-      for (final texte in textes) {
+      for (final paragraphe in paragraphes) {
         expect(
-          texte,
+          paragraphe.text.toPlainText(),
           allOf(startsWith(marqueurDebut), endsWith(marqueurFin)),
           reason:
               "chaîne en dur : seule une valeur passée par l'ARB porte les "
               'marqueurs de la locale allongée',
+        );
+        expect(
+          paragraphe.didExceedMaxLines,
+          isFalse,
+          reason:
+              'texte tronqué : la spec UX §0 veut des conteneurs qui '
+              'grandissent, pas qui coupent',
         );
       }
       expect(
