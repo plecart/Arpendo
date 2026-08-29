@@ -74,6 +74,17 @@ services:
       DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
       VALKEY_URL: redis://valkey:6379/0
       VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+      # Les seuils du limiteur, interpolés plutôt que littéraux : le conteneur et le poste
+      # limitent à l'identique, et changer un quota ne demande pas de toucher à ce fichier. Pas
+      # de `:?` — `Settings` refuse déjà de démarrer sur une valeur absente, en nommant le champ ;
+      # un second garde dirait la même chose plus tôt et moins bien.
+      RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
+      RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+      # Lue par uvicorn, pas par `Settings` — d'où un défaut ici, à l'inverse des seuils : cette
+      # pile n'a pas de reverse proxy, donc personne n'est de confiance, `X-Forwarded-For` est
+      # ignoré et `request.client` reste le pair réel. L'api démarre même si le `.env` est muet.
+      # En production, ce sera le réseau de caddy (#45).
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
     # Rechargement à chaud sur les sources montées. `--reload-dir` borne la surveillance à `src/` :
     # sans lui, uvicorn scrute aussi `/app/.venv`, des milliers de fichiers relus en boucle.
     command: ["uvicorn", "arpendo_api.main:create_app", "--factory", "--host", "0.0.0.0",
