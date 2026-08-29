@@ -258,10 +258,10 @@ valide.**
 **Le signe : des courbes de niveau dont le sommet est un hexagone.**
 
 Trois tracés emboîtés, de plus en plus serrés, exactement comme un relief sur une carte
-topographique. Les deux extérieurs sont des courbes libres et légèrement irrégulières — c'est ton
-duel 16, l'organique. Le troisième, au centre, s'est refermé en hexagone régulier — c'est ton
-duel 13, le géométrique. L'hexagone n'est **pas** le sujet du signe : il en est le point d'arrivée,
-le sommet du relief. On lit d'abord une carte, ensuite seulement un hexagone.
+topographique. L'extérieur est un œuf calculé, pointé vers le haut-gauche, le médian un cercle
+parfait — c'est ton duel 16, l'organique. Le troisième, au centre, s'est refermé en hexagone
+régulier — c'est ton duel 13, le géométrique. L'hexagone n'est **pas** le sujet du signe : il en est
+le point d'arrivée, le sommet du relief. On lit d'abord une carte, ensuite seulement un hexagone.
 
 C'est la réponse à ta double contrainte : l'hexagone est indispensable puisque le jeu est bâti
 dessus, mais il ne doit pas être ce qu'on voit en premier.
