@@ -501,7 +501,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
 | 11 | Notifications refusées | avertissement | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
-| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · fermer |
+| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · « Fermer » |
 | 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
 Notes de comportement :
