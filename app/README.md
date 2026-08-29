@@ -173,6 +173,7 @@ composant ne se teste pas de cette façon.
 
 `fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
 test de `test/app_test.dart` le vérifie.
+
 ## Icône de lancement
 
 `documents/assets/icone-app.svg` est la **source unique** de l'icône (identité visuelle §1.5,
