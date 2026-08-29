@@ -60,7 +60,11 @@ class ConnectivityService {
   /// traduit par un « en ligne », sans rompre l'abonnement — les événements
   /// suivants continuent d'arriver. Toute autre erreur remonte, pour la raison
   /// qu'expose [isOnline] : un mensonge indiscernable de la vérité est pire
-  /// qu'une panne visible.
+  /// qu'une panne visible. Conséquence assumée : un incident survenant alors
+  /// que le dernier état connu était « hors ligne » fait **basculer** le flux
+  /// en ligne. C'est le sens du choix du cadrage §10.3 — mieux vaut afficher
+  /// « serveur indisponible » que renvoyer le joueur vérifier une connexion
+  /// qui marche.
   ///
   /// Chaque appel rend un flux dérivé neuf ; l'état du `distinct` est propre à
   /// chaque abonnement.

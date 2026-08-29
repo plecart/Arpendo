@@ -92,6 +92,12 @@ class EntreeBandeau {
   final List<ActionBandeau> actions;
 
   /// Vrai si l'affichage de cette entrée masque la carte et coupe le jeu.
+  ///
+  /// **À ne pas confondre avec [Severite.bloquant]**, que la spécification
+  /// nomme du même mot : la sévérité décide du glyphe et de la couleur, ce
+  /// drapeau décide de l'état « carte masquée » (§12.2). Les deux se suivent
+  /// souvent sans jamais se déduire l'un de l'autre — la ligne 3 est de
+  /// sévérité `bloquant` alors que la partie continue.
   final bool bloquant;
 }
 
