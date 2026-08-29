@@ -28,12 +28,14 @@ Toujours par `just`, jamais par `flutter` nu (c'est le SDK global qui répondrai
 | `just fmt-app` / `just fmt-check-app` | `dart format` — la première écrit, la seconde vérifie seulement |
 | `just build` | `flutter build appbundle` |
 
-Sur un poste qui n'a pas encore lancé `just install-app`, **`just test-app`, `just test-one-app`
-et `just lint-app`** échouent à la compilation sur `lib/l10n/generated/app_localizations.dart`
-introuvable : c'est un fichier généré, et ni `flutter test` ni `flutter analyze` ne le régénèrent.
+Sur un poste qui n'a pas encore lancé `just install-app`, **`just lint-app` et `just test-app`**
+échouent sur `lib/l10n/generated/app_localizations.dart` introuvable — ni `flutter test` ni
+`flutter analyze` ne le régénèrent — et `just test-one-app` échoue sur toute cible qui l'importe.
 `just l10n` suffit à réparer. Les deux autres s'en tirent seules, pour des raisons opposées :
-`just build` régénère les localisations lui-même avant de compiler, et `dart format` ne résout
-aucun import — il analyse la syntaxe, donc `fmt-check-app` passe même sans le généré.
+`just build` fait dépendre son instantané de noyau de la génération des localisations, donc la
+déclenche avant de compiler ; `dart format` ne résout aucun import — il analyse la syntaxe — donc
+`fmt-check-app` passe même sans le généré. Attention, `just build` ne lance que `gen-l10n`, jamais
+le script : sans `just l10n` d'abord, il produit un bundle avec la seule locale `fr`.
 
 ## Structure
 
@@ -150,10 +152,23 @@ sur l'écran de référence 360 × 800 dp, et exige trois choses du même rendu 
   grandissent, pas qui coupent (UX §0, §1.2).
 
 C'est la seule barrière contre les chaînes en dur : il n'y a pas de lint dédié. Un composant
-absent de la liste n'est pas couvert, d'où l'étape 6 ci-dessus. Trois angles morts sont assumés et
-notés dans le fichier de test : un littéral posé dans un `RichText` nu ou un `SelectableText`
-— l'app écrit des `Text` —, et un texte simplement clippé par un conteneur trop petit, que rien
-ne déclare tronqué.
+absent de la liste n'est pas couvert, d'où l'étape 6 ci-dessus. Le garde regarde les `Text` de
+l'arbre, `Offstage` et branches d'`IndexedStack` comprises, et exige que le texte soit **une seule**
+valeur de l'ARB — `'⟦a⟧ — ⟦b⟧'` rougit, parce que le séparateur, lui, est écrit en dur.
+
+Ce qu'il ne voit pas, faute d'un cas réel qui le justifie :
+
+| Angle mort | Pourquoi |
+|---|---|
+| un littéral dans un `RichText` nu ou un `SelectableText` | l'app écrit des `Text` ; ces deux-là ne passent pas par un `Text` |
+| le `message` d'un `Tooltip` | il n'est construit qu'à l'affichage de l'infobulle |
+| un `label` de `Semantics` | il n'est pas rendu comme texte |
+| un texte clippé par un conteneur trop petit | sans `maxLines` ni `ellipsis`, le paragraphe ne se déclare pas tronqué |
+
+Et un faux positif à connaître : un composant qui embarque du mobilier Material écrivant son propre
+texte — compteur de `TextField(maxLength:)`, boutons d'`AboutDialog` — fera rougir le garde. Ce
+texte-là est bien localisé, mais par `GlobalMaterialLocalizations`, pas par notre ARB : un tel
+composant ne se teste pas de cette façon.
 
 `fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
 test de `test/app_test.dart` le vérifie.
