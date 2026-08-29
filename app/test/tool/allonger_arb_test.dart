@@ -5,6 +5,18 @@ import '../../tool/allonger_arb.dart'
 
 void main() {
   group('allonger', () {
+    test('transcrit les 30 % de la spec, il ne les arbitre pas', () {
+      expect(
+        facteurAllongement,
+        0.3,
+        reason:
+            'la spec UX §0 fixe la tolérance à +30 % et la constante la '
+            'transcrit. Sans cet ancrage, le seuil du test suivrait la '
+            'constante partout : la garantie pourrait disparaître sans '
+            'faire rougir une seule assertion',
+      );
+    });
+
     test('rend une valeur au moins 30 % plus longue', () {
       const valeur = 'prends du terrain';
 
