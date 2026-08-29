@@ -62,6 +62,33 @@ silence. Un test qui veut un environnement dégradé surcharge `settings` par pa
 indirecte et hérite du reste de la chaîne, comme le fait le test « Valkey injoignable ».
 Les tests asynchrones n'ont besoin d'aucun marqueur (`asyncio_mode = "auto"`).
 
+## Sessions
+
+Une route qui a besoin de la base annote son paramètre — l'injection fait le reste :
+
+```python
+from arpendo_api.db.session import Session
+
+
+@router.post("/v1/quelque-chose")
+async def creer(session: Session) -> Reponse:
+    session.add(objet)
+    await session.commit()  # explicite, par l'appelant
+    return Reponse(...)
+```
+
+**La dépendance ne commet jamais à la sortie.** Committer là persisterait la moitié d'une unité de
+travail quand une erreur survient à mi-chemin : l'appelant recevrait une erreur *et* la base
+garderait un état partiel. C'est donc la route qui commet, au moment où elle sait son travail
+complet ; ce qui n'a pas été commis est annulé à la fermeture de la session. Deux tests le
+prouvent — l'un en vérifiant qu'une requête sans `commit` ne laisse rien, l'autre qu'un `commit`
+explicite persiste.
+
+**Une session par requête**, tirée du `async_sessionmaker` que le cycle de vie range dans
+`app.state` — jamais un second moteur. `expire_on_commit=False` : sinon le premier attribut lu
+après un `commit` déclencherait un rechargement, impossible à attendre en async, et une réponse
+HTTP est sérialisée *après* le commit.
+
 ## Migrations
 
 Le schéma est versionné par Alembic, configuré dans le `[tool.alembic]` de `pyproject.toml` — pas
@@ -100,8 +127,8 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
 - `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
   l'environnement du paquet), `valkey.py`, `health.py`.
 - `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
-  déclarative et les conventions de schéma — sa docstring en est la référence), `migrations/`
-  (Alembic).
+  déclarative et les conventions de schéma — sa docstring en est la référence), `session.py` (la
+  session par requête), `migrations/` (Alembic).
 - `src/arpendo_api/domains/` — un paquet par domaine métier, créé avec le premier.
 
 **Les réglages sensibles sont des `Secret`** — le mot de passe Valkey et l'URL de base, qui porte

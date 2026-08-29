@@ -63,6 +63,11 @@ test-one CIBLE:
 lint-api:
     uv run ruff check .
 
+# `ruff format` ne s'arrête pas aux `.py` : il découvre aussi les **fichiers Markdown** et
+# reformate les blocs ```` ```python ```` qu'ils contiennent (également `py`, `py3`, `pyi`,
+# `pycon`). Un exemple de code ajouté à un README passe donc par le formateur, et `fmt-check-api`
+# échoue dessus comme sur n'importe quel module — piège d'autant plus surprenant que la recette
+# ne nomme que `api/`.
 [working-directory('api')]
 fmt-api:
     uv run ruff format .
