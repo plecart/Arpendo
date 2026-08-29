@@ -21,11 +21,17 @@ Toujours par `just`, jamais par `flutter` nu (c'est le SDK global qui répondrai
 
 | Commande | Rôle |
 |---|---|
+| `just l10n` | régénère les textes — **préalable à tout le reste** (voir « Textes ») |
 | `just test-app` | tests de widget et unitaires |
 | `just test-one-app test/app_test.dart` | un seul fichier, pour la boucle TDD |
 | `just lint-app` | `flutter analyze`, modes stricts activés dans `analysis_options.yaml` |
 | `just fmt-app` / `just fmt-check-app` | `dart format` — la première écrit, la seconde vérifie seulement |
 | `just build` | `flutter build appbundle` |
+
+Sur un poste qui n'a pas encore lancé `just install-app`, les quatre dernières échouent à la
+compilation sur `lib/l10n/generated/app_localizations.dart` introuvable : c'est un fichier
+généré, et **rien ne le régénère tout seul** — ni `flutter test`, ni `flutter analyze`.
+`just l10n` suffit à réparer.
 
 ## Structure
 
@@ -95,7 +101,8 @@ que `scaffoldBackgroundColor`, qui vaudra `surfaceDim` (« fond d'écran hors ca
 ## Textes — l'ARB et la locale allongée
 
 `lib/l10n/app_fr.arb` est la **seule source versionnée** des textes de l'interface. Tout ce qui
-s'affiche en vient : aucune chaîne en dur dans `lib/` (cadrage §12.6). Les textes eux-mêmes sont
+s'affiche en vient : aucun texte affiché n'est écrit en dur dans `lib/` (cadrage §12.6). Les
+textes eux-mêmes sont
 arrêtés par la spec UX — l'ARB les transcrit, il ne les rédige pas.
 
 | Fichier | Versionné | Rôle |
@@ -131,13 +138,18 @@ arrêtés par la spec UX — l'ARB les transcrit, il ne les rédige pas.
 `tool/allonger_arb.dart` dérive `app_fr_XA.arb` de `app_fr.arb` : chaque valeur est allongée de
 30 % et encadrée des marqueurs `⟦…⟧`, les `{placeholders}` et les métadonnées `@` traversant
 intacts. `test/l10n/fr_xa_test.dart` pompe chaque composant de sa liste sous `Locale('fr', 'XA')`,
-sur l'écran de référence 360 × 800 dp, et exige deux choses du même rendu :
+sur l'écran de référence 360 × 800 dp, et exige trois choses du même rendu :
 
+- **tout texte rendu porte les marqueurs** — un littéral en dur n'en a pas, et fait rougir le
+  test. Le contrôle passe par les `RichText`, où aboutissent aussi bien `Text` que `Text.rich` ;
 - **aucun débordement** — la tolérance de +30 % de longueur exigée par la spec UX §0 ;
-- **tout `Text` porte les marqueurs** — un littéral en dur n'en a pas, et fait rougir le test.
+- **aucune troncature** — `didExceedMaxLines` est faux partout : la spec veut des conteneurs qui
+  grandissent, pas qui coupent (UX §0, §1.2).
 
 C'est la seule barrière contre les chaînes en dur : il n'y a pas de lint dédié. Un composant
-absent de la liste n'est pas couvert, d'où l'étape 6 ci-dessus.
+absent de la liste n'est pas couvert, d'où l'étape 6 ci-dessus. Deux angles morts sont assumés et
+notés dans le fichier de test : un texte coupé par un `ClipRect` parent, et un littéral dans un
+`SelectableText` — aucun des deux n'existe dans `lib/`.
 
 `fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
 test de `test/app_test.dart` le vérifie.
