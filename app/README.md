@@ -21,17 +21,19 @@ Toujours par `just`, jamais par `flutter` nu (c'est le SDK global qui répondrai
 
 | Commande | Rôle |
 |---|---|
-| `just l10n` | régénère les textes — **préalable à tout le reste** (voir « Textes ») |
+| `just l10n` | régénère les textes — préalable aux trois suivantes (voir « Textes ») |
 | `just test-app` | tests de widget et unitaires |
 | `just test-one-app test/app_test.dart` | un seul fichier, pour la boucle TDD |
 | `just lint-app` | `flutter analyze`, modes stricts activés dans `analysis_options.yaml` |
 | `just fmt-app` / `just fmt-check-app` | `dart format` — la première écrit, la seconde vérifie seulement |
 | `just build` | `flutter build appbundle` |
 
-Sur un poste qui n'a pas encore lancé `just install-app`, les quatre dernières échouent à la
-compilation sur `lib/l10n/generated/app_localizations.dart` introuvable : c'est un fichier
-généré, et **rien ne le régénère tout seul** — ni `flutter test`, ni `flutter analyze`.
-`just l10n` suffit à réparer.
+Sur un poste qui n'a pas encore lancé `just install-app`, **`just test-app`, `just test-one-app`
+et `just lint-app`** échouent à la compilation sur `lib/l10n/generated/app_localizations.dart`
+introuvable : c'est un fichier généré, et ni `flutter test` ni `flutter analyze` ne le régénèrent.
+`just l10n` suffit à réparer. Les deux autres s'en tirent seules, pour des raisons opposées :
+`just build` régénère les localisations lui-même avant de compiler, et `dart format` ne résout
+aucun import — il analyse la syntaxe, donc `fmt-check-app` passe même sans le généré.
 
 ## Structure
 
@@ -141,15 +143,17 @@ intacts. `test/l10n/fr_xa_test.dart` pompe chaque composant de sa liste sous `Lo
 sur l'écran de référence 360 × 800 dp, et exige trois choses du même rendu :
 
 - **tout texte rendu porte les marqueurs** — un littéral en dur n'en a pas, et fait rougir le
-  test. Le contrôle passe par les `RichText`, où aboutissent aussi bien `Text` que `Text.rich` ;
+  test. Le contrôle porte sur les `Text` de l'arbre, `Text.rich` compris, et lit leur texte
+  *visible* : ni le `semanticsLabel`, qui masquerait un littéral, ni les `WidgetSpan` ;
 - **aucun débordement** — la tolérance de +30 % de longueur exigée par la spec UX §0 ;
 - **aucune troncature** — `didExceedMaxLines` est faux partout : la spec veut des conteneurs qui
   grandissent, pas qui coupent (UX §0, §1.2).
 
 C'est la seule barrière contre les chaînes en dur : il n'y a pas de lint dédié. Un composant
-absent de la liste n'est pas couvert, d'où l'étape 6 ci-dessus. Deux angles morts sont assumés et
-notés dans le fichier de test : un texte coupé par un `ClipRect` parent, et un littéral dans un
-`SelectableText` — aucun des deux n'existe dans `lib/`.
+absent de la liste n'est pas couvert, d'où l'étape 6 ci-dessus. Trois angles morts sont assumés et
+notés dans le fichier de test : un littéral posé dans un `RichText` nu ou un `SelectableText`
+— l'app écrit des `Text` —, et un texte simplement clippé par un conteneur trop petit, que rien
+ne déclare tronqué.
 
 `fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
 test de `test/app_test.dart` le vérifie.
