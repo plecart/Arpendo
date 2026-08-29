@@ -15,7 +15,8 @@ android {
 
     defaultConfig {
         applicationId = "com.arpendo.game"
-        minSdk = flutter.minSdkVersion
+        // Android 8.0 : adaptive icon vectoriel seul, aucun mipmap PNG (cadrage §1).
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

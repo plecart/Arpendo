@@ -34,6 +34,7 @@
 | Vérification marque | TMview / INPI / EUIPO : seul « Carpendo » existe. Signe non identique, non bloquant. À réévaluer avant tout dépôt réel |
 | Dépôt de marque | Non fait, non urgent (~190 € INPI 1 classe, ~850 € EUIPO). Classes pertinentes : 9 (logiciels) et 41 (jeux) |
 | **Identité visuelle** | **Direction « Relevé », retenue le 13 août 2026.** Accent `#123D1E` (vert forêt), typographie Roboto (0 octet d'APK), signe = courbes de niveau refermées sur un hexagone. Produite dans `03-identite-visuelle.md`, intégrée dans `02-specification-ux.md` §1.2, §1.5, §1.6, §3.4.1 et §4 |
+| **Cible Android** | **Android 8.0 (API 26) minimum** — `minSdk = 26` dans `app/android/app/build.gradle.kts`. Décidé le 26 août 2026 (#50) : un seul adaptive icon vectoriel, aucun `mipmap` PNG ; aucune dépendance n'exige davantage |
 
 L'accroche est une chaîne traduisible : elle vit dans le fichier de ressources, jamais en dur.
 Elle sert à trois endroits : fiche Play Store, écran de connexion, partage de lien (post-MVP).
@@ -1835,6 +1836,14 @@ voit le joueur. Le raisonnement et la table complète sont dans
 | §10.3 : « Capture en pause — hors ligne » (notification) | « Hors ligne : tes pas ne comptent pas. » |
 | §10.3 : « Pas de connexion — capture en pause » / « Serveur indisponible — capture en pause. Garde l'application ouverte, la reprise est automatique. » | « Pas de réseau. La reprise est automatique. » / « Le serveur ne répond pas. Garde l'application ouverte, la reprise est automatique. » — le second décourage toujours de fermer l'app |
 | §18.4 et §19 : la passe de ton « reste ouverte » | **Faite.** Aucun point de conception ouvert |
+
+### 18.6 Révision du 28 août 2026, après l'icône de lancement
+
+L'interrogatoire de l'issue #50 (icône de lancement Android) a fixé la **version Android minimale à
+8.0 (API 26)**, qu'aucun document ne portait : inscrite au §1. Le dessin de l'icône d'app a été
+tranché sur planche de variantes (variante A″2 : œuf calculé, cercle, hexagone) — l'intention du
+§1.5 de `03-identite-visuelle.md` est inchangée, seul son bloc SVG et `documents/assets/icone-app.svg`
+changent. Aucune règle du jeu, aucune section 1 à 17 n'est rouverte.
 
 ---
 
