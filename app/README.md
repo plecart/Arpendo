@@ -45,7 +45,11 @@ dépendra de la séquence de démarrage. Elle applique le thème dans les deux m
 `ThemeMode.system`. Les couches UI (vues + ViewModels) et Data (repositories + services) naissent
 avec leur premier contenu, sous `lib/ui/` et `lib/data/` — aucun dossier n'est créé avant :
 `lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP,
-`lib/l10n/` depuis les textes.
+`lib/l10n/` depuis les textes, `lib/domain/` depuis les règles du bandeau.
+
+`lib/domain/` porte les règles **qui ne dépendent ni d'un écran ni d'un transport** : elles
+n'importent rien de `lib/ui/`, et c'est ce qui permet de les rejouer ailleurs qu'à l'écran — la
+notification permanente d'Android (UX §10.2) applique la même règle de bandeau sans widget.
 
 ## Thème — les jetons de conception
 
@@ -174,6 +178,53 @@ composant ne se teste pas de cette façon.
 `fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
 test de `test/app_test.dart` le vérifie.
 
+## Composants uniques
+
+### Le bandeau — une règle, une table de lignes
+
+La spec UX §2.4 impose **un seul bandeau à la fois** : quand plusieurs conditions sont vraies, la
+plus prioritaire gagne et les autres se taisent. `lib/domain/bandeau/` porte cette règle, et rien
+d'autre.
+
+| Fichier | Ce qu'on y lit |
+|---|---|
+| `entree_bandeau.dart` | `Severite`, `ActionBandeau`, `EntreeBandeau`, et `resoudre(actives)` qui rend l'unique entrée à afficher |
+| `lignes.dart` | les deux lignes que l'app sait déjà former — réseau absent (prio 5), mise à jour recommandée (prio 12) |
+
+**Ajouter une ligne ne touche ni `resoudre` ni `lignes.dart`.** Une ligne appartient au domaine qui
+possède sa condition, et s'y déclare :
+
+```dart
+EntreeBandeau ligneVitesseExcessive() => EntreeBandeau(
+  priorite: 7,                       // le rang de la table du §2.4, jamais renuméroté
+  severite: Severite.avertissement,
+  texte: (l10n) => l10n.bandeauTropVite,
+);
+```
+
+Puis la racine de composition joint les lignes actives et remet le résultat à l'affichage :
+
+```dart
+final entree = resoudre([
+  if (!enLigne) ligneReseauAbsent(),
+  if (vitesseExcessive) ligneVitesseExcessive(),
+]);
+```
+
+Il n'existe **volontairement** aucune énumération centrale des conditions : ce serait le point que
+chaque ligne nouvelle devrait modifier. Deux points à respecter, tous deux gardés par un `assert` :
+
+- **deux entrées actives n'ont jamais la même priorité** — la règle d'exclusivité du §2.4 veut que
+  deux conditions ne soient jamais vraies ensemble ;
+- **une entrée porte zéro, une ou deux actions**, pas davantage : c'est l'anatomie du §2.4.
+
+Les deux lignes de `lignes.dart` n'ont pas encore de domaine propriétaire — le réseau ira à
+Territoire avec la fenêtre de cinq minutes (lignes 4 et 6), la mise à jour à la séquence de
+démarrage. Elles déménageront chez eux, et ce fichier n'est pas destiné à grossir.
+
+`bloquant` est **porté comme donnée** par l'entrée ; son effet — carte masquée, interactions de jeu
+coupées (§12.2) — se réalisera avec la carte, pas ici.
+
 ## Icône de lancement
 
 `documents/assets/icone-app.svg` est la **source unique** de l'icône (identité visuelle §1.5,
@@ -212,6 +263,22 @@ le délai borne **chaque tentative** de transport et non la séquence, de sorte 
 d'espacement progressif passée au paramètre `client` du constructeur puisse durer plus longtemps
 que lui ; `close()` libère le client détenu, créé ou injecté — l'injecter, c'est le céder.
 L'étendre, c'est l'envelopper, pas le modifier : un verbe de plus naît avec son premier appelant.
+
+`ConnectivityService` répond de deux façons, et la bonne dépend de la question posée :
+
+| Question | Verbe | Ce qu'il rend |
+|---|---|---|
+| « suis-je en ligne, là, maintenant ? » | `isOnline()` | un `Future<bool>`, une sonde ponctuelle |
+| « préviens-moi quand ça change » | `enLigne()` | un `Stream<bool>`, **un événement par changement d'état** |
+
+`enLigne()` n'émet pas l'état courant à l'abonnement : un appelant qui a besoin de savoir où il en
+est au démarrage lit `isOnline()` d'abord. Son `distinct` ne fait pas double emploi avec celui du
+plugin — celui-ci compare des **listes d'interfaces**, si bien qu'un passage du Wi-Fi aux données
+mobiles le traverse et produirait deux « en ligne » ; le nôtre compare l'état. Les deux verbes ont
+la même tolérance aux incidents de plateforme (« présumer en ligne », cadrage §10.3), et laissent
+remonter toute autre erreur.
+
+C'est `enLigne()` qui alimente la ligne 5 du bandeau (UX §2.4) — voir « Composants uniques ».
 
 > `connectivity_plus` fusionne la permission Android `ACCESS_NETWORK_STATE` dans le manifeste.
 > Elle est normale et n'affiche aucune invite, mais elle apparaît dans l'APK.

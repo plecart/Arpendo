@@ -1,12 +1,14 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
 
 /// Lit l'état du réseau du téléphone.
 ///
 /// **Seul point de l'application qui connaît `connectivity_plus`.** Tout le
-/// reste dépend de cette classe, jamais du plugin : le flux d'événements de
-/// connectivité dont auront besoin les bandeaux sera une méthode de plus ici,
-/// et l'importation du plugin restera unique.
+/// reste dépend de cette classe, jamais du plugin : [isOnline] répond
+/// ponctuellement, [enLigne] suit les changements, et l'importation du plugin
+/// reste unique.
 ///
 /// Ne sonde pas Internet, seulement les interfaces radio : derrière un portail
 /// captif, le téléphone est « en ligne » et le serveur reste injoignable. C'est
@@ -39,4 +41,42 @@ class ConnectivityService {
       return true;
     }
   }
+
+  /// Le téléphone est-il en ligne, et le reste-t-il ? Un événement par
+  /// changement d'état, et rien tant que l'état ne change pas.
+  ///
+  /// C'est ce qui alimente la ligne 5 du bandeau (spec UX §2.4) et, plus tard,
+  /// la reprise de capture. Le flux n'émet **pas** l'état courant à
+  /// l'abonnement : il ne rapporte que des changements. Un appelant qui a
+  /// besoin de savoir où il en est au démarrage lit [isOnline] d'abord.
+  ///
+  /// Le `distinct` est le nôtre et il est nécessaire : celui que le plugin
+  /// applique déjà compare des **listes d'interfaces**, si bien qu'un passage
+  /// du Wi-Fi aux données mobiles le traverse — deux événements pour un même
+  /// état en ligne. Le nôtre compare l'état, donc il les réduit à un.
+  ///
+  /// Même tolérance aux **incidents de plateforme** que [isOnline] : une
+  /// [PlatformException] ou une [MissingPluginException] sur le flux se
+  /// traduit par un « en ligne », sans rompre l'abonnement — les événements
+  /// suivants continuent d'arriver. Toute autre erreur remonte, pour la raison
+  /// qu'expose [isOnline] : un mensonge indiscernable de la vérité est pire
+  /// qu'une panne visible.
+  ///
+  /// Chaque appel rend un flux dérivé neuf ; l'état du `distinct` est propre à
+  /// chaque abonnement.
+  Stream<bool> enLigne() => Connectivity().onConnectivityChanged
+      .map((interfaces) => interfaces.hasConnectivity)
+      .transform(
+        StreamTransformer<bool, bool>.fromHandlers(
+          handleError: (erreur, trace, sortie) {
+            if (erreur is PlatformException ||
+                erreur is MissingPluginException) {
+              sortie.add(true);
+            } else {
+              sortie.addError(erreur, trace);
+            }
+          },
+        ),
+      )
+      .distinct();
 }
