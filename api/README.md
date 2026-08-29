@@ -69,10 +69,11 @@ Une route qui a besoin de la base annote son paramètre — l'injection fait le 
 ```python
 from arpendo_api.db.session import Session
 
+
 @router.post("/v1/quelque-chose")
 async def creer(session: Session) -> Reponse:
     session.add(objet)
-    await session.commit()      # explicite, par l'appelant
+    await session.commit()  # explicite, par l'appelant
     return Reponse(...)
 ```
 
