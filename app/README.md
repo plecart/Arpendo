@@ -114,7 +114,7 @@ arrêtés par la spec UX — l'ARB les transcrit, il ne les rédige pas.
    définitif (UX §0). Un texte absent est une décision à prendre là-bas d'abord — voir
    `.claude/rules/decisions-vs-doc.md`.
 2. L'ajouter à `app_fr.arb` sous une clé en **camelCase français préfixée par son composant ou son
-   écran** (`demarrageAccroche`, `bandeauPasDeConnexion`), jamais par le § : les § bougent, les
+   écran** (`marqueAccroche`, `bandeauPasDeConnexion`), jamais par le § : les § bougent, les
    composants non.
 3. Lui donner une `description` qui **cite le §** d'où vient le texte. `gen-l10n` la rend en
    doc-comment du getter : elle se lit au point d'usage, sans ouvrir la spec.

@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/allonger_arb.dart' show marqueurDebut, marqueurFin;
 
-/// L'accroche de la marque, seul texte que l'app sache rendre aujourd'hui.
+/// L'accroche du bloc marque, seul texte que l'app sache rendre aujourd'hui.
 Widget accroche(BuildContext context) =>
-    Text(AppLocalizations.of(context).demarrageAccroche);
+    Text(AppLocalizations.of(context).marqueAccroche);
 
 /// Les composants dont on vérifie le rendu sous la locale allongée.
 ///
