@@ -75,6 +75,20 @@ fmt-check-api:
 typecheck:
     uv run mypy --strict src
 
+# ─── migrations (Alembic, jamais au démarrage — cadrage §13.9 règle 3) ────────
+
+# Applique les migrations sur la base du `.env`. Dans un conteneur éphémère, même commande :
+# `docker compose -f infra/docker-compose.yml --env-file .env run --rm api alembic upgrade head`.
+[working-directory('api')]
+migrate:
+    uv run alembic upgrade head
+
+# Génère une migration par comparaison des modèles au schéma réel. Le fichier produit est à
+# RELIRE avant commit : zone sensible « migrations de schéma » (`.claude/pipeline.config.md`).
+[working-directory('api')]
+migration MSG:
+    uv run alembic revision --autogenerate -m "{{MSG}}"
+
 # ─── app/ (Flutter) ────────────────────────────────────────────────────────────
 
 # `&&` place `l10n` APRÈS le corps, jamais avant : `gen-l10n` a besoin de

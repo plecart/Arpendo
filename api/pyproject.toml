@@ -4,11 +4,13 @@ version = "0.1.0"
 description = "Arpendo — couche de services du jeu, servie par l'api HTTP."
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.19.1",
     "asyncpg>=0.31.0",
     "fastapi>=0.141.1",
     "pydantic-settings>=2",
     "redis>=8.1.0",
     "sqlalchemy[asyncio]>=2.0.52",
+    "uuid6>=2025.0.1",
     "uvicorn>=0.52.4",
 ]
 
@@ -42,3 +44,30 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.16.4",
 ]
+
+
+[tool.alembic]
+# Sans `alembic.ini` : l'URL de la base vient de `Settings` (cadrage §13.9 règle 5) et le logging
+# est le sujet de #42 — l'ini n'aurait rien porté. `%(here)s` est le dossier de ce fichier :
+# `api/` sur le poste, `/app` dans le conteneur, où les scripts entrent par le `COPY src` du
+# Dockerfile. Même commande partout : `alembic upgrade head`.
+script_location = "%(here)s/src/arpendo_api/db/migrations"
+# Date en tête du nom de fichier : les migrations se lisent dans l'ordre où elles sont nées.
+file_template = "%%(year)d_%%(month).2d_%%(day).2d_%%(rev)s_%%(slug)s"
+
+# Le fichier généré passe par ruff avant d'être relu : imports triés et nettoyés, puis formaté.
+# **L'ordre compte** : Alembic exécute les hooks dans l'ordre de déclaration, `check --fix` retire
+# les imports que l'autogénération n'utilise pas, et la ligne vide qu'il laisse derrière n'est
+# nettoyée que par `format`. L'inverse ferait rougir `just fmt-check` sur une migration neuve.
+# Il reste à RELIRE le fichier — l'autogénération ne voit ni les renommages ni les données.
+[[tool.alembic.post_write_hooks]]
+name = "ruff-fix"
+type = "module"
+module = "ruff"
+options = "check --fix REVISION_SCRIPT_FILENAME"
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff-format"
+type = "module"
+module = "ruff"
+options = "format REVISION_SCRIPT_FILENAME"

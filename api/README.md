@@ -62,6 +62,36 @@ silence. Un test qui veut un environnement dégradé surcharge `settings` par pa
 indirecte et hérite du reste de la chaîne, comme le fait le test « Valkey injoignable ».
 Les tests asynchrones n'ont besoin d'aucun marqueur (`asyncio_mode = "auto"`).
 
+## Migrations
+
+Le schéma est versionné par Alembic, configuré dans le `[tool.alembic]` de `pyproject.toml` — pas
+d'`alembic.ini` : l'URL vient de `Settings`, comme pour l'application. Les scripts vivent sous
+`src/arpendo_api/db/migrations/`, donc entrent dans l'image par le `COPY src` du Dockerfile.
+
+| Faire | Commande |
+|---|---|
+| Écrire une migration | `just migration "ce qu'elle change"` — autogénérée par comparaison des modèles au schéma réel |
+| La relire | **obligatoire avant commit** : l'autogénération ne voit ni les renommages ni les données. Écrire la docstring, retirer les balises « auto generated ». Zone sensible « migrations de schéma » |
+| L'appliquer sur le poste | `just migrate` |
+| L'appliquer dans un conteneur éphémère | `docker compose -f infra/docker-compose.yml --env-file .env run --rm api alembic upgrade head` — c'est ce que la CI de déploiement déclenchera (cadrage §13.9 règle 3) |
+
+**`just migrate` ne dit rien quand il travaille** : les messages « Running upgrade … » passent par
+le logger d'Alembic, qu'aucun handler ne configure — le logging est le sujet de #42, et un
+`alembic.ini` n'existe pas ici. **Le code de retour est le signal** ; pour voir l'état,
+`just migrate && cd api && uv run alembic current`.
+
+**Jamais au démarrage** : rien dans `main.py` n'appelle Alembic. Une migration se joue une fois,
+hors du cycle de vie des conteneurs.
+
+**Chaque migration est prouvée réversible** : `tests/test_migrations.py` joue
+`upgrade head → downgrade base → upgrade head` sur le PostgreSQL de l'environnement, dans la suite
+ordinaire — en CI comme sur le poste. La fixture `schema` de `conftest.py` monte le schéma à
+`head` avant la suite : `just test` après `just up` ne demande aucune étape manuelle. Elle est
+synchrone parce que `env.py` appelle `asyncio.run()`, qui refuse une boucle déjà en cours.
+
+**Ajouter un domaine, c'est ajouter son module de modèles aux imports de `env.py`** : une table
+qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
+
 ## Structure
 
 - `src/arpendo_api/main.py` — `create_app()`, la fabrique de l'hôte HTTP. Les routeurs des
@@ -69,8 +99,9 @@ Les tests asynchrones n'ont besoin d'aucun marqueur (`asyncio_mode = "auto"`).
   sondes et non aux clients.
 - `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
   l'environnement du paquet), `valkey.py`, `health.py`.
-- `src/arpendo_api/db/` — la persistance : `engine.py` aujourd'hui, le schéma et les sessions
-  ensuite.
+- `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
+  déclarative et les conventions de schéma — sa docstring en est la référence), `migrations/`
+  (Alembic).
 - `src/arpendo_api/domains/` — un paquet par domaine métier, créé avec le premier.
 
 **Les réglages sensibles sont des `Secret`** — le mot de passe Valkey et l'URL de base, qui porte
