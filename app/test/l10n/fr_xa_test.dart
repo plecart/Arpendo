@@ -16,11 +16,11 @@ Widget accroche(BuildContext context) =>
 /// liste est le seul endroit à tenir : le test qui la parcourt, lui, ne bouge
 /// pas, et couvre le nouveau composant sans une ligne de plus.
 ///
-/// Trois angles morts connus, faute d'un cas réel qui les justifie : un
-/// littéral posé dans un `RichText` nu ou dans un `SelectableText` — l'app
-/// n'écrit ni l'un ni l'autre, elle écrit des `Text` — et un texte simplement
-/// clippé par un conteneur trop petit : sans `maxLines` ni `ellipsis`, le
-/// paragraphe ne se déclare pas tronqué, il déborde de sa boîte en silence.
+/// Y figurer ne suffit pas toujours : ce que le garde ne voit pas — littéral
+/// dans un `RichText` nu ou un `SelectableText`, texte qu'un composant ne
+/// construit qu'à l'interaction, `semanticsLabel`, texte clippé par un
+/// conteneur trop petit — est énuméré dans `app/README.md`, section « Ce que
+/// prouve le test `fr-XA` », qui en est la source unique.
 final composants = <String, WidgetBuilder>{"l'accroche de la marque": accroche};
 
 /// Vrai si [texte] est **une seule** valeur venue de l'ARB.
@@ -129,12 +129,13 @@ void main() {
       // coupure que personne ne voit n'est pas un défaut, là où un littéral
       // qui y dort en est un le jour où la branche s'affiche. L'écart ne joue
       // que dans ce sens : les paragraphes retenus sont par construction un
-      // sous-ensemble des textes contrôlés ci-dessus. On vise
-      // les `RichText` issus d'un `Text` : `Icon` en rend un aussi
-      // (`widgets/icon.dart:328`), et prendre tous les `RichText` ferait
-      // rougir un composant à icône sœur sur un caractère de fonte. Une icône
-      // posée *en ligne*, elle, reste dans le lot — sans dommage : `Icon` ne
-      // pose ni `maxLines` ni `ellipsis`, donc ne se déclare jamais tronquée.
+      // sous-ensemble des textes contrôlés ci-dessus.
+      //
+      // On vise les `RichText` issus d'un `Text` : `Icon` en rend un aussi
+      // (`widgets/icon.dart:328`), et les prendre tous ferait rougir un
+      // composant à icône sœur sur un caractère de fonte. Une icône posée *en
+      // ligne*, elle, reste dans le lot — sans dommage : `Icon` ne pose ni
+      // `maxLines` ni `ellipsis`, donc ne se déclare jamais tronquée.
       for (final paragraphe in tester.renderObjectList<RenderParagraph>(
         find.descendant(of: find.byType(Text), matching: find.byType(RichText)),
       )) {
