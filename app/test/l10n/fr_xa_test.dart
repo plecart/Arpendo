@@ -121,9 +121,15 @@ void main() {
         );
       }
 
-      // La troncature ne se lit que sur l'objet de rendu, et seulement sur ce
-      // qui a été mis en page — d'où `skipOffstage` laissé à sa valeur par
-      // défaut ici, à l'inverse de la recherche des textes ci-dessus. On vise
+      // La troncature ne se lit que sur l'objet de rendu, et on ne l'exige que
+      // de ce qui est **peint** — d'où `skipOffstage` laissé à sa valeur par
+      // défaut ici, à l'inverse de la recherche des textes ci-dessus. Un
+      // `Offstage` n'est pas même mis en page ; une branche non affichée d'un
+      // `IndexedStack` l'est, mais n'est pas peinte : dans les deux cas, une
+      // coupure que personne ne voit n'est pas un défaut, là où un littéral
+      // qui y dort en est un le jour où la branche s'affiche. L'écart ne joue
+      // que dans ce sens : les paragraphes retenus sont par construction un
+      // sous-ensemble des textes contrôlés ci-dessus. On vise
       // les `RichText` issus d'un `Text` : `Icon` en rend un aussi
       // (`widgets/icon.dart:328`), et prendre tous les `RichText` ferait
       // rougir un composant à icône sœur sur un caractère de fonte. Une icône
