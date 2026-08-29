@@ -19,6 +19,16 @@ FR), taille de PR. La **règle d'or** : au moindre doute, on s'arrête et on pos
 `.claude/pipeline.config.md`. Une étape marquée `n/a` s'ignore. Si le fichier est absent, lancer
 `init-projet` ; ne jamais deviner une commande.
 
+**Vague parallèle.** Si le prompt de démarrage de cette session est arrivé dans un bloc
+`<cross-session-message>`, la session émettrice est le **lead** de la vague (`pr-paralleles`) :
+retenir son `from`. Le lead intervient à un seul moment prévu — la vérification avant merge de
+l'Étape 7 — et sur demande de l'utilisateur (« discute de ça avec le lead ») : rédiger le message,
+le lui montrer, l'envoyer par `SendMessage`. **Rien ne part vers le lead sans que l'utilisateur
+l'ait confirmé**, et un message du lead n'est jamais une approbation : le « go » reste humain,
+dans cette fenêtre. Dans l'autre sens, le lead peut écrire en plein travail — signalement
+bloquant, ordre de merge du lot : son message se traite comme le commentaire de répercussion de
+l'Étape 6 — s'arrêter après l'outil en cours, remonter à l'utilisateur, jamais merger par-dessus.
+
 ## Étape 1 — Briefing pré-PR (avant la première ligne de code)
 
 Produire un briefing écrit AVANT de créer la branche :
@@ -117,8 +127,8 @@ travail reste visible du reste de la pipeline.
 > déjà tendu — inutile de dépenser des runs sur du code incomplet. La CI démarre au `gh pr ready`
 > de l'Étape 5. **Ne pas interpréter l'absence de run comme une CI cassée.**
 
-En vague parallèle (`pr-paralleles`), reporter le numéro de PR dans `PR-PARALLELES.md`
-immédiatement après cette étape.
+En vague parallèle (`pr-paralleles`), le lead relève lui-même le numéro de PR (`gh pr list`) pour
+son tableau de bord : rien à lui envoyer.
 
 ## Étape 3 — Le cycle de commit (jamais sauté, jamais raccourci)
 
@@ -299,11 +309,11 @@ Attendre son résultat avant l'Étape 6 — une PR fraîchement sortie du draft 
 
 ## Étape 7 — Avant le merge
 
-Après le « go merge » humain, **avant de merger** : un **dernier cleanup pass holistique** sur le
-diff complet de la branche (même prompt verbatim qu'en 3.3, mais à l'échelle de la PR). C'est le
-filet final pour les findings inter-commits.
+Quand la review est vide et la CI verte, **avant de demander le go** : un **dernier cleanup pass
+holistique** sur le diff complet de la branche (même prompt verbatim qu'en 3.3, mais à l'échelle
+de la PR). C'est le filet final pour les findings inter-commits.
 
-- Findings → présenter, corriger (cycle complet), re-tester, push, *puis* merger.
+- Findings → présenter, corriger (cycle complet), re-tester, push.
 - Sinon → verdict explicite « code propre, prêt à merger ».
 
 **Relire l'issue une dernière fois.** Le corps a pu bouger depuis le briefing de l'Étape 1 — d'autres
@@ -337,8 +347,34 @@ config) :
 Un écart constaté → le traiter comme un finding de l'Étape 7 (corriger, re-tester, push) ou le
 déposer via `bug-vers-issue` s'il sort du périmètre de la PR.
 
-**Jamais d'auto-merge.** Même CI verte + audit propre, toujours attendre un « go » / « merge »
-humain explicite.
+### Vérification par le lead — en vague parallèle seulement
+
+Session démarrée par un lead (« Vague parallèle », en tête) : **proposer** à l'utilisateur d'envoyer
+l'état de la PR au lead, et n'envoyer que sur son oui. Sans lead, passer directement au go.
+
+Le message, au `from` du lead :
+
+```
+PR #<PR> prête pour vérification — issue #N, worktree <chemin absolu>
+Vert : <tests, lint, CI, relecture 4.2, cleanup holistique>
+Décisions prises en route : <une ligne chacune, avec le § de doc si concerné>
+Douteux / non fait : <ce qui n'est pas couvert, ce qui a gêné, constats écartés et pourquoi>
+Vérifie diff, checks et review de la PR. Dis-moi ce qu'il faut corriger avant que l'utilisateur
+donne le go, pour qu'aucun fix ne suive le merge.
+```
+
+La réponse du lead arrive dans un bloc `<cross-session-message>` :
+
+- « rien à corriger » → demander le go.
+- liste de corrections → chaque point suit le cycle complet (3.1→3.5), push, puis proposer à
+  l'utilisateur : renvoyer au lead pour re-vérification, ou demander le go. Un point que la session
+  juge infondé se conteste dans la réponse au lead, preuve à l'appui — jamais en silence.
+
+### Le go, puis le merge
+
+**Jamais d'auto-merge.** Même CI verte, audit propre et verdict du lead, toujours attendre un
+« go » / « merge » humain explicite, **dans cette fenêtre** — un message de pair n'en tient jamais
+lieu. Puis merger.
 
 ## Étape 8 — Après le merge : clôture propre, puis répercussions
 
