@@ -23,6 +23,27 @@ Widget accroche(BuildContext context) =>
 /// paragraphe ne se déclare pas tronqué, il déborde de sa boîte en silence.
 final composants = <String, WidgetBuilder>{"l'accroche de la marque": accroche};
 
+/// Vrai si [texte] est **une seule** valeur venue de l'ARB.
+///
+/// Contrôler les deux extrémités ne suffit pas : `'⟦a⟧ — ⟦b⟧'` les satisfait
+/// alors qu'il concatène deux valeurs autour d'un séparateur écrit en dur —
+/// c'est la forme qu'on écrit spontanément dès qu'un composant compose deux
+/// textes. On exige donc en plus que l'intérieur ne porte aucun marqueur.
+///
+/// Effet de bord voulu : des marqueurs vidés rendent la condition fausse pour
+/// **tout** texte, y compris légitime. Le garde ne peut pas être désarmé en
+/// silence en changeant une constante — il rougit bruyamment.
+bool vientEntierementDeLArb(String texte) {
+  if (!texte.startsWith(marqueurDebut) || !texte.endsWith(marqueurFin)) {
+    return false;
+  }
+  final interieur = texte.substring(
+    marqueurDebut.length,
+    texte.length - marqueurFin.length,
+  );
+  return !interieur.contains(marqueurDebut) && !interieur.contains(marqueurFin);
+}
+
 /// Écran de référence de conception (spec UX §0) : le cas le plus contraint.
 const ecranDeReference = Size(360, 800);
 
@@ -64,7 +85,12 @@ void main() {
       // libellé conforme, et un `U+FFFC` par `WidgetSpan`, qui ferait rougir à
       // tort un texte de l'ARB portant une icône en ligne.
       final textes = tester
-          .widgetList<Text>(find.byType(Text))
+          .widgetList<Text>(
+            // `skipOffstage: false` : un littéral posé sous un `Offstage` ou
+            // dans la branche non affichée d'un `IndexedStack` est absent de
+            // la recherche par défaut, et passerait le garde sans être vu.
+            find.byType(Text, skipOffstage: false),
+          )
           .map(
             (t) =>
                 t.data ??
@@ -72,7 +98,10 @@ void main() {
                   includeSemanticsLabels: false,
                   includePlaceholders: false,
                 ),
-          );
+          )
+          // Un texte vide n'affiche rien : il ne peut pas être une chaîne en
+          // dur, et le mobilier Material en pose (`AboutDialog`).
+          .where((texte) => texte.isNotEmpty);
       expect(
         textes,
         isNotEmpty,
@@ -80,17 +109,26 @@ void main() {
       );
       for (final texte in textes) {
         expect(
-          texte,
-          allOf(startsWith(marqueurDebut), endsWith(marqueurFin)),
+          vientEntierementDeLArb(texte),
+          isTrue,
           reason:
-              "chaîne en dur : seule une valeur passée par l'ARB porte les "
-              'marqueurs de la locale allongée',
+              "« $texte » ne vient pas entièrement de l'ARB : soit c'est une "
+              "chaîne en dur, soit une valeur de l'ARB est concaténée à un "
+              'morceau écrit dans le code. Un composant qui affiche du texte '
+              'écrit par Material lui-même — compteur de `TextField`, boutons '
+              "d'`AboutDialog` — ne se teste pas ainsi : ce texte est localisé "
+              'par `GlobalMaterialLocalizations`, pas par notre ARB',
         );
       }
 
-      // La troncature ne se lit que sur l'objet de rendu. On vise les
-      // `RichText` issus d'un `Text` : `Icon` en rend un aussi
-      // (`widgets/icon.dart`), et son glyphe n'a rien à faire ici.
+      // La troncature ne se lit que sur l'objet de rendu, et seulement sur ce
+      // qui a été mis en page — d'où `skipOffstage` laissé à sa valeur par
+      // défaut ici, à l'inverse de la recherche des textes ci-dessus. On vise
+      // les `RichText` issus d'un `Text` : `Icon` en rend un aussi
+      // (`widgets/icon.dart:328`), et prendre tous les `RichText` ferait
+      // rougir un composant à icône sœur sur un caractère de fonte. Une icône
+      // posée *en ligne*, elle, reste dans le lot — sans dommage : `Icon` ne
+      // pose ni `maxLines` ni `ellipsis`, donc ne se déclare jamais tronquée.
       for (final paragraphe in tester.renderObjectList<RenderParagraph>(
         find.descendant(of: find.byType(Text), matching: find.byType(RichText)),
       )) {
