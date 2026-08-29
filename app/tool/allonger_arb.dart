@@ -39,6 +39,15 @@ const cheminSortie = 'lib/l10n/app_fr_XA.arb';
 /// Le remplissage s'ajoute **après** le message et jamais dedans : les
 /// `{placeholders}` et la syntaxe ICU traversent intacts, quel que soit leur
 /// nombre. Une valeur vide rend les deux marqueurs seuls.
+///
+/// La longueur est mesurée sur la **source ARB**, pas sur le rendu. Pour un
+/// message ordinaire les deux coïncident. Pour un message ICU — `plural`,
+/// `select` — la source contient toutes les branches, dont une seule s'affiche :
+/// le remplissage y dépasse largement les 30 % voulus. L'erreur va dans le sens
+/// sûr, un test trop exigeant plutôt que trop laxiste, et le projet n'a aucun
+/// message ICU (pluriels et genres sont hors périmètre jusqu'au premier besoin).
+/// Le jour où l'un arrive, c'est ici que se règle le calcul : padder la branche
+/// la plus longue, et non le message entier.
 String allonger(String valeur) {
   final ajout = remplissage * (valeur.length * facteurAllongement).ceil();
   return '$marqueurDebut$valeur$ajout$marqueurFin';
@@ -55,7 +64,7 @@ Map<String, Object?> deriverXA(Map<String, Object?> fr) => {
     key: switch (key) {
       '@@locale' => 'fr_XA',
       _ when key.startsWith('@') => value,
-      _ => allonger(value! as String),
+      _ => allonger(value as String),
     },
 };
 

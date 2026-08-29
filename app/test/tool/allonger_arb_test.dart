@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/allonger_arb.dart'
-    show allonger, deriverXA, marqueurDebut, marqueurFin;
+    show allonger, deriverXA, facteurAllongement, marqueurDebut, marqueurFin;
 
 void main() {
   group('allonger', () {
@@ -10,7 +10,7 @@ void main() {
 
       expect(
         allonger(valeur).length,
-        greaterThanOrEqualTo((valeur.length * 1.3).ceil()),
+        greaterThanOrEqualTo((valeur.length * (1 + facteurAllongement)).ceil()),
         reason:
             'la spec UX §0 exige que tout conteneur absorbe +30 % de longueur ; '
             'une locale qui allonge moins ne prouve rien',
