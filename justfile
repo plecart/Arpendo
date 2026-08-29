@@ -77,9 +77,19 @@ typecheck:
 
 # ─── app/ (Flutter) ────────────────────────────────────────────────────────────
 
+# `&&` place `l10n` APRÈS le corps, jamais avant : `gen-l10n` a besoin de
+# `flutter_localizations`, que seul `pub get` met dans l'arbre.
 [working-directory('app')]
-install-app:
+install-app: && l10n
     "{{flutter}}" pub get
+
+# Textes de l'app. `app_fr.arb` est la seule source versionnée : le script en dérive la locale de
+# test `fr-XA` (+30 % de longueur, marqueurs), puis `gen-l10n` écrit la classe. Les deux sorties
+# sont ignorées par git, donc régénérées à chaque `just install` — en CI comme sur un clone neuf.
+[working-directory('app')]
+l10n:
+    "{{dart}}" run tool/allonger_arb.dart
+    "{{flutter}}" gen-l10n
 
 [working-directory('app')]
 test-app:

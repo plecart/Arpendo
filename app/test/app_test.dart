@@ -26,6 +26,18 @@ void main() {
     );
   });
 
+  testWidgets('la production ne livre que le français', (tester) async {
+    await tester.pumpWidget(const ArpendoApp());
+
+    expect(
+      tester.widget<MaterialApp>(find.byType(MaterialApp)).supportedLocales,
+      const [Locale('fr')],
+      reason:
+          '`fr-XA` est une locale de test : elle est générée et pompée par les '
+          "tests, jamais livrée — seul le français l'est (cadrage §12.6)",
+    );
+  });
+
   for (final systeme in Brightness.values) {
     testWidgets('le mode sombre suit le réglage système : $systeme', (
       tester,

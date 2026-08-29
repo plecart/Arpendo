@@ -1,0 +1,8 @@
+{
+  "@@locale": "fr",
+
+  "marqueAccroche": "prends du terrain",
+  "@marqueAccroche": {
+    "description": "Cité — cadrage §1, ne pas modifier. Accroche du bloc marque (signe, nom, accroche), sous le logotype : écran d'attente (UX §2.1), Connexion (UX §4), Accueil (UX §5)."
+  }
+}
