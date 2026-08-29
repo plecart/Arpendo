@@ -16,10 +16,11 @@ Widget accroche(BuildContext context) =>
 /// liste est le seul endroit à tenir : le test qui la parcourt, lui, ne bouge
 /// pas, et couvre le nouveau composant sans une ligne de plus.
 ///
-/// Deux angles morts connus, faute d'un cas réel qui les justifie : un texte
-/// coupé par un `ClipRect` ou un `OverflowBox` parent — le paragraphe, lui,
-/// n'est pas tronqué — et un littéral dans un `SelectableText`, qui construit
-/// un `EditableText` et non un `RichText`. Aucun des deux n'existe dans `lib/`.
+/// Trois angles morts connus, faute d'un cas réel qui les justifie : un
+/// littéral posé dans un `RichText` nu ou dans un `SelectableText` — l'app
+/// n'écrit ni l'un ni l'autre, elle écrit des `Text` — et un texte simplement
+/// clippé par un conteneur trop petit : sans `maxLines` ni `ellipsis`, le
+/// paragraphe ne se déclare pas tronqué, il déborde de sa boîte en silence.
 final composants = <String, WidgetBuilder>{"l'accroche de la marque": accroche};
 
 /// Écran de référence de conception (spec UX §0) : le cas le plus contraint.
@@ -57,25 +58,42 @@ void main() {
         sousLocale(const Locale('fr', 'XA'), constructeur),
       );
 
-      // Tout texte rendu passe par un `RichText`, `Text` comme `Text.rich` :
-      // c'est le seul point de passage qui les voie tous, et son objet de
-      // rendu porte à la fois le texte à plat et l'indicateur de troncature.
-      final paragraphes = tester.renderObjectList<RenderParagraph>(
-        find.byType(RichText),
-      );
+      // Les `Text` que l'app écrit — `Text` comme `Text.rich`. On lit le texte
+      // **visible**, et lui seul : `toPlainText` inclut par défaut le
+      // `semanticsLabel` d'un span, qui masquerait un littéral derrière un
+      // libellé conforme, et un `U+FFFC` par `WidgetSpan`, qui ferait rougir à
+      // tort un texte de l'ARB portant une icône en ligne.
+      final textes = tester
+          .widgetList<Text>(find.byType(Text))
+          .map(
+            (t) =>
+                t.data ??
+                t.textSpan!.toPlainText(
+                  includeSemanticsLabels: false,
+                  includePlaceholders: false,
+                ),
+          );
       expect(
-        paragraphes,
+        textes,
         isNotEmpty,
         reason: 'un composant qui ne rend aucun texte ne prouve rien',
       );
-      for (final paragraphe in paragraphes) {
+      for (final texte in textes) {
         expect(
-          paragraphe.text.toPlainText(),
+          texte,
           allOf(startsWith(marqueurDebut), endsWith(marqueurFin)),
           reason:
               "chaîne en dur : seule une valeur passée par l'ARB porte les "
               'marqueurs de la locale allongée',
         );
+      }
+
+      // La troncature ne se lit que sur l'objet de rendu. On vise les
+      // `RichText` issus d'un `Text` : `Icon` en rend un aussi
+      // (`widgets/icon.dart`), et son glyphe n'a rien à faire ici.
+      for (final paragraphe in tester.renderObjectList<RenderParagraph>(
+        find.descendant(of: find.byType(Text), matching: find.byType(RichText)),
+      )) {
         expect(
           paragraphe.didExceedMaxLines,
           isFalse,
