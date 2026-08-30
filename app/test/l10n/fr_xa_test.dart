@@ -1,4 +1,6 @@
+import 'package:arpendo/domain/bandeau/lignes.dart';
 import 'package:arpendo/l10n/generated/app_localizations.dart';
+import 'package:arpendo/ui/core/bandeau/bandeau.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -21,7 +23,17 @@ Widget accroche(BuildContext context) =>
 /// construit qu'à l'interaction, `semanticsLabel`, texte clippé par un
 /// conteneur trop petit — est énuméré dans `app/README.md`, section « Ce que
 /// prouve le test `fr-XA` », qui en est la source unique.
-final composants = <String, WidgetBuilder>{"l'accroche de la marque": accroche};
+final composants = <String, WidgetBuilder>{
+  "l'accroche de la marque": accroche,
+  // Les deux lignes que #43 livre, et les deux formes du bandeau : sans action,
+  // puis avec ses deux boutons — c'est la seconde qui est contrainte, puisque
+  // les libellés s'allongent de 30 % eux aussi.
+  'le bandeau sans action (ligne 5)': (_) =>
+      Bandeau(entree: ligneReseauAbsent()),
+  'le bandeau à deux actions (ligne 12)': (_) => Bandeau(
+    entree: ligneMiseAJourRecommandee(onMettreAJour: () {}, onFermer: () {}),
+  ),
+};
 
 /// Vrai si [texte] est **une seule** valeur venue de l'ARB.
 ///

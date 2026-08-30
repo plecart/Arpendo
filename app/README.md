@@ -238,6 +238,34 @@ Le raccourci est marqué `ponytail:` dans le code, donc `/ponytail-debt` le retr
 `bloquant` est **porté comme donnée** par l'entrée ; son effet — carte masquée, interactions de jeu
 coupées (§12.2) — se réalisera avec la carte, pas ici.
 
+### Le bandeau à l'écran
+
+| Fichier | Ce qu'on y lit |
+|---|---|
+| `ui/core/bandeau/bandeau.dart` | `Bandeau(entree)` — l'anatomie du §2.4 ; le glyphe et sa couleur se **dérivent** de `severite`, ils ne se passent pas en paramètre |
+| `ui/core/bandeau/emplacement_bandeau.dart` | `EmplacementBandeau(entree?)` — le créneau unique `Calque.bandeau` ; `null` libère la place, que la carte reprend en `motion-base` |
+
+**Aucune hauteur n'est posée dans le code.** 56 dp sur une ligne sans action, 80 dès que le message
+passe sur deux lignes, 112 dès qu'une action est présente : ce sont des résultats du rembourrage
+appliqué au contenu, et les tests les mesurent. Les actions vivent sur une **seconde rangée**,
+parce que deux libellés et un message ne tiennent pas côte à côte sur 360 dp — et ce sont des
+`Wrap`, pour que le réglage de taille de police du système à 200 % (§1.2) les fasse passer l'un
+sous l'autre plutôt que déborder.
+
+### La pile de calques et les safe areas
+
+`ui/core/mise_en_page/pile_de_calques.dart` porte les trois pièces du contrat de mise en page :
+
+- **`enum Calque`** — les huit rangs `z` du §2.2, du fond (`carte`) vers l'avant (`bloquant`).
+- **`PileDeCalques(children: {Calque: Widget})`** — l'unique `Stack` d'écran. Il trie par `z`, donc
+  l'ordre d'écriture n'a aucune importance, et il enveloppe **tout sauf `carte`** dans une
+  `SafeArea` : la carte occupe l'écran entier, encoche comprise. Chaque plan se dimensionne
+  lui-même — une carte se donne en `SizedBox.expand`, un header à sa hauteur propre.
+- **`rembourrageBas(context)`** — ce qu'une feuille modale ajoute sous son contenu. Le résultat
+  dépend du point d'appel, et c'est voulu : sous une `SafeArea` il ne rend que le clavier, parce
+  que le rembourrage y a déjà été appliqué *et* retiré du `MediaQuery`. Une feuille s'affiche par
+  le `Navigator`, donc hors de la pile, et reçoit bien les deux.
+
 ## Icône de lancement
 
 `documents/assets/icone-app.svg` est la **source unique** de l'icône (identité visuelle §1.5,

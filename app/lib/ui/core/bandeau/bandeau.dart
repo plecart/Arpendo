@@ -84,8 +84,15 @@ class Bandeau extends StatelessWidget {
               ),
               if (entree.actions.isNotEmpty) ...[
                 const SizedBox(height: Espacements.x2),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // `Wrap` et non `Row` : le §1.2 exige de suivre le réglage de
+                // taille de police du système **jusqu'à 200 % sans
+                // troncature**, et la locale allongée du garde `fr-XA` ajoute
+                // encore 30 %. Deux libellés côte à côte finissent par ne plus
+                // tenir sur 360 dp ; ils passent alors l'un sous l'autre au
+                // lieu de déborder, ce que le §0 impose.
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: Espacements.x2,
                   children: [
                     for (final action in entree.actions)
                       TextButton(
