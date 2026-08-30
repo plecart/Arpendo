@@ -18,6 +18,14 @@ from arpendo_api.core.journal import DomainEvent
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
 
+VALKEY_SUR_UN_PORT_FERME = {"valkey_url": "redis://127.0.0.1:1/0"}
+"""Un Valkey absent, décrit une seule fois pour les modules qui éprouvent une panne de cache.
+
+Surcharge de `settings` par paramétrisation indirecte. Sur un runner Linux, le port fermé est
+refusé aussitôt ; sur un poste dont le pare-feu filtre la boucle locale, la connexion expire au
+bout du délai du client. Les deux mènent au même verdict, jamais à la même durée.
+"""
+
 
 def ddl(element: CreateTable | CreateIndex) -> str:
     """Le SQL qu'un élément de schéma produirait sur PostgreSQL — sans base ni connexion.

@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from pydantic import AfterValidator, SecretStr
+from pydantic import AfterValidator, Field, SecretStr
 from pydantic_settings import BaseSettings
 
 
@@ -58,6 +58,16 @@ cet alias existe pour assainir.
 """
 
 
+Threshold = Annotated[int, Field(ge=1)]
+"""Un réglage entier dont zéro n'est pas une valeur — le type de toute borne de limitation.
+
+Un quota de zéro requête, ou une fenêtre de zéro seconde, ne limite pas : il ferme. C'est une
+configuration qu'on ne peut avoir voulue, et la refuser au démarrage évite de la découvrir en
+production, une requête rejetée à la fois. La borne est ici et non dans le limiteur : un réglage
+impossible ne doit pas exister, plutôt que d'être rattrapé à chaque usage.
+"""
+
+
 class Settings(BaseSettings):
     """Configuration de l'api, validée une fois pour toutes au démarrage.
 
@@ -66,10 +76,11 @@ class Settings(BaseSettings):
     instance, pour qu'ajouter un serveur ne demande que des variables d'environnement. Le ``.env``
     du poste est chargé en amont, par le justfile en local et par Compose dans les conteneurs.
 
-    Aucun champ n'a de valeur par défaut et tous refusent le blanc : construire ``Settings``
-    sans l'une des variables, ou avec une variable posée mais vide ou faite d'espaces, lève une
-    ``pydantic.ValidationError``. Cet échec est voulu bruyant et immédiat — une api qui démarre
-    avec une configuration trouée échoue plus tard, plus loin, et sur une erreur moins lisible.
+    Aucun champ n'a de valeur par défaut et tous refusent le vide — le blanc pour les chaînes,
+    zéro pour les seuils : construire ``Settings`` sans l'une des variables, ou avec une variable
+    posée mais sans contenu utile, lève une ``pydantic.ValidationError``. Cet échec est voulu
+    bruyant et immédiat — une api qui démarre avec une configuration trouée échoue plus tard,
+    plus loin, et sur une erreur moins lisible.
 
     ``VALKEY_PASSWORD`` suit la même règle que les autres : le cadrage §13.10 exige un Valkey
     authentifié « même sans port publié », donc dans les trois environnements — poste, CI,
@@ -83,13 +94,18 @@ class Settings(BaseSettings):
         valkey_url: URL du serveur Valkey (``redis://hôte:port/base``), sans le mot de passe —
             donc affichable.
         valkey_password: mot de passe Valkey, fourni séparément de l'URL. Sensible.
+        rate_limit_ip_requests: requêtes autorisées par adresse IP et par fenêtre.
+        rate_limit_ip_window_seconds: durée de cette fenêtre, en secondes.
 
     Exemple :
         >>> Settings()  # doctest: +SKIP
         Settings(database_url=SecretStr('**********'), valkey_url='redis://…',
-                 valkey_password=SecretStr('**********'))
+                 valkey_password=SecretStr('**********'), rate_limit_ip_requests=600,
+                 rate_limit_ip_window_seconds=60)
     """
 
     database_url: Secret
     valkey_url: NonEmpty
     valkey_password: Secret
+    rate_limit_ip_requests: Threshold
+    rate_limit_ip_window_seconds: Threshold

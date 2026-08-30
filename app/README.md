@@ -45,7 +45,11 @@ dépendra de la séquence de démarrage. Elle applique le thème dans les deux m
 `ThemeMode.system`. Les couches UI (vues + ViewModels) et Data (repositories + services) naissent
 avec leur premier contenu, sous `lib/ui/` et `lib/data/` — aucun dossier n'est créé avant :
 `lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP,
-`lib/l10n/` depuis les textes.
+`lib/l10n/` depuis les textes, `lib/domain/` depuis les règles du bandeau.
+
+`lib/domain/` porte les règles **qui ne dépendent ni d'un écran ni d'un transport** : elles
+n'importent rien de `lib/ui/`, et c'est ce qui permet de les rejouer ailleurs qu'à l'écran — la
+notification permanente d'Android (UX §10.2) applique la même règle de bandeau sans widget.
 
 ## Thème — les jetons de conception
 
@@ -57,7 +61,7 @@ ni glyphe ne se pose en dur ailleurs dans `lib/`.
 |---|---|---|
 | `theme.dart` | `themeArpendo(Brightness)`, les onze couleurs de chrome des deux modes, et `CouleursChrome` pour les deux que Material 3 ne nomme pas | 1.5 |
 | `typographie.dart` | les huit styles, leurs créneaux Material, la variante `.tabulaire` | 1.2, 1.7 |
-| `mesures.dart` | `Espacements`, `Rayons`, `Elevations` | 1.1, 1.3 |
+| `mesures.dart` | `Espacements`, `CiblesTactiles`, `Rayons`, `Elevations` | 1.1, 1.3, 1.4 |
 | `mouvement.dart` | `JetonMouvement` et `Mouvement.of(context)` | 1.6 |
 | `icones.dart` | la table sémantique Phosphor — **seul fichier à importer `phosphor_icons`** | 1.8 |
 
@@ -126,7 +130,7 @@ arrêtés par la spec UX — l'ARB les transcrit, il ne les rédige pas.
    définitif (UX §0). Un texte absent est une décision à prendre là-bas d'abord — voir
    `.claude/rules/decisions-vs-doc.md`.
 2. L'ajouter à `app_fr.arb` sous une clé en **camelCase français préfixée par son composant ou son
-   écran** (`marqueAccroche`, `bandeauPasDeConnexion`), jamais par le § : les § bougent, les
+   écran** (`marqueAccroche`, `bandeauPasDeReseau`), jamais par le § : les § bougent, les
    composants non.
 3. Lui donner une `description` qui **cite le §** d'où vient le texte. `gen-l10n` la rend en
    doc-comment du getter : elle se lit au point d'usage, sans ouvrir la spec.
@@ -174,6 +178,101 @@ composant ne se teste pas de cette façon.
 `fr-XA` n'est **jamais** livrée : `supportedLocales` de production ne contient que `fr`, et un
 test de `test/app_test.dart` le vérifie.
 
+## Composants uniques
+
+### Le bandeau — une règle, une table de lignes
+
+La spec UX §2.4 impose **un seul bandeau à la fois** : quand plusieurs conditions sont vraies, la
+plus prioritaire gagne et les autres se taisent. `lib/domain/bandeau/` porte cette règle, et rien
+d'autre.
+
+| Fichier | Ce qu'on y lit |
+|---|---|
+| `entree_bandeau.dart` | `Severite`, `ActionBandeau`, `EntreeBandeau`, et `resoudre(actives)` qui rend l'unique entrée à afficher |
+| `lignes.dart` | les deux lignes que l'app sait déjà former — réseau absent (prio 5), mise à jour recommandée (prio 12) |
+
+**Ajouter une ligne ne touche ni `resoudre` ni `lignes.dart`.** Une ligne appartient au domaine qui
+possède sa condition, et s'y déclare :
+
+```dart
+EntreeBandeau ligneVitesseExcessive() => EntreeBandeau(
+  priorite: 7,                       // le rang de la table du §2.4, jamais renuméroté
+  severite: Severite.avertissement,
+  texte: (l10n) => l10n.bandeauTropVite,
+);
+```
+
+Puis la racine de composition joint les lignes actives et remet le résultat à l'affichage :
+
+```dart
+final entree = resoudre([
+  if (!enLigne) ligneReseauAbsent(),
+  if (vitesseExcessive) ligneVitesseExcessive(),
+]);
+```
+
+Il n'existe **volontairement** aucune énumération centrale des conditions : ce serait le point que
+chaque ligne nouvelle devrait modifier. Deux `assert` gardent ce que le module peut vérifier :
+
+- **deux entrées ne portent jamais le même rang** — un rang identifie une ligne de la table ;
+- **une entrée porte zéro, une ou deux actions**, pas davantage : c'est l'anatomie du §2.4.
+
+**Ce qu'aucun `assert` ne peut voir, et qui est à ta charge** : la règle d'exclusivité du §2.4 est
+bien plus forte que l'unicité des rangs — « aucune condition ne doit pouvoir être vraie en même
+temps qu'une condition plus prioritaire ». Elle porte sur les **conditions**, que le module ne
+reçoit jamais. Deux lignes dont les conditions se recouvrent passeront sans un mot, et la mieux
+classée masquera l'autre en silence. En déclarant une ligne, vérifie que sa condition exclut celles
+d'au-dessus.
+
+Les deux lignes de `lignes.dart` n'ont pas encore de domaine propriétaire — le réseau ira à
+Territoire avec la fenêtre de cinq minutes (lignes 4 et 6), la mise à jour à la séquence de
+démarrage. Elles déménageront chez eux, et ce fichier n'est pas destiné à grossir.
+
+**Dette connue, et c'est exactement le piège ci-dessus** : `ligneReseauAbsent()` ne porte pas la
+borne « coupure de moins de 5 min » que la table donne à la ligne 5, faute d'horloge de coupure.
+Tant que la ligne 6 (« Coupure de plus de 5 min ») n'existe pas, c'est sans effet. **Le jour où
+Territoire la livre, la ligne 5 doit recevoir sa borne dans le même lot** : sinon les deux seront
+actives ensemble et la 5, de rang plus bas, masquera la 6 — l'inverse de ce que le §2.4 demande.
+Le raccourci est marqué `ponytail:` dans le code, donc `/ponytail-debt` le retrouve où qu'il aille.
+
+`bloquant` est **porté comme donnée** par l'entrée ; son effet — carte masquée, interactions de jeu
+coupées (§12.2) — se réalisera avec la carte, pas ici.
+
+### Le bandeau à l'écran
+
+| Fichier | Ce qu'on y lit |
+|---|---|
+| `ui/core/bandeau/bandeau.dart` | `Bandeau(entree)` — l'anatomie du §2.4 ; le glyphe et sa couleur se **dérivent** de `severite`, ils ne se passent pas en paramètre |
+| `ui/core/bandeau/emplacement_bandeau.dart` | `EmplacementBandeau(entree?)` — le créneau unique `Calque.bandeau` ; `null` libère la place, que la carte reprend en `motion-base` |
+
+**Aucune hauteur n'est posée dans le code** : elle vaut le rembourrage plus le contenu, et grandit
+de 24 dp par ligne de message. 56 dp sur une ligne sans action, 80 sur deux, 112 dès qu'une action
+est présente, 136 pour deux lignes et une action — des résultats que les tests mesurent, pas des
+constantes. Les actions vivent sur une **seconde rangée**, parce que deux libellés et un message ne
+tiennent pas côte à côte sur 360 dp, et ce sont des `Wrap`, pour qu'un réglage de taille de police
+système à 200 % (§1.2) les fasse passer l'un sous l'autre plutôt que déborder.
+
+`ui/core/mise_en_page/apparition_animee.dart` porte l'apparition et la disparition, et c'est **le
+point unique où le §1.6 s'applique** — durées d'entrée et de sortie, réglage d'accessibilité.
+Tout composant qui doit rendre sa place en partant passe par lui plutôt que de réécrire un
+contrôleur. Deux pièges y sont documentés une fois pour toutes : `AnimatedSize` ne joue jamais son
+contrôleur à l'envers, donc sa `reverseDuration` est inerte ; et poser une `reverseCurve` sur un
+contrôleur qu'on rembobine applique un **second** miroir temporel, ce qui inverse l'effet voulu.
+
+### La pile de calques et les safe areas
+
+`ui/core/mise_en_page/pile_de_calques.dart` porte les trois pièces du contrat de mise en page :
+
+- **`enum Calque`** — les huit rangs `z` du §2.2, du fond (`carte`) vers l'avant (`bloquant`).
+- **`PileDeCalques(children: {Calque: Widget})`** — l'unique `Stack` d'écran. Il trie par `z`, donc
+  l'ordre d'écriture n'a aucune importance, et il enveloppe **tout sauf `carte`** dans une
+  `SafeArea` : la carte occupe l'écran entier, encoche comprise. Chaque plan se dimensionne
+  lui-même — une carte se donne en `SizedBox.expand`, un header à sa hauteur propre.
+- **`rembourrageBas(context)`** — ce qu'une feuille modale ajoute sous son contenu. Le résultat
+  dépend du point d'appel, et c'est voulu : sous une `SafeArea` il ne rend que le clavier, parce
+  que le rembourrage y a déjà été appliqué *et* retiré du `MediaQuery`. Une feuille s'affiche par
+  le `Navigator`, donc hors de la pile, et reçoit bien les deux.
+
 ## Icône de lancement
 
 `documents/assets/icone-app.svg` est la **source unique** de l'icône (identité visuelle §1.5,
@@ -212,6 +311,29 @@ le délai borne **chaque tentative** de transport et non la séquence, de sorte 
 d'espacement progressif passée au paramètre `client` du constructeur puisse durer plus longtemps
 que lui ; `close()` libère le client détenu, créé ou injecté — l'injecter, c'est le céder.
 L'étendre, c'est l'envelopper, pas le modifier : un verbe de plus naît avec son premier appelant.
+
+`ConnectivityService` répond de deux façons, et la bonne dépend de la question posée :
+
+| Question | Verbe | Ce qu'il rend |
+|---|---|---|
+| « suis-je en ligne, là, maintenant ? » | `isOnline()` | un `Future<bool>`, une sonde ponctuelle |
+| « préviens-moi quand ça change » | `enLigne()` | un `Stream<bool>`, **un événement par changement d'état** |
+
+**Ne pas se fier au premier événement d'`enLigne()` pour connaître l'état initial** : sur Android le
+plugin l'émet à l'abonnement, mais pas à tous. Qui a besoin de savoir où il en est lit `isOnline()`,
+et traite un premier événement identique comme un doublon.
+
+Les deux verbes présument le réseau **présent** sur un incident de plateforme (cadrage §10.3) et
+laissent remonter toute autre erreur. La parité s'arrête à un cas : un **plugin absent de la build**
+ne fait pas d'erreur sur le flux, il le rend muet ; c'est `isOnline()` qui reste tolérant à
+celui-là.
+
+Le pourquoi de ces trois comportements — et celui du `distinct` que `enLigne()` applique en plus de
+celui du plugin — est au point d'usage, dans le dartdoc de
+`lib/data/services/connectivity_service.dart`, avec les sources qui l'établissent. Ces raisons-là ne
+se recopient pas : elles se lisent là où on écrit l'appel.
+
+C'est `enLigne()` qui alimente la ligne 5 du bandeau (UX §2.4) — voir « Composants uniques ».
 
 > `connectivity_plus` fusionne la permission Android `ACCESS_NETWORK_STATE` dans le manifeste.
 > Elle est normale et n'affiche aucune invite, mais elle apparaît dans l'APK.

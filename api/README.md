@@ -157,6 +157,68 @@ reste une frontière.
 cadrage §13.8 la pose comme indolore par conception — l'appelant se réabonne, le journal a tout
 gardé. Un serveur injoignable se constate dès l'entrée du contexte, pas à la première lecture.
 
+## Limitation de débit
+
+Chaque requête est comptée dans Valkey, par **dimension** et par clé, en fenêtre fixe. Au-delà du
+quota, l'api répond **429** avec un `Retry-After` valant ce qu'il reste de la fenêtre. Aucune route
+n'est exemptée : `/health` compte comme les autres, ses quelques sondes par minute étant
+négligeables devant le quota — et c'est ce qui en fait l'endpoint réel des tests.
+
+**Ajouter un axe de limitation, c'est ajouter une entrée à `DIMENSIONS`** (`core/rate_limit.py`),
+sur le modèle de `PROBES` : un nom, une fonction qui tire la clé de la requête, et deux fonctions
+qui lisent le quota et la fenêtre dans les réglages. Le middleware ne les connaît pas et ne change
+pas. Une clé `None` veut dire « cet axe ne s'applique pas à cette requête » : elle passe alors sans
+être comptée. Seul axe aujourd'hui : `ip`, sous la clé `ratelimit:ip:<adresse>`.
+
+| Réglage | Rôle |
+|---|---|
+| `RATE_LIMIT_IP_REQUESTS` | requêtes autorisées par adresse et par fenêtre |
+| `RATE_LIMIT_IP_WINDOW_SECONDS` | durée de la fenêtre, en secondes |
+| `FORWARDED_ALLOW_IPS` | lue par **uvicorn**, pas par `Settings` — voir plus bas |
+
+**Échec ouvert** : Valkey injoignable, la requête passe sans être comptée (cadrage §13.8 — la perte
+de Valkey est indolore par conception, et des compteurs remis à zéro sont sans conséquence). Sont
+attrapées `ConnectionError` et `TimeoutError` de redis-py — sœurs, l'une n'hérite pas de l'autre,
+il faut donc nommer les deux — **et tout ce qui hérite de la première**, dont
+`AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. Aucune trace dans les
+journaux jusqu'à #42, mais `/health` le dit en répondant 503. Assumé : rejeter chaque requête sur
+une erreur de configuration ferait une panne totale là où l'on a un service dégradé et signalé.
+Attraper `Exception`, en revanche, désarmerait la limitation au premier bug du limiteur au lieu de
+le faire sortir en 500.
+
+### L'adresse comptée, et à qui l'on croit
+
+Le limiteur ne lit **jamais** `X-Forwarded-For`. Il compte `request.client.host`, que le
+`ProxyHeadersMiddleware` d'uvicorn — actif par défaut — a déjà remplacé par l'adresse annoncée par
+le proxy **si et seulement si** le pair figure dans `FORWARDED_ALLOW_IPS`. Une seule décision, un
+seul endroit. Les nuances qui se paient cher :
+
+- **Ne jamais poser `*`.** Il ne se contente pas de faire confiance à tout le monde : il
+  **change d'algorithme**. Sous `*`, uvicorn retient le **premier** hôte de la liste — celui de
+  gauche, entièrement écrit par le client — et ne le valide même pas comme adresse : un
+  `X-Forwarded-For: pas-une-ip` devient tel quel la clé de comptage. Le limiteur est alors à la
+  fois contournable (une valeur différente à chaque requête) et une fabrique de clés arbitraires
+  qui vivent une fenêtre entière. Le raccourci est tentant quand l'adresse de la passerelle est
+  imprévisible ; il désarme la limitation.
+- **`*` accompagné n'est pas `*`.** `FORWARDED_ALLOW_IPS=*,10.0.0.1` ne vaut pas « tout le
+  monde » : le `*` y devient un nom d'hôte littéral que personne ne porte, et la liste se comporte
+  exactement comme `10.0.0.1`. Le raccourci total n'existe que pour `*` **seul**. Une valeur vide,
+  elle, ne fait confiance à personne.
+- **Hors `*`, l'adresse retenue est le premier hôte non fiable en partant de la droite**, pas le
+  premier de la liste. Chaque proxy ajoute à la fin : la droite est le seul bout qu'un client ne
+  contrôle pas.
+- **La liste accepte les IP, les CIDR et les littéraux.** Une IP mal écrite ne lève rien : elle
+  devient un littéral, qui ne correspondra jamais à personne.
+
+**En production**, y poser le réseau de Caddy — périmètre de #45 — et **ne pas s'en remettre au
+défaut**. Derrière un reverse proxy dont l'adresse n'est pas déclarée, aucun en-tête n'est cru et
+le limiteur compte l'adresse interne de Caddy pour *tous* les joueurs : le quota par adresse
+devient un plafond global, « et le premier joueur actif bloquerait les autres » (cadrage §13.7).
+Sûr du côté de l'usurpation, dégradé du côté de la disponibilité — pas un état où l'on s'installe.
+
+Dans la pile locale, les requêtes venues de l'hôte atteignent le conteneur avec pour pair la
+passerelle du bridge Docker : tout le trafic de la machine partage donc un seul compteur tant
+qu'aucun reverse proxy n'est devant. Sans conséquence au quota par défaut.
 ## Le worker
 
 **Un seul paquet, deux points d'entrée** (cadrage §13.0) : l'api HTTP et le worker sont deux hôtes

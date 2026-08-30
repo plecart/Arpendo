@@ -14,13 +14,22 @@ import 'package:http/testing.dart';
 const _delaiCourt = Duration(milliseconds: 200);
 
 /// Connectivité figée : les tests décident de l'état du réseau sans y toucher.
+///
+/// Le champ ne peut pas s'appeler `enLigne` : c'est le nom du verbe de flux du
+/// service, et un champ ne saurait porter le même nom qu'une méthode héritée.
 class _ConnectiviteFigee implements ConnectivityService {
-  const _ConnectiviteFigee({required this.enLigne});
+  const _ConnectiviteFigee({required this.reseauPresent});
 
-  final bool enLigne;
+  final bool reseauPresent;
 
   @override
-  Future<bool> isOnline() async => enLigne;
+  Future<bool> isOnline() async => reseauPresent;
+
+  /// `ApiClient` sonde l'état du réseau, il n'en suit pas les changements :
+  /// un appel ici signalerait une dépendance que ce client n'a pas.
+  @override
+  Stream<bool> enLigne() =>
+      throw UnsupportedError('ApiClient ne suit pas le flux de connectivité');
 }
 
 /// Les quatre combinaisons de barres que [ApiConfig.url] doit toutes absorber.
@@ -53,7 +62,7 @@ ApiClient _client(
   final client = ApiClient(
     config: config,
     clientVersion: '1.2.3',
-    connectivite: _ConnectiviteFigee(enLigne: enLigne),
+    connectivite: _ConnectiviteFigee(reseauPresent: enLigne),
     client: transport,
   );
   // Chaque test exerce ainsi la règle « injecter un client, c'est le céder ».

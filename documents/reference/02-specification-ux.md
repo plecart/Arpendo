@@ -134,7 +134,7 @@ Découpage vertical de l'écran de référence (360 × 800 dp), pouce d'une main
 
 | Bande | Hauteur | Accessibilité | Ce qu'on y met |
 |---|---|---|---|
-| **Haute** | 0 → 200 dp | Difficile, nécessite de rattraper le téléphone | **Information à lire, jamais à toucher.** Une seule exception, et elle ne concerne pas l'écran Jeu : l'**icône Paramètres de la barre de titre de l'Accueil** (§5) — action rare, non urgente, et la convention Android l'y place. Sur l'écran Jeu, la bande haute est **entièrement inerte** |
+| **Haute** | 0 → 200 dp | Difficile, nécessite de rattraper le téléphone | **Information à lire, jamais à toucher**, à deux exceptions près, toutes deux rares et non urgentes. **(1)** L'**icône Paramètres de la barre de titre de l'Accueil** (§5) — la convention Android l'y place. **(2)** Les **actions du bandeau** (§2.4) : il occupe l'emplacement unique z 200 sous le header, donc dans cette bande, et sept de ses treize lignes portent un bouton. Elles ne peuvent pas descendre — les séparer de leur message les rendrait illisibles, et déplacer le bandeau rouvrirait le budget vertical du §2.2. La plus critique, « Réglages », est le **seul chemin de sortie** d'une permission refusée (cadrage §9.3, §12.2) : la rendre difficile à atteindre est le prix d'un message qu'on lit avant d'agir. **Hors ces deux cas, la bande haute de l'écran Jeu est inerte** — les puces de header ne portent aucune action (§7.1) |
 | **Médiane** | 200 → 520 dp | Correcte | Carte, contenu de liste |
 | **Basse** | 520 → 800 dp | **Zone du pouce** | Toutes les actions fréquentes : le bouton d'action « Partie », le bouton Recentrer |
 
@@ -436,9 +436,9 @@ document entre header, bandeaux d'état et bandeau de mise à jour.
 |---|---|
 | Encoche / barre d'état (safe area haute) | 24–48 |
 | **Puces de header** (§7.1) | **0** — elles flottent, la carte court dessous |
-| Bandeau, s'il y en a un | 56 |
+| Bandeau, s'il y en a un | **56 à 136** selon son contenu (§2.4) |
 | Barre de gestes (safe area basse) | 24–48 |
-| **Carte réellement visible** | **≈ 648 à 696 dp, soit 81 à 87 %** |
+| **Carte réellement visible** | **≈ 648 à 696 dp (81 à 87 %)** avec un bandeau d'une ligne sans action ; **≈ 568 à 616 dp (71 à 77 %)** dans le cas le plus chargé — deux lignes et une action |
 
 **Deux surfaces occultent la carte sans la réduire, et il faut les compter à part** — le
 pourcentage ci-dessus ne les déduit pas, exactement comme au §7.2.1 :
@@ -469,16 +469,39 @@ d'action sans effet (§4.2 et §4.3), mise à jour recommandée (§14.1). Le cad
 explicitement **un seul composant** (§9.3, dernière puce) ; ce document l'étend aux trois autres
 familles, parce qu'elles ont la même anatomie et le même emplacement.
 
-**Anatomie.** Hauteur 56 dp (72 dp si le texte passe sur deux lignes), largeur pleine moins
-`space-4` de chaque côté, `radius-md`, `elev-1`. Icône 24 dp à gauche, texte `type-body`,
-zéro à deux actions à droite. Les actions sont des boutons texte de **48 dp de haut**.
+**Anatomie.** Largeur pleine moins `space-4` de chaque côté, `radius-md`, `elev-1`, rembourrage
+interne `space-4`. Icône 24 dp à gauche, **`space-3`** d'écart — et non `space-1`, qui vaut pour une
+icône accolée à son libellé dans un même contrôle (§1.1), là où l'icône et le message du bandeau
+sont deux éléments distincts —, puis le texte `type-body` ; **zéro à deux actions sur une seconde
+rangée**, alignées à droite, séparées du message par `space-2`. Les actions sont des boutons texte
+de **48 × 48 dp minimum** (§1.4, « aucune exception »).
+
+**La hauteur est un résultat, jamais une consigne** (§0 : les conteneurs grandissent, ils ne
+tronquent pas). Elle vaut `space-4` × 2 plus la hauteur du contenu, où une ligne de `type-body`
+compte 24 dp (§1.2) et une rangée d'actions 48 + `space-2` (§1.4). D'où, pour les cas courants :
+
+| Contenu | Hauteur |
+|---|---|
+| une ligne, aucune action | **56 dp** |
+| deux lignes, aucune action | **80 dp** |
+| une ligne, avec action(s) | **112 dp** |
+| deux lignes, avec action(s) | **136 dp** |
+
+Ce sont des **illustrations de la règle, pas une énumération** : un message plus long continue de
+grandir de 24 dp par ligne, et les tests mesurent, ils ne recopient pas.
+
+**Pourquoi les actions ne partagent pas la rangée du message.** Sur l'écran de référence de
+360 dp, il reste 260 dp une fois retirés les marges, le rembourrage, l'icône et son écart. Les
+deux actions des priorités 10 et 11 — « Réglages » et « Masquer pour cette partie » — les
+consomment à elles seules. Le message garde donc toute la largeur, ce qui le rend insensible à la
+longueur des libellés comme à la tolérance de +30 % du §0.
 
 **Paramètres du composant :**
 
 | Paramètre | Valeurs |
 |---|---|
 | `severite` | `info` · `avertissement` · `bloquant` |
-| `icone` | glyphe 24 dp — **jamais la couleur seule** pour distinguer les sévérités |
+| *(icône)* | **dérivée de `severite`**, pas un paramètre : cercle · triangle · octogone, 24 dp — la sévérité se porte par la **forme**, **jamais la couleur seule** |
 | `texte` | chaîne i18n |
 | `actions` | 0 à 2 boutons texte |
 | `bloquant` | masque la carte et coupe les interactions de jeu |
@@ -501,7 +524,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
 | 11 | Notifications refusées | avertissement | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
-| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · fermer |
+| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · « Fermer » |
 | 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
 Notes de comportement :
@@ -1262,9 +1285,10 @@ réduction** : le §2.2 ne décompte plus le header de la hauteur disponible, et
 | Puce gauche, superposée | Pastille de delta, transitoire, calée sur le bord droit **intérieur** — **elle n'occupe aucune largeur propre** (§ « Le score vivant », point 3) | `type-label` |
 
 **Les deux puces ne portent aucune cible tactile.** Elles sont **entièrement inertes** : de
-l'information à lire, rien à toucher, ce qui applique la bande haute du §1.4 sans exception. Elles
-sont donc en `IgnorePointer` — le glissement de carte les traverse, exactement comme la pile
-d'activité (§7.2.1) — **et elles restent dans l'arbre d'accessibilité**, avec un `Semantics`
+l'information à lire, rien à toucher, et elles ne se réclament d'aucune des deux exceptions que le
+§1.4 accorde à cette bande. Elles sont donc en `IgnorePointer` — le glissement de carte les
+traverse, exactement comme la pile d'activité (§7.2.1) — **et elles restent dans l'arbre
+d'accessibilité**, avec un `Semantics`
 explicite posé en dehors de l'`IgnorePointer`. L'accès aux Paramètres passe par la barre d'onglets
 de la feuille Partie (§7.4).
 
