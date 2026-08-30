@@ -110,6 +110,12 @@ async def publish(session: AsyncSession, valkey: Redis, *events: Event) -> None:
             l'état partiel que le commit explicite existe pour éviter.
 
     Note:
+        Si la diffusion échoue au milieu d'un lot — Valkey absent —, tout est déjà **commis** et
+        l'exception remonte à l'appelant ; les événements déjà traités portent leur ``id``, les
+        suivants non. Rien n'est perdu pour autant : le journal a tout, et le cadrage §13.8 pose la
+        perte du bus comme indolore. L'appelant n'a donc rien de particulier à faire de cette
+        exception.
+
         ``id`` et ``occurred_at`` sont relus **sur la ligne commise**, jamais recalculés ici. Le
         premier vient du défaut Python du modèle, le second du ``now()`` de PostgreSQL, et
         SQLAlchemy le rapporte par un ``RETURNING`` posé dès l'INSERT : ``Mapper.eager_defaults``
