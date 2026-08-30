@@ -8,6 +8,7 @@ s'exécuter qu'une fois, quel que soit le nombre d'instances HTTP (§13.9 règle
 import asyncio
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
+from pathlib import Path
 
 from arpendo_api.core.resources import Resources, open_resources
 from arpendo_api.core.settings import Settings
@@ -17,6 +18,46 @@ Task = Callable[[Resources], Awaitable[None]]
 
 Elle ne rend rien : seul compte qu'elle aboutisse. Elle reçoit les ressources plutôt que de les
 ouvrir, pour que toutes les tâches partagent un seul moteur et un seul client.
+"""
+
+
+HEARTBEAT = Path("/tmp/arpendo-worker-battement")
+"""Le fichier dont la fraîcheur dit que le worker tourne encore.
+
+Sous ``/tmp`` : c'est le seul chemin qui reste inscriptible quand #45 posera un système de fichiers
+en lecture seule et un ``tmpfs``. Une clé Valkey ferait la même chose, mais la sonde du conteneur
+devrait alors embarquer un client et un mot de passe pour la lire — là, un ``stat`` suffit.
+"""
+
+HEARTBEAT_INTERVAL = 10.0
+"""Secondes entre deux battements.
+
+Une constante, pas un réglage : #44 n'ajoute aucune variable d'environnement. La valeur suit
+l'``interval`` du healthcheck de l'image api, pour qu'il n'y ait qu'une cadence à retenir dans le
+compose — où elle est **recopiée**, Compose ne sachant pas lire une constante Python.
+"""
+
+
+async def _heartbeat(resources: Resources) -> None:
+    """Repose la date du fichier de battement — la seule chose que la sonde du conteneur regarde.
+
+    ``touch`` crée le fichier au premier tour et n'en rafraîchit que la date ensuite : rien n'est
+    écrit dedans, il n'a pas de contenu, c'est sa **date** qui porte l'information.
+
+    Args:
+        resources: inutilisées. La signature est celle de toute tâche, pour que la table reste
+            uniforme et qu'une tâche puisse gagner un accès à la base sans changer de forme.
+    """
+    HEARTBEAT.touch()
+
+
+TASKS: Mapping[str, tuple[float, Task]] = {"battement": (HEARTBEAT_INTERVAL, _heartbeat)}
+"""Les tâches périodiques du worker, sous le nom qui les désigne.
+
+**Ajouter une tâche planifiée, c'est ajouter une entrée ici** (§13.9 règle 2) — ni la boucle, ni
+l'ouverture des ressources, ni l'arrêt n'ont à changer. Une seule à la naissance : le battement.
+Les tâches réelles — fin de partie, purges de rétention, bilans du flux, envoi des push — arrivent
+avec les domaines Territoire et Flux.
 """
 
 

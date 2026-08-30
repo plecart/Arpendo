@@ -1,11 +1,23 @@
 """Le worker : ce qu'il déroule, et comment il s'arrête."""
 
 import asyncio
+import os
+from pathlib import Path
+from typing import cast
 
+import pytest
 from conftest import MoteurEspion
 
+from arpendo_api import worker
 from arpendo_api.core.resources import Resources
-from arpendo_api.worker import run
+from arpendo_api.worker import TASKS, run
+
+RESSOURCES_INUTILISEES = cast(Resources, None)
+"""Ce que reçoit une tâche qui n'a besoin de rien.
+
+Le battement n'écrit qu'un fichier : lui ouvrir un moteur et un client Valkey pour l'éprouver
+donnerait à croire qu'il en dépend.
+"""
 
 DELAI = 5.0
 """Secondes accordées à un `run` qu'on attend arrêté.
@@ -49,3 +61,28 @@ async def test_run_libere_les_ressources_quand_il_s_arrete(moteur_espion: Moteur
         await run({}, arret)
 
     assert moteur_espion.libere
+
+
+async def test_le_battement_cree_le_fichier_puis_en_rafraichit_la_date(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Le healthcheck du conteneur ne lit rien d'autre que l'âge de ce fichier.
+
+    Les deux moitiés comptent : le créer prouve que le worker a démarré, en **rafraîchir la date**
+    prouve qu'il tourne encore. Un battement qui ne ferait que créer laisserait un conteneur mort
+    passer pour vivant jusqu'à ce que quelqu'un regarde.
+
+    La date est reculée à la main plutôt qu'attendue : deux `touch` consécutifs peuvent tomber dans
+    la même graduation d'horloge, et le test deviendrait alors une loterie.
+    """
+    fichier = tmp_path / "battement"
+    monkeypatch.setattr(worker, "HEARTBEAT", fichier)
+    _, battre = TASKS["battement"]
+
+    await battre(RESSOURCES_INUTILISEES)
+    assert fichier.exists()
+
+    os.utime(fichier, (0, 0))
+    await battre(RESSOURCES_INUTILISEES)
+
+    assert fichier.stat().st_mtime > 0
