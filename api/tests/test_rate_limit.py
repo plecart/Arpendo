@@ -116,6 +116,8 @@ async def test_la_fenetre_ne_se_decale_pas_a_chaque_requete(
     await client.get("/health")
     echeance = await valkey.pttl(COMPTEUR_LOCAL)
 
+    assert echeance > 0, "un compteur sans échéance ne se réinitialiserait jamais"
+
     time.sleep(0.05)
     await client.get("/health")
 

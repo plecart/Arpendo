@@ -77,6 +77,13 @@ async def _retry_after(valkey: Redis, key: str, quota: int, window: int) -> int 
     qu'il en reste, qui est exactement le délai à annoncer. Une fenêtre glissante serait plus
     juste aux bords ; l'anti-abus n'a pas besoin de cette justesse.
 
+    Le pipeline est **transactionnel**, comme redis-py le fait par défaut : les trois commandes
+    sont enveloppées dans un ``MULTI``/``EXEC`` et s'appliquent toutes ou aucune. Sans cela, une
+    connexion qui meurt entre l'``INCR`` et l'``EXPIRE`` laisserait un compteur **sans échéance**
+    — donc une adresse bloquée pour toujours, puisque plus rien ne remettrait le compteur à zéro.
+    Le coût est de deux commandes sur le même aller-retour ; le prix de s'en passer est une panne
+    silencieuse et définitive pour l'appelant qu'elle frappe.
+
     **Échoue ouvert** : Valkey injoignable rend ``None``, donc la requête passe sans être comptée
     (cadrage §13.8 — la perte de Valkey est indolore par conception, et des compteurs remis à
     zéro sont sans conséquence). Les deux exceptions attrapées sont étroites et sœurs :
@@ -92,11 +99,12 @@ async def _retry_after(valkey: Redis, key: str, quota: int, window: int) -> int 
     Returns:
         Les secondes à attendre — au moins 1 — si la requête dépasse le quota, ``None`` si elle
         passe. ``max(ttl, 1)`` protège l'en-tête contre le ``-1`` que ``TTL`` rend sur une clé
-        sans expiration : un cas que ce code ne peut pas produire, mais qui donnerait un
-        ``Retry-After`` invalide s'il survenait.
+        sans expiration : l'atomicité ci-dessus interdit à ce module d'en créer une, mais rien
+        n'interdit à un autre écrivain de poser une clé de ce nom, et un ``Retry-After`` négatif
+        est un en-tête invalide.
     """
     try:
-        async with valkey.pipeline(transaction=False) as batch:
+        async with valkey.pipeline() as batch:
             batch.incr(key)
             batch.expire(key, window, nx=True)
             batch.ttl(key)
