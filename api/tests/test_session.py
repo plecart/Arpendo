@@ -1,34 +1,18 @@
 """La session async par requête : ce qu'elle écrit, et ce qu'elle refuse d'écrire toute seule."""
 
 import uuid
-from collections.abc import AsyncIterator
 from typing import Any
 
-import pytest
+from conftest import evenements_persistes
+from evenements import Capture
 from fastapi import FastAPI
 from httpx import AsyncClient
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy import select
 
 from arpendo_api.core.journal import DomainEvent
 from arpendo_api.db.session import Session
 
 CHARGE = {"joueur": "bleu", "hexagones": 3}
-
-
-@pytest.fixture
-def partie() -> uuid.UUID:
-    """Une partie propre à chaque test — aucun test ne voit ce qu'un autre a écrit.
-
-    Sans elle, l'isolation reposerait sur l'ordre d'exécution et sur le nettoyage d'un voisin.
-    """
-    return uuid.uuid4()
-
-
-def fabrique_de(app: FastAPI) -> async_sessionmaker[AsyncSession]:
-    """La fabrique de sessions que le cycle de vie a rangée dans ``app.state``."""
-    fabrique: async_sessionmaker[AsyncSession] = app.state.sessionmaker
-    return fabrique
 
 
 def route_qui_ecrit(app: FastAPI, partie: uuid.UUID, *, commit: bool) -> str:
@@ -60,7 +44,7 @@ def route_qui_ecrit(app: FastAPI, partie: uuid.UUID, *, commit: bool) -> str:
 
     @app.post(chemin)
     async def _ecrire(session: Session) -> dict[str, Any]:
-        evenement = DomainEvent(game_id=partie, type="capture", payload=dict(CHARGE))
+        evenement = DomainEvent(game_id=partie, type=Capture.type, payload=dict(CHARGE))
         session.add(evenement)
         await session.flush()
         payload, occurred_at = (
@@ -79,22 +63,6 @@ def route_qui_ecrit(app: FastAPI, partie: uuid.UUID, *, commit: bool) -> str:
         }
 
     return chemin
-
-
-async def evenements_persistes(app: FastAPI, partie: uuid.UUID) -> list[DomainEvent]:
-    """Ce que voit une session *neuve* — donc ce qui a réellement été commis."""
-    async with fabrique_de(app)() as session:
-        resultat = await session.execute(select(DomainEvent).where(DomainEvent.game_id == partie))
-        return list(resultat.scalars())
-
-
-@pytest.fixture
-async def journal_nettoye(app: FastAPI, partie: uuid.UUID) -> AsyncIterator[None]:
-    """Retire ce que le test a délibérément commis — la base est partagée par toute la suite."""
-    yield
-    async with fabrique_de(app)() as session:
-        await session.execute(delete(DomainEvent).where(DomainEvent.game_id == partie))
-        await session.commit()
 
 
 async def test_la_session_injectee_ecrit_et_relit_un_evenement(

@@ -1,14 +1,19 @@
+import uuid
 from collections.abc import AsyncIterator, Mapping
 from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
+from evenements import PREFIXE
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete, select
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.schema import CreateIndex, CreateTable
 
+from arpendo_api.core.journal import DomainEvent
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
 
@@ -97,3 +102,44 @@ def schema(alembic_config: Config) -> None:
     dans une boucle déjà en cours — celle qu'un test asynchrone aurait ouverte.
     """
     command.upgrade(alembic_config, "head")
+
+
+@pytest.fixture
+def partie() -> uuid.UUID:
+    """Une partie propre à chaque test — aucun test ne voit ce qu'un autre a écrit.
+
+    Sans elle, l'isolation reposerait sur l'ordre d'exécution et sur le nettoyage d'un voisin. Elle
+    isole aussi les canaux du bus, y compris entre deux suites qui parlent au même Valkey : le
+    pub/sub ignore l'index de base de données, un nom de canal fixe serait partagé.
+    """
+    return uuid.uuid4()
+
+
+def fabrique_de(app: FastAPI) -> async_sessionmaker[AsyncSession]:
+    """La fabrique de sessions que le cycle de vie a rangée dans ``app.state``."""
+    fabrique: async_sessionmaker[AsyncSession] = app.state.sessionmaker
+    return fabrique
+
+
+async def evenements_persistes(app: FastAPI, partie: uuid.UUID) -> list[DomainEvent]:
+    """Ce que voit une session *neuve* — donc ce qui a réellement été commis."""
+    async with fabrique_de(app)() as session:
+        resultat = await session.execute(
+            select(DomainEvent).where(DomainEvent.game_id == partie).order_by(DomainEvent.id)
+        )
+        return list(resultat.scalars())
+
+
+@pytest.fixture
+async def journal_nettoye(app: FastAPI, partie: uuid.UUID) -> AsyncIterator[None]:
+    """Retire ce que le test a délibérément commis — la base est partagée par toute la suite.
+
+    Le nettoyage porte sur le **préfixe de type**, et non sur la partie : un événement publié sans
+    partie est journalisé lui aussi, et aucune clause sur ``game_id`` ne peut l'atteindre. Mesuré —
+    avec la clause par partie, une ligne orpheline survivait à la suite, et n'en disparaissait que
+    par accident, quand le test des migrations défait le schéma.
+    """
+    yield
+    async with fabrique_de(app)() as session:
+        await session.execute(delete(DomainEvent).where(DomainEvent.type.startswith(PREFIXE)))
+        await session.commit()
