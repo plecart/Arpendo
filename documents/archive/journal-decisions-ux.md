@@ -526,3 +526,50 @@ l'avertissement de sécurité du §6.
 | §11.2 | « Ta partie et ta progression sont conservées. » | *inchangé* |  | réassurance factuelle |
 | §12.3 | « Arpendo a besoin de ta position pour colorer les hexagones où tu marches. » | *inchangé* |  | amorce, explique déjà |
 | §12.3 | « Pour que la capture reprenne toute seule après un redémarrage de ton téléphone. » | « Avec cette autorisation, la capture reprend toute seule après un redémarrage de ton téléphone. » | +19 % | un fragment devient une phrase qui dit ce que donne l'autorisation |
+
+---
+
+## 18.6 Amendement du §2.4 du 30 août 2026 — l'icône du bandeau
+
+Découvert au briefing de #43 (PR #74, lot 1/2), en listant les paramètres à donner à
+`EntreeBandeau`. **Aucune décision de conception n'est rouverte** : les trois glyphes restent
+`Info` · `Warning` · `WarningOctagon`, la règle « la sévérité se porte par la forme, jamais la
+couleur seule » est conservée mot pour mot. Ce qui change est le **statut** de l'icône : d'un
+paramètre qu'un appelant fournit, elle devient une dérivée de `severite` que le composant calcule.
+
+**Ce qui était faux, et pourquoi personne ne l'avait vu :**
+
+| Ce qui était écrit | Ce qui est vrai |
+|---|---|
+| §2.4, table « Paramètres du composant » : `icone` \| glyphe 24 dp — **jamais la couleur seule** pour distinguer les sévérités | Aucune des treize lignes de la table de priorité ne nomme un glyphe : toutes portent une **sévérité**, et §1.8 fait déjà correspondre les trois sévérités aux trois glyphes (`severiteInfo`, `severiteAvertissement`, `severiteBloquant`). Le paramètre n'a donc jamais eu d'appelant qui lui donnerait autre chose que le glyphe de sa sévérité |
+| (implicite) l'icône est une donnée de l'entrée | La faire porter par l'entrée oblige `lib/domain/bandeau/` à importer `IconData` et la table `Icones` de `lib/ui/core/theme/`, alors que le module doit rester lisible **sans widget** — la notification permanente du §10.2 applique la même règle de priorité sans rien afficher à l'écran |
+
+Le §2.4 était donc seul à traiter l'icône comme un paramètre : §1.5 et §1.8 la traitaient déjà
+comme une fonction de la sévérité. L'amendement ne tranche pas entre trois sections, il **aligne
+la seule qui divergeait**.
+
+**Le risque que le paramètre créait.** Un paramètre libre autorise un triangle sur une entrée
+`info`. La règle du §2.4 — la sévérité se lit à la forme, pour rester lisible en niveaux de gris,
+à petite taille et pour un daltonien — n'est alors plus garantie par la structure, seulement par la
+discipline de chaque appelant. La dérivation la rend impossible à enfreindre.
+
+**Options examinées :**
+
+| Option | Retenue ? |
+|---|---|
+| Retirer le paramètre : l'entrée porte `severite`, le widget fait `Severite → Icones.severite*` | **Oui.** Garde `lib/domain/` sans dépendance à la couche d'interface, rend un glyphe incohérent structurellement impossible, et réconcilie §2.4 avec §1.5 et §1.8 qui le traitaient déjà ainsi |
+| Garder `icone` en paramètre explicite, comme l'écrivait le § | Non. Suivait la lettre du document et le critère d'acceptation de #43, au prix des deux défauts ci-dessus. Le § lui-même disait « jamais la couleur seule » — c'est-à-dire que la forme *est* la sévérité |
+| Garder le paramètre en le rendant optionnel, avec la dérivation par défaut | Non. Deux chemins pour une seule vérité, dont un que rien n'emprunte : le glyphe incohérent redevient possible, et la structure ne dit plus laquelle des deux sources fait foi |
+| Abandonner la décision et ne rien amender | Non — mais c'était la sortie à considérer d'abord. Écartée parce que la cascade est nulle : une cellule de tableau, aucun document de rang 1 concerné, une seule issue ouverte à corriger |
+
+**§§ répercutés :** `02-specification-ux.md` §2.4, table des paramètres (une cellule) · corps de
+l'issue #43, critère d'acceptation du bandeau paramétré. Le §2.4 n'est mentionné dans aucun
+document de rang 1, donc **aucune ligne au journal du cadrage**. §1.5, §1.8, §10.2 et §12.2 sont
+inchangés — vérifié : aucun ne présentait l'icône comme un paramètre. `pipeline.config.md` et
+`CLAUDE.md` ne sont pas touchés.
+
+**Ce qui n'est pas une contradiction, et n'est donc pas archivé ici.** Le même amendement a fixé le
+libellé de l'action de fermeture de la ligne 12 à « **Fermer** ». Le §2.4 écrivait « fermer » sans
+guillemets français et le §11.2 dit seulement « fermable » : aucun libellé n'était arrêté. C'est un
+**vide comblé**, pas un § rendu faux — `.claude/rules/decisions-vs-doc.md` le range explicitement
+hors du champ de l'arrêt, et il n'y a pas de raisonnement à conserver.
