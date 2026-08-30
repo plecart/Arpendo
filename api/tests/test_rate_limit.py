@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 from starlette.types import ASGIApp
+from uvicorn import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from arpendo_api.core import rate_limit
@@ -288,3 +289,22 @@ async def test_le_cycle_de_vie_traverse_le_limiteur_sans_etre_compte(
 
     assert reponses == ["lifespan.startup.complete", "lifespan.shutdown.complete"]
     assert await cles_de_limitation(valkey) == []
+
+
+def test_l_api_est_bien_servie_derriere_le_middleware_de_proxy() -> None:
+    """La frontière de confiance n'existe que si le serveur enveloppe vraiment l'application.
+
+    Tout ce qui précède éprouve l'algorithme d'uvicorn en construisant le middleware à la main ;
+    rien ne prouvait qu'il est là en production. Un `--no-proxy-headers` ajouté au `command:` du
+    compose le retirerait sans faire rougir un seul test, et l'api compterait alors l'adresse
+    interne de caddy pour tous les joueurs — « le premier joueur actif bloquerait les autres »
+    (cadrage §13.7).
+
+    On charge donc l'application comme le serveur le fait, par son point d'entrée réel, et on
+    regarde ce qui en sort. `ProxyHeadersMiddleware` est le dernier emballage posé par
+    `Config.load`, donc le plus externe.
+    """
+    config = Config("arpendo_api.main:create_app", factory=True)
+    config.load()
+
+    assert isinstance(config.loaded_app, ProxyHeadersMiddleware)
