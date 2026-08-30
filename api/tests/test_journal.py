@@ -4,7 +4,8 @@ import uuid
 from typing import ClassVar
 
 import pytest
-from conftest import Capture, ddl
+from conftest import ddl
+from evenements import Capture
 from pydantic import ValidationError
 from sqlalchemy.schema import CreateIndex, CreateTable
 

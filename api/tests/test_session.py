@@ -4,6 +4,7 @@ import uuid
 from typing import Any
 
 from conftest import evenements_persistes
+from evenements import Capture
 from fastapi import FastAPI
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -43,7 +44,7 @@ def route_qui_ecrit(app: FastAPI, partie: uuid.UUID, *, commit: bool) -> str:
 
     @app.post(chemin)
     async def _ecrire(session: Session) -> dict[str, Any]:
-        evenement = DomainEvent(game_id=partie, type="capture", payload=dict(CHARGE))
+        evenement = DomainEvent(game_id=partie, type=Capture.type, payload=dict(CHARGE))
         session.add(evenement)
         await session.flush()
         payload, occurred_at = (

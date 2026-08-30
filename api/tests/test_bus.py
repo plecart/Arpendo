@@ -8,7 +8,8 @@ from typing import ClassVar
 
 import pytest
 import uuid6
-from conftest import Capture, evenements_persistes, fabrique_de
+from conftest import evenements_persistes, fabrique_de
+from evenements import Capture
 from fastapi import FastAPI
 from pydantic import BaseModel
 from redis.exceptions import RedisError
