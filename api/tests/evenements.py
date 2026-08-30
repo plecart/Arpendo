@@ -1,11 +1,16 @@
 """Les types d'événements que la suite déclare — #44 n'en livre aucun de métier.
 
-Module **neutre et léger**, et c'est ce qui compte : le registre d'``EVENTS`` est alimenté par la
-déclaration d'une sous-classe, donc le type de test doit vivre quelque part d'importable sans effet
-de bord. Le mettre dans ``conftest.py`` obligerait tout importateur — un sous-processus de test, par
-exemple — à tirer alembic, FastAPI et httpx pour obtenir une classe de trois lignes, et à
-l'atteindre sous le nom exact ``conftest`` : sous un autre nom, le corps de classe serait réexécuté
-et la garde du registre lèverait.
+Module **neutre et léger**, et c'est tout ce qu'il apporte : dans ``conftest.py``, obtenir une
+classe de trois lignes obligeait un importateur — un sous-processus de test, par exemple — à tirer
+alembic, FastAPI et httpx avec elle.
+
+**À importer sous le nom ``evenements``, et sous aucun autre.** Le registre d'``EVENTS`` est
+alimenté par la déclaration d'une sous-classe : charger ce fichier une seconde fois sous un autre
+nom — ``tests.evenements`` plutôt que ``evenements`` — en réexécute le corps de classe, et la garde
+du registre lève ``ValueError: identifiant de type déjà inscrit``. C'est une propriété de
+``sys.modules``, pas de l'endroit où le fichier est rangé : le déplacement depuis ``conftest.py``
+n'y change rien, seule cette consigne le fait. Le sous-processus de test de #44 devra donc
+faire ``sys.path.insert(0, …/api/tests)`` puis ``import evenements``.
 """
 
 from typing import ClassVar

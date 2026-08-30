@@ -147,11 +147,11 @@ async def _flux(pubsub: PubSub) -> AsyncIterator[Event]:
     suivant et ne rend que ce qui en est un — une boucle maison rejouerait ces deux règles, avec une
     branche « rien à décoder » qu'aucun test ne peut atteindre.
 
-    Sa condition d'arrêt (``while self.subscribed``) ne se rencontre que sur un désabonnement
-    explicite suivi d'une lecture. Un consommateur **suspendu dans une lecture** au moment où le
-    contexte se ferme ne s'arrête donc pas proprement : il reçoit une erreur de connexion (constaté
-    en relecture indépendante). Sans conséquence tant que le consommateur et le contexte vivent dans
-    la même tâche, ce qui est le cas ici ; à traiter quand la SSE lira ce flux depuis une tâche
+    Sa condition d'arrêt (``while self.subscribed``) tombe dès que le ``PubSub`` se ferme, donc
+    itérer **après** la sortie du contexte s'arrête proprement. Un consommateur **suspendu dans une
+    lecture** au moment de la fermeture, lui, reçoit une erreur de connexion (les deux constatés en
+    relecture indépendante). Sans conséquence tant que le consommateur et le contexte vivent dans la
+    même tâche, ce qui est le cas ici ; à traiter quand la SSE lira ce flux depuis une tâche
     séparée.
     """
     async for message in pubsub.listen():
@@ -183,9 +183,10 @@ async def subscribe(valkey: Redis, game_id: uuid.UUID) -> AsyncIterator[AsyncIte
     en silence, et un serveur injoignable se constate dès l'entrée. Nuance vérifiée dans les
     sources de redis-py 8.1.0 : ``Retry.call_with_retry`` appelle son ``failure_callback`` — pour
     un ``PubSub``, un ``disconnect`` suivi d'un ``connect`` — *avant* de comparer le compteur au
-    nombre de réessais. Il y a donc une tentative de rétablir la socket, mais l'ordre qui a échoué
-    n'est pas rejoué. Le cadrage §13.8 pose cette perte comme indolore par conception : l'appelant
-    se réabonne, le journal a tout gardé.
+    nombre de réessais. Il y a donc une tentative de rétablir la socket — et, si elle aboutit, un
+    réabonnement aux canaux par le ``on_connect`` du client — mais l'ordre qui a échoué n'est pas
+    rejoué. Le cadrage §13.8 pose cette perte comme indolore par conception : l'appelant se
+    réabonne, le journal a tout gardé.
 
     Args:
         valkey: le client sur lequel s'abonner.

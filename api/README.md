@@ -143,8 +143,8 @@ async with subscribe(valkey, partie) as flux:
 À l'entrée, il attend la **confirmation d'abonnement du serveur** : `PubSub.subscribe()` n'écrit
 que sur la socket sans lire la réponse, et publier aussitôt après risque de partir avant que le
 serveur n'ait enregistré l'abonné — mesuré, sans l'attente il ne l'avait enregistré que 12 fois sur
-30 — sans que rien ne le signale. À la sortie, il ferme le `PubSub` et rend sa connexion. Un canal par partie
-(`game:<uuid>`), composé à un seul endroit. Un message d'un type que ce processus ne connaît pas est
+30 — sans que rien ne le signale. À la sortie, il ferme le `PubSub` et rend sa connexion. Un
+canal par partie (`game:<uuid>`), composé à un seul endroit. Un message d'un type que ce processus ne connaît pas est
 **sauté** — un producteur plus récent ne doit pas faire perdre à l'abonné les messages qu'il sait
 lire — tandis qu'une clé inattendue dans la charge utile fait lever : le fil reste une frontière.
 
@@ -209,8 +209,9 @@ ou si une fermeture lève. **Ajouter une ressource, c'est deux lignes là-bas** 
 — au bon rang : l'ordre de création est celui des dépendances, l'ordre de libération s'en déduit.
 
 Le module ignore FastAPI, et c'est ce qui compte : les **deux points d'entrée du paquet** (§13.0)
-l'appelleront, l'hôte HTTP depuis son cycle de vie et le worker, quand il naîtra, depuis sa boucle. Le cycle de vie
-HTTP ne fait plus que consommer le résultat et le ranger dans `app.state`, dont la durée de vie est
+l'appelleront, l'hôte HTTP depuis son cycle de vie et le worker, quand il naîtra, depuis sa
+boucle. Le cycle de vie HTTP ne fait que consommer le résultat et le ranger dans `app.state`, dont
+la durée de vie est
 exactement celle de l'application — deux applications de test n'y partagent jamais une ressource.
 C'est là que les sondes de `/health` et la session par requête vont les chercher.
 

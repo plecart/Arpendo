@@ -47,13 +47,20 @@ async def test_publier_un_objet_non_inscrit_leve_avant_toute_ecriture(
 ) -> None:
     """Le refus précède l'écriture : un lot dont un seul élément est invalide n'écrit rien.
 
+    Précisément : rien n'est **ajouté à l'unité de travail**. C'est ce que `session.new` prouve, et
+    c'est plus étroit que « aucun INSERT n'est parti » — une implémentation qui ajouterait puis
+    ferait un `flush` avant de lever laisserait `session.new` vide et la base vide, l'INSERT étant
+    annulé à la fermeture. Fermer ce trou-là demanderait d'espionner les ordres SQL, pour un risque
+    qui ne le vaut pas.
+
     Refuser *après* le premier `add` laisserait une unité de travail à moitié montée — exactement
     l'état partiel que le commit explicite existe pour éviter.
 
-    C'est `session.new` qui le prouve, et pas la base : à la sortie de la session, ce qui n'a pas
-    été commis est annulé de toute façon, donc une base vide ne distingue pas « refusé avant
+    C'est `session.new` qui le prouve, et pas la base seule : à la sortie de la session, ce qui n'a
+    pas été commis est annulé de toute façon, donc une base vide ne distingue pas « refusé avant
     l'écriture » de « refusé après ». Mesuré — sans cette assertion, une implémentation qui ajoute
-    les lignes valides puis lève reste verte.
+    les lignes valides puis lève reste verte. La base, elle, reste assérée : elle attrape le cas
+    symétrique, un refus placé après le `commit`.
     """
     async with fabrique_de(app)() as session:
         with pytest.raises(TypeError):
@@ -205,7 +212,7 @@ async def test_l_abonnement_est_enregistre_a_l_entree_et_defait_a_la_sortie(
     **La première moitié est probabiliste, et il vaut mieux le savoir que le croire déterministe.**
     Mesuré en relecture indépendante : en retirant l'attente de la confirmation, `NUMSUB` vaut
     quand même 1 douze fois sur trente — le serveur a souvent traité le `SUBSCRIBE` avant qu'on
-    l'interroge. Ce test rougirait donc dans deux tiers des exécutions, pas dans toutes. C'est le
+    l'interroge. Ce test rougirait donc 18 fois sur 30, pas à toutes les exécutions. C'est le
     seul garde-fou de cette ligne ; le rendre déterministe demanderait de suspendre le serveur
     entre les deux ordres, ce que rien ici ne permet.
     """
