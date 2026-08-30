@@ -126,10 +126,13 @@ MAU / joueurs réels n'est donc **jamais égal à 1**.
 **Seuils :** premier euro à 25 001 MAU · 10 $ à 27 500 · 50 $ à 37 500 · **100 $ à 50 000** ·
 500 $ à 156 250. La progression est linéaire et douce — **Mapbox n'est pas un mur de croissance.**
 
-⚠️ **Le risque est le vol du jeton, pas la croissance.** Le jeton est extractible de l'APK
-(§13.10). Un tiers qui le réutilise génère des MAU facturés à Arpendo : un total de 200 000 MAU
+⚠️ **Le risque est l'abus d'un jeton, pas la croissance.** Deux canaux facturent qui détient un
+jeton valide : les MAU ci-dessus (un SDK usurpé en fabrique à volonté) et les **requêtes directes
+de tuiles** — 200 000 gratuites par mois, puis 0,25 $ le millier. Un total de 200 000 MAU
 coûterait **640 $/mois**, sans aucun signal préalable. C'est le seul poste du projet capable de
-produire une facture surprise à trois chiffres.
+produire une facture surprise à trois chiffres — d'où le dispositif du cadrage §13.10 : aucun
+jeton dans l'APK, un jeton temporaire d'une heure émis par l'api aux sessions authentifiées,
+coupure par suppression du secret serveur.
 
 ---
 
@@ -139,7 +142,7 @@ Classées par dégât maximal possible, pas par coût nominal.
 
 | Priorité | Poste | Garde-fou |
 |---|---|---|
-| **1** | **Mapbox** | Alerte **dès le premier dollar facturé** (seuil 25 000 MAU). Jeton à portée minimale, restrictions d'usage, rotation. **Surveiller le ratio MAU / joueurs actifs réels** — une divergence est la signature d'un vol |
+| **1** | **Mapbox** | Alerte **dès le premier dollar facturé** (seuil 25 000 MAU). Aucun jeton dans l'APK : jeton temporaire d'une heure émis par l'api, secret serveur à portée minimale, coupure par suppression de ce secret (cadrage §13.10, `documents/setup/mapbox.md`). **Surveiller le ratio MAU / joueurs actifs réels** — une divergence est la signature d'un abus |
 | **2** | **Sentry** | Filtrage entrant et échantillonnage configurés **dès le jour 1**, en même temps que le scrubbing PII (§13.10). 5 000 erreurs se consomment en heures si une exception boucle en arrière-plan |
 | **3** | **Edge Services / WAF** *(une fois activé)* | Alerte à 80 % du quota de 5 M requêtes/mois. ⛔ Comportement au dépassement sur le plan Starter à confirmer auprès du support |
 | **4** | **Stockage PostgreSQL** | Croît de façon monotone ; la facture ne redescend jamais. Les purges de §12.3 (72 h / 12 mois) **sont le garde-fou de coût**, pas seulement une obligation RGPD |
