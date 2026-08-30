@@ -1487,18 +1487,17 @@ Dispositif retenu :
 
 - **Aucun jeton Mapbox permanent dans l'APK.** L'app demande à l'api un **jeton temporaire**
   (`tk.`, Tokens API, durée maximale d'une heure, les quatre portées de lecture nommées ci-dessous
-  et rien d'autre) à l'entrée sur la
-  carte et le renouvelle avant expiration. La route est authentifiée — seule une session valide
-  obtient un jeton — et couverte par le rate limiting par compte de §12.4. Un seul jeton
+  et rien d'autre) à l'entrée sur la carte, et le renouvelle avant expiration. La route est
+  authentifiée — seule une session valide obtient un jeton — et couverte par le rate limiting par
+  compte de §12.4. Un seul jeton
   temporaire est partagé par tous les clients, mis en cache dans Valkey (§13.8) : une émission
   par heure, quel que soit le nombre d'instances.
 - **Un seul secret Mapbox, côté serveur** : un jeton secret (`sk.`) aux portées `tokens:write`
   plus **`styles:tiles`, `styles:read`, `fonts:read` et `datasets:read`** — nommées une à une, et
-  rien d'autre. Ne jamais écrire « les portées publiques » comme raccourci : Mapbox ne publie
-  aucune liste figée, il les définit par la propriété `public` de `GET /scopes/v1/{username}`, et
-  la console en coche davantage par défaut (`vision:read` au 30 août 2026). S'il fuit, ce secret
-  ne sait émettre que des jetons de lecture. Il vit dans le `.env` du serveur (règles ci-dessus), jamais dans l'image ni
-  dans l'APK.
+  rien d'autre. Mapbox ne publie aucune liste figée des portées publiques : il les définit par la
+  propriété `public` de `GET /scopes/v1/{username}`, et la console en coche davantage à la création
+  (`vision:read` au 30 août 2026). S'il fuit, ce secret ne sait émettre que des jetons de lecture.
+  Il vit dans le `.env` du serveur (règles ci-dessus), jamais dans l'image ni dans l'APK.
 - **Coupure en un geste, sans release** : supprimer ce `sk.` dans la console Mapbox éteint tous
   les jetons temporaires en une heure au plus ; la carte passe dans son état « Erreur » (spec UX
   §7), et le compte fautif se bannit par son statut (§12.6).
@@ -1882,7 +1881,7 @@ non bornée, irrévocable sans release.
 
 | Ancienne décision | Nouvelle décision |
 |---|---|
-| §13.10, §16 : jeton public `pk.` dans l'APK, « portée minimale, restrictions d'usage, rotation, alerte de budget » | **Aucun jeton Mapbox dans l'APK.** L'api émet un jeton temporaire d'une heure aux sessions authentifiées, partagé et mis en cache dans Valkey (§13.8) ; un seul secret serveur (`tokens:write` + portées publiques) ; coupure par suppression de ce secret ; l'alerte et le ratio MAU/joueurs restent, comme détection |
+| §13.10, §16 : jeton public `pk.` dans l'APK, « portée minimale, restrictions d'usage, rotation, alerte de budget » | **Aucun jeton Mapbox dans l'APK.** L'api émet un jeton temporaire d'une heure aux sessions authentifiées, partagé et mis en cache dans Valkey (§13.8) ; un seul secret serveur (`tokens:write` + les quatre portées de lecture, §13.10) ; coupure par suppression de ce secret ; l'alerte et le ratio MAU/joueurs restent, comme détection |
 | §13.7 : quatre reports conditionnés | Cinquième : attestation Play Integrity à la connexion, déclenchée par une divergence du ratio MAU/joueurs ou la publication publique |
 | §13.0 : « Mapbox — ⚠️ jeton extractible de l'APK » | « Mapbox — jeton temporaire d'1 h émis par l'api, aucun jeton dans l'APK » |
 
@@ -1901,7 +1900,7 @@ n'était pas celui que le document nommait.
 |---|---|
 | §1 : « TMview / INPI / EUIPO : seul « Carpendo » existe » | **Faux, corrigé.** Six signes : « Carpendo » ×2 (vivantes, Sellbee GmbH, classe 35), « Harpendore » ×2 (une vivante, UK00003105925, classes 9/16/25/28/35/41/45), « ARPENDOR » (classe 33) et « ARPENDOBBIN », toutes deux expirées. **Aucune marque « Arpendo »** |
 | §16 : « Marque « Carpendo » — non bloquant, à réévaluer avant dépôt » | **Conclusion inchangée, motif corrigé.** Carpendo ne partage aucune de nos classes ; le seul signe couvrant les classes 9 et 41 est « Harpendore », britannique et distinct. Le risque est un risque de **dépôt de marque**, dans l'UE comme au Royaume-Uni, pas d'exploitation |
-| §13.10, `CLAUDE.md` : « les quatre portées publiques », « les portées publiques par défaut » | **Raccourci supprimé.** Les quatre portées de lecture sont nommées une à une. Mapbox ne publie aucune liste figée de portées publiques — il les définit par la propriété `public` de `GET /scopes/v1/{username}` — et la console en coche davantage (`vision:read`). Vérifié via `context7` le 30 août 2026 |
+| §13.10, `CLAUDE.md` : « les quatre portées publiques », « les portées publiques par défaut » | **Raccourci supprimé.** Les quatre portées de lecture sont nommées une à une. Mapbox ne publie aucune liste figée de portées publiques — il les définit par la propriété `public` de `GET /scopes/v1/{username}` : vérifié dans la doc officielle via `context7` le 30 août 2026. Que la console en coche davantage (`vision:read`) est une observation d'interface du même jour, constatée en console (issue #30), qu'aucune documentation ne couvre |
 | §19 : « Recherche « ARPENDO » sur le Play Store et l'App Store » | **Faite le 30 août 2026** : aucune application de ce nom sur l'un ni l'autre. Retirée des vérifications restantes |
 
 Raisonnement et relevé complet : `documents/archive/decision-marque-signes-voisins.md`.

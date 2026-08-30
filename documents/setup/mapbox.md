@@ -41,7 +41,7 @@ son usage, jamais réutilisé d'un usage à l'autre.
 |---|---|---|---|---|
 | `arpendo-api-tokens` | `tokens:write` **+** `styles:tiles`, `styles:read`, `fonts:read`, `datasets:read` — **rien d'autre**. La console pré-coche `vision:read` : la décocher avant d'enregistrer | `sk.` | `.env` du serveur (`MAPBOX_TOKENS_SECRET`) et `.env` du poste ; **jamais** en secret CI, jamais dans l'image | Émet les jetons temporaires servis à l'app. Ses portées sont le plafond de ce qu'un jeton temporaire peut recevoir : s'il fuit, il ne sait émettre que des jetons de lecture |
 | `arpendo-ci-downloads` | `downloads:read` seule | `sk.` | Secret GitHub Actions `MAPBOX_DOWNLOADS_TOKEN` et `.env` du poste | Télécharge le SDK Android au build. Ne quitte jamais la machine de build |
-| `arpendo-devkit` | les quatre portées publiques de lecture ; `vision:read` décochée elle aussi | `pk.` | `MAPBOX_DEVKIT_TOKEN` de `.claude/settings.local.json` (hors dépôt) | Laisse démarrer le serveur MCP DevKit (`CLAUDE.md`) ; ses outils de validation sont locaux |
+| `arpendo-devkit` | `styles:tiles`, `styles:read`, `fonts:read`, `datasets:read` ; `vision:read` décochée elle aussi | `pk.` | `MAPBOX_DEVKIT_TOKEN` de `.claude/settings.local.json` (hors dépôt) | Laisse démarrer le serveur MCP DevKit (`CLAUDE.md`) ; ses outils de validation sont locaux |
 
 Le nom d'utilisateur Mapbox du compte va aussi dans le `.env` (`MAPBOX_USERNAME`) : la Tokens API
 l'exige dans son chemin. Les deux variables arrivent dans `.env.example` avec l'issue qui les lit,
