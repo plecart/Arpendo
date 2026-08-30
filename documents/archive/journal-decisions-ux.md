@@ -642,3 +642,20 @@ chercher dans **les deux sens** : les §§ qui fondent celui qu'on amende, et ce
 absents : `Icones.taille` (24 dp, §1.8) et `CiblesTactiles.min` (48 dp, §1.4). Sans eux, la taille
 du glyphe et la hauteur des boutons auraient été des valeurs en dur dans le widget, ce que le
 critère d'acceptation de #43 interdit.
+
+**Troisième amendement, le 30 août 2026 — la bande haute du §1.4.** Relevé par la vérification
+avant merge, et **antérieur à ce lot** : le §1.4 écrivait « Sur l'écran Jeu, la bande haute est
+entièrement inerte », avec une exception unique explicitement réservée à l'Accueil, alors que le
+§2.4 place le bandeau sous le header — donc dans cette bande — et donne un bouton à sept de ses
+treize lignes. La contradiction existait dès la rédaction du §2.4 ; elle n'était visible qu'en
+posant les deux sections côte à côte, ce que la construction du composant a forcé.
+
+| Option | Retenue ? |
+|---|---|
+| Écrire une **seconde exception** au §1.4, sur le modèle de la première | **Oui.** Les actions du bandeau sont rares et non urgentes, comme l'icône Paramètres de l'Accueil ; la difficulté d'atteinte est ici un effet **voulu** — on lit le message avant d'agir |
+| Descendre les actions du bandeau hors de la bande haute | Non. Séparer un bouton de son message le rend illisible, et déplacer le bandeau rouvrirait l'emplacement unique et le budget vertical du §2.2 |
+| Retirer les actions des lignes concernées | Non. « Réglages » est le **seul chemin de sortie** d'une permission refusée (cadrage §9.3, §12.2) : sans lui, un joueur sans localisation est enfermé |
+
+**§§ répercutés :** `02-specification-ux.md` §1.4, cellule de la bande haute. §7.1 est **inchangé** —
+les puces de header restent inertes, et c'est désormais dit dans la cellule elle-même. §12.2 est
+inchangé : son bouton d'action « Partie » est en bande basse.

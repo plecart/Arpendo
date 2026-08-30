@@ -134,7 +134,7 @@ Découpage vertical de l'écran de référence (360 × 800 dp), pouce d'une main
 
 | Bande | Hauteur | Accessibilité | Ce qu'on y met |
 |---|---|---|---|
-| **Haute** | 0 → 200 dp | Difficile, nécessite de rattraper le téléphone | **Information à lire, jamais à toucher.** Une seule exception, et elle ne concerne pas l'écran Jeu : l'**icône Paramètres de la barre de titre de l'Accueil** (§5) — action rare, non urgente, et la convention Android l'y place. Sur l'écran Jeu, la bande haute est **entièrement inerte** |
+| **Haute** | 0 → 200 dp | Difficile, nécessite de rattraper le téléphone | **Information à lire, jamais à toucher**, à deux exceptions près, toutes deux rares et non urgentes. **(1)** L'**icône Paramètres de la barre de titre de l'Accueil** (§5) — la convention Android l'y place. **(2)** Les **actions du bandeau** (§2.4) : il occupe l'emplacement unique z 200 sous le header, donc dans cette bande, et sept de ses treize lignes portent un bouton. Elles ne peuvent pas descendre — les séparer de leur message les rendrait illisibles, et déplacer le bandeau rouvrirait le budget vertical du §2.2. La plus critique, « Réglages », est le **seul chemin de sortie** d'une permission refusée (cadrage §9.3, §12.2) : la rendre difficile à atteindre est le prix d'un message qu'on lit avant d'agir. **Hors ces deux cas, la bande haute de l'écran Jeu est inerte** — les puces de header ne portent aucune action (§7.1) |
 | **Médiane** | 200 → 520 dp | Correcte | Carte, contenu de liste |
 | **Basse** | 520 → 800 dp | **Zone du pouce** | Toutes les actions fréquentes : le bouton d'action « Partie », le bouton Recentrer |
 
