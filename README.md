@@ -85,7 +85,7 @@ la console du fournisseur change.
 | `google-oauth.md` | Le domaine *Compte & identité* (spec UX §4) |
 | `mapbox.md` | La première dépendance `mapbox_maps_flutter`, et la route qui émet les jetons temporaires |
 
-### `documents/archive/` — quatre pièces, conservées comme justificatifs
+### `documents/archive/` — cinq pièces, conservées comme justificatifs
 
 **`brief-identite-visuelle.md`** — le questionnaire d'identité rempli le 13 août 2026. C'est la **seule
 trace des préférences réelles du porteur**, et la pièce justificative si une décision d'identité est
@@ -102,6 +102,10 @@ contre-mesures écartées. L'état courant est au cadrage §13.10.
 
 **`decision-marque-signes-voisins.md`** — le relevé TMview du 30 août 2026 et pourquoi les signes
 voisins ne bloquent pas l'exploitation. L'état courant est au cadrage §1 et §16.
+
+**`decision-hebergeur-et-domaines.md`** — les tarifs relevés à la source le 30 août 2026, la
+comparaison OVH / Hetzner, et pourquoi le compte est au nom d'un particulier. L'état courant est
+au cadrage §13.7 et au chiffrage §1.
 
 ---
 

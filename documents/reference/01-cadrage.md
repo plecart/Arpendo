@@ -1277,16 +1277,17 @@ Private Networks sont gratuits.)*
 | Serveur applicatif | **DEV1-S** — 2 vCPU, 2 Go | 6,56 |
 | Disque du serveur | Block Storage 5K, 20 Go | 1,99 |
 | Sauvegarde image du serveur | Snapshot 20 Go | 0,64 |
-| IPv4 flexible | | 2,92 |
+| IPv4 flexible | 0,005 €/h | 3,65 |
 | **PostgreSQL managé** | **DB-DEV-S** — 2 vCPU, 2 Go | 11,39 |
 | Stockage + sauvegarde de la base | 10 Go + 10 Go | 1,29 |
-| Nom de domaine `.com` | 12,34 €/an | 1,03 |
+| Noms de domaine `.com` + `.fr` | 12,34 + 5,98 €/an | 1,53 |
 | Réseau privé · DNS · TLS · pare-feu | | 0,00 |
 | Mapbox · Sentry · Tracelet | | 0,00 |
-| **TOTAL** | | **25,82 € HT** |
-| | | **30,98 € TTC** |
+| **TOTAL** | | **27,05 € HT** |
+| | | **32,46 € TTC** |
 
-> **Les prix Scaleway sont hors taxes.** Facturé à un particulier, ajouter 20 % de TVA.
+> **Les prix Scaleway sont hors taxes.** Le compte est au nom d'un **particulier** (tranché le
+> 30 août 2026) : ajouter 20 % de TVA, non récupérable. **Le TTC est le budget de référence.**
 
 **Frais hors abonnement, à prévoir séparément :** compte développeur **Google Play — 25 $ une
 seule fois**, avant la première publication ; compte développeur **Apple — 99 $/an**, en phase 2
@@ -1698,7 +1699,7 @@ Le brief impose **le moins de pages possible**.
 | **Serveur unique = point de défaillance unique** | **Assumé au MVP.** Une panne de la VM rend le service totalement indisponible. Atténuation : serveur jetable et reconstructible par script (§13.11), moniteur d'uptime branché dès le jour 1, snapshot régulier. La donnée, elle, est protégée par le PITR du PostgreSQL managé |
 | **IP d'origine exposée** (pas de WAF de bordure pendant la bêta) | **Assumé.** Exposition au DDoS volumétrique, acceptable sur une piste de test interne à ≤100 testeurs. Déclencheur de réactivation écrit en §13.7 |
 | **Correctifs OS et Docker à la charge du porteur** | ~15 min/mois avec `unattended-upgrades` et reconstruction d'image par la CI. Contrepartie assumée de l'auto-hébergement |
-| **Marche tarifaire d'hébergement** | ~26 €/mois au MVP. Le budget de 150 € HT est franchi vers **200 à 350 joueurs** ; en TTC, vers **100 à 200**. Escalier progressif, pas de falaise (§13.7) |
+| **Marche tarifaire d'hébergement** | ~27 € HT / ~32 € TTC par mois au MVP. Le budget de 150 € HT est franchi vers **200 à 350 joueurs** ; en TTC, vers **100 à 200**. Escalier progressif, pas de falaise (§13.7) |
 | **Tarifs à revérifier avant engagement** | Les tarifs de §13.7 ont été relevés à la source le 10/08/2026, après les hausses Scaleway du 1er juin 2026. **À revérifier avant tout engagement pluriannuel** — les listes de prix tierces sont systématiquement périmées |
 ## 17. Ce qui reste à produire
 
@@ -1907,6 +1908,25 @@ Raisonnement et relevé complet : `documents/archive/decision-marque-signes-vois
 Répercuté dans le §1, le §16, le §19, le §13.10, `CLAUDE.md`, le README et les issues #4, #30
 et #80.
 
+### 18.9 Révision du 30 août 2026, après vérification des tarifs à la commande
+
+Avant d'ouvrir le compte Scaleway (issue #30), relevé à la source des trois postes que la commande
+allait engager. `DEV1-S` et `DB-DEV-S` sont toujours commandables en région Paris aux prix de
+§13.7 ; l'IPv4 ne l'est pas, et la justification du registrar reposait sur une lecture fausse de la
+ligne DNS du chiffrage.
+
+| Ancienne décision | Nouvelle décision |
+|---|---|
+| §13.7, chiffrage §1 et §3 : IPv4 flexible à 2,92 €/mois | **Faux, corrigé.** 0,005 €/h, soit **3,65 €/mois**. Répercuté sur les quatre colonnes de la trajectoire (chiffrage §3) |
+| §13.7, chiffrage §1 : un seul `.com` budgété | **`.com` et `.fr`**, tous deux chez Scaleway. `.fr` à 5,98 € HT/an, création au prix du renouvellement. Total domaines 1,53 €/mois |
+| §13.7 : « TOTAL 25,82 € HT / 30,98 € TTC » | **27,05 € HT / 32,46 € TTC** |
+| Chiffrage §1, §6 : « particulier +20 %, ou structure avec n° intracommunautaire, autoliquidation » | **Compte au nom d'un particulier, +20 %, TVA non récupérable — le TTC est le budget de référence.** La branche « autoliquidation » était inexacte : Scaleway SAS est français et facture la TVA française en domestique. Seul l'assujettissement au réel la rendrait récupérable, hors de portée d'une auto-entreprise en franchise en base |
+| Chiffrage, « ce qui est à 0 € » : « un domaine externe coûterait 5,11 €/mois » | **Reformulé.** Ce tarif ne vise que la zone DNS d'un domaine externe *hébergée chez Scaleway* ; un registrar tiers fournit la sienne gratuitement. Scaleway est retenu comme registrar pour son prix au **renouvellement**, pas pour le DNS |
+
+Raisonnement, comparaison OVH / Hetzner et sources :
+`documents/archive/decision-hebergeur-et-domaines.md`. Répercuté dans le §13.7, le §16, le §19,
+`04-chiffrage.md` §1, §3, « ce qui est à 0 € » et §6, et l'issue #30.
+
 ---
 
 ## 19. Instruction pour la reprise en session
@@ -1934,6 +1954,4 @@ et #80.
 
 - Disponibilité du domaine `arpendo.com` / `.fr` chez un registrar
 - Raccordement de l'instance PostgreSQL managée au Private Network, à valider à la création
-- Régime de TVA applicable (particulier +20 %, ou structure avec numéro intracommunautaire) —
-  cette seule question déplace le point de rupture budgétaire d'environ 50 joueurs
 - Revérification des tarifs avant tout engagement pluriannuel
