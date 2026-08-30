@@ -8,7 +8,7 @@
 
   "bandeauPasDeReseau": "Pas de réseau. La reprise est automatique.",
   "@bandeauPasDeReseau": {
-    "description": "Bandeau, priorité 5 de la table UX §2.4 : le téléphone n'a aucune interface réseau active. Sans action. La borne « coupure de moins de 5 min » de la table n'est pas encore portée par la condition — elle viendra avec la ligne 6, côté Territoire."
+    "description": "Bandeau, priorité 5 de la table UX §2.4 : le téléphone n'a aucune interface réseau active, coupure de moins de 5 min. Sans action."
   },
 
   "bandeauMiseAJourDisponible": "Une nouvelle version est disponible.",

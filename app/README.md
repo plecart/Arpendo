@@ -212,15 +212,28 @@ final entree = resoudre([
 ```
 
 Il n'existe **volontairement** aucune énumération centrale des conditions : ce serait le point que
-chaque ligne nouvelle devrait modifier. Deux points à respecter, tous deux gardés par un `assert` :
+chaque ligne nouvelle devrait modifier. Deux `assert` gardent ce que le module peut vérifier :
 
-- **deux entrées actives n'ont jamais la même priorité** — la règle d'exclusivité du §2.4 veut que
-  deux conditions ne soient jamais vraies ensemble ;
+- **deux entrées ne portent jamais le même rang** — un rang identifie une ligne de la table ;
 - **une entrée porte zéro, une ou deux actions**, pas davantage : c'est l'anatomie du §2.4.
+
+**Ce qu'aucun `assert` ne peut voir, et qui est à ta charge** : la règle d'exclusivité du §2.4 est
+bien plus forte que l'unicité des rangs — « aucune condition ne doit pouvoir être vraie en même
+temps qu'une condition plus prioritaire ». Elle porte sur les **conditions**, que le module ne
+reçoit jamais. Deux lignes dont les conditions se recouvrent passeront sans un mot, et la mieux
+classée masquera l'autre en silence. En déclarant une ligne, vérifie que sa condition exclut celles
+d'au-dessus.
 
 Les deux lignes de `lignes.dart` n'ont pas encore de domaine propriétaire — le réseau ira à
 Territoire avec la fenêtre de cinq minutes (lignes 4 et 6), la mise à jour à la séquence de
 démarrage. Elles déménageront chez eux, et ce fichier n'est pas destiné à grossir.
+
+**Dette connue, et c'est exactement le piège ci-dessus** : `ligneReseauAbsent()` ne porte pas la
+borne « coupure de moins de 5 min » que la table donne à la ligne 5, faute d'horloge de coupure.
+Tant que la ligne 6 (« Coupure de plus de 5 min ») n'existe pas, c'est sans effet. **Le jour où
+Territoire la livre, la ligne 5 doit recevoir sa borne dans le même lot** : sinon les deux seront
+actives ensemble et la 5, de rang plus bas, masquera la 6 — l'inverse de ce que le §2.4 demande.
+Le raccourci est marqué `ponytail:` dans le code, donc `/ponytail-debt` le retrouve où qu'il aille.
 
 `bloquant` est **porté comme donnée** par l'entrée ; son effet — carte masquée, interactions de jeu
 coupées (§12.2) — se réalisera avec la carte, pas ici.
@@ -272,8 +285,8 @@ L'étendre, c'est l'envelopper, pas le modifier : un verbe de plus naît avec so
 | « préviens-moi quand ça change » | `enLigne()` | un `Stream<bool>`, **un événement par changement d'état** |
 
 **Ne pas se fier au premier événement d'`enLigne()` pour connaître l'état initial** : sur Android le
-plugin l'émet au premier abonnement, mais pas aux suivants — le canal est mis en cache et son
-`onListen` ne se déclenche qu'au passage de zéro à un auditeur. Qui a besoin de savoir où il en est
+plugin l'émet à l'abonnement, mais pas à tous — le canal est mis en cache et son `onListen` ne se
+déclenche qu'au passage de zéro à un auditeur, donc un second abonné simultané ne l'aura pas. Qui a besoin de savoir où il en est
 lit `isOnline()`, et traite un premier événement identique comme un doublon.
 
 Son `distinct` ne fait pas double emploi avec celui du plugin : celui-ci compare des **listes

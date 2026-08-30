@@ -37,7 +37,7 @@ void main() {
     expect(resoudre([_prioritaire(5), inventee]), same(inventee));
   });
 
-  test("deux entrées de même priorité rompent la règle d'exclusivité", () {
+  test('deux entrées ne peuvent pas porter le même rang', () {
     expect(
       () => resoudre([_prioritaire(5), _prioritaire(5)]),
       throwsA(isA<AssertionError>()),

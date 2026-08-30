@@ -52,10 +52,10 @@ class ConnectivityService {
   /// Android, le plugin émet l'état courant dès l'abonnement — délibérément
   /// (`ConnectivityBroadcastReceiver.onListen`, « Need to emit first event
   /// with connectivity types without waiting for first change in system ») —
-  /// mais seulement pour le **premier** abonné : le canal d'événements est mis
-  /// en cache par le plugin, et `EventChannel.receiveBroadcastStream` n'appelle
-  /// `onListen` qu'au passage de zéro à un auditeur. Un second abonné
-  /// simultané n'aura donc que les changements. Un appelant qui a besoin de
+  /// mais pas à chaque abonnement : le canal d'événements est mis en cache par
+  /// le plugin, et `EventChannel.receiveBroadcastStream` n'appelle `onListen`
+  /// qu'au passage de zéro à un auditeur. Un second abonné **simultané** n'aura
+  /// donc que les changements. Un appelant qui a besoin de
   /// savoir où il en est lit [isOnline], et traite un premier événement
   /// identique comme un doublon sans conséquence.
   ///

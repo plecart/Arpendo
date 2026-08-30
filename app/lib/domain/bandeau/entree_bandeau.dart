@@ -77,12 +77,19 @@ class EntreeBandeau {
   /// Les rangs ne se renumérotent pas : ils sont l'identité des lignes dans la
   /// spécification, et une ligne ajoutée plus tard prend un rang libre.
   ///
-  /// **C'est donc aussi l'identité de l'entrée pour l'affichage.** Deux entrées
-  /// construites depuis la même ligne ne sont pas égales — la classe n'a ni
-  /// `==` ni `hashCode`, et les fabriques de `lignes.dart` rendent un objet
-  /// neuf à chaque appel, closures comprises. Un affichage qui veut savoir si
-  /// le bandeau a changé compare les priorités, jamais les entrées : comparer
-  /// les objets rejouerait la transition à chaque reconstruction.
+  /// **C'est donc aussi ce qui identifie l'entrée pour l'affichage** — la
+  /// ligne, pas son contenu. Deux entrées construites depuis la même ligne ne
+  /// sont pas égales : la classe n'a ni `==` ni `hashCode`, et les fabriques
+  /// de `lignes.dart` rendent un objet neuf à chaque appel, closures
+  /// comprises. Un affichage décide donc de **rejouer sa transition** en
+  /// comparant les priorités, jamais les objets, qui diffèrent à chaque
+  /// reconstruction.
+  ///
+  /// Cela ne dit rien de son **contenu**, qui peut changer à rang constant : la
+  /// ligne 8 porte un décompte à la seconde, la 13 un nombre de captures, la 6
+  /// voit son action apparaître après trente secondes. Rendre le contenu reste
+  /// affaire de reconstruction ordinaire ; seule la transition se décide sur la
+  /// priorité.
   final int priorite;
 
   /// La gravité, qui décide du glyphe et de la couleur au rendu.
@@ -109,7 +116,7 @@ class EntreeBandeau {
   /// sont exactement celles que le §12.2 nomme comme masquant la carte. Ils
   /// restent deux paramètres parce que la spécification les distingue, et
   /// parce que rien n'interdit une ligne future de gravité `bloquant` qui
-  /// laisserait la carte vivre. Aucun des deux ne se déduit de l'autre.
+  /// laisserait la carte vivre.
   final bool bloquant;
 }
 
@@ -131,7 +138,9 @@ class EntreeBandeau {
 /// prioritaire » — et elle porte sur les **conditions**, que ce module ne voit
 /// pas. Deux lignes dont les conditions se recouvrent passeront ici sans un
 /// mot, et la mieux classée masquera l'autre ; c'est au domaine qui déclare
-/// une ligne de garantir que sa condition exclut celles d'au-dessus.
+/// une ligne de garantir que sa condition exclut celles d'au-dessus. En
+/// release, où l'`assert` ne s'exécute pas, deux entrées de même rang laissent
+/// gagner la première rencontrée — un choix arbitraire, mais déterministe.
 EntreeBandeau? resoudre(Iterable<EntreeBandeau> actives) {
   assert(
     actives.map((entree) => entree.priorite).toSet().length == actives.length,

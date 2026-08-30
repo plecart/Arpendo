@@ -141,6 +141,22 @@ void main() {
     },
   );
 
+  test("un incident survenu en ligne n'émet pas de doublon", () async {
+    // Ce test garde l'**ordre** des maillons : la tolérance s'applique avant le
+    // `distinct`, donc le « en ligne » qu'elle produit se fond dans l'état
+    // courant. Les intervertir rendrait deux `true` de suite, et rien d'autre
+    // ne le verrait.
+    final service = _service(
+      _jamaisSondee,
+      evenements: _flux([
+        const [ConnectivityResult.wifi],
+        PlatformException(code: 'x'),
+      ]),
+    );
+
+    await expectLater(service.enLigne(), emitsInOrder([true, emitsDone]));
+  });
+
   test('un incident bascule le flux en ligne même après une coupure', () async {
     // La conséquence assumée du cadrage §10.3, et la seule qui surprenne : un
     // incident survenant alors que le dernier état connu était « hors ligne »

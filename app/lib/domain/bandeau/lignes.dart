@@ -19,10 +19,11 @@ import 'entree_bandeau.dart';
 /// Sans action : il n'y a rien à faire d'autre que d'attendre, et le dire est
 /// exactement ce que le texte fait.
 ///
-/// **Sa condition est incomplète, et volontairement.** La table du §2.4 borne
-/// la ligne 5 à une « coupure de moins de cinq minutes » ; cette borne manque
-/// ici, faute d'horloge de coupure — elle appartient à Territoire, avec la
-/// ligne 6 (« Coupure de plus de 5 min »).
+/// ponytail: sa condition est incomplète, et volontairement. La table du §2.4
+/// borne la ligne 5 à une « coupure de moins de cinq minutes » ; cette borne
+/// manque ici, faute d'horloge de coupure — elle appartient à Territoire, avec
+/// la ligne 6 (« Coupure de plus de 5 min »). **À reprendre par qui livrera la
+/// ligne 6**, dans le même lot.
 ///
 /// **Ce que Territoire devra faire en livrant la ligne 6.** La spec veut que
 /// l'entrée 6 « prenne la main » au-delà de cinq minutes, mais elle ne
