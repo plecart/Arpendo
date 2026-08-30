@@ -31,7 +31,7 @@
 | Nom | **Arpendo** |
 | Accroche | **« prends du terrain »** |
 | Identifiant de package | **`com.arpendo.game`** — définitif sur Google Play, jamais modifiable après la première publication |
-| Vérification marque | TMview, 30 août 2026 : **aucune marque « Arpendo » n'existe.** Six signes voisins, dont deux vivants — « Carpendo » (Sellbee GmbH, EUIPO + Royaume-Uni, **classe 35 seule**) et « Harpendore » (UK00003105925, **classes 9 et 41 comprises**). Aucun n'est identique ; seul « Harpendore » couvre nos classes, et seulement au Royaume-Uni. Non bloquant. À réévaluer avant tout dépôt réel |
+| Vérification marque | TMview, 30 août 2026 : **aucune marque « Arpendo » n'existe.** Six enregistrements voisins, dont **trois vivants sous deux noms** — « Carpendo » (Sellbee GmbH, EUIPO + Royaume-Uni, **classe 35 seule**) et « Harpendore » (UK00003105925, **classes 9 et 41 comprises**). Aucun n'est identique ; seul « Harpendore » couvre nos classes, et seulement au Royaume-Uni. Non bloquant. À réévaluer avant tout dépôt réel |
 | Dépôt de marque | Non fait, non urgent (~190 € INPI 1 classe, ~850 € EUIPO). Classes pertinentes : 9 (logiciels) et 41 (jeux) |
 | **Identité visuelle** | **Direction « Relevé », retenue le 13 août 2026.** Accent `#123D1E` (vert forêt), typographie Roboto (0 octet d'APK), signe = courbes de niveau refermées sur un hexagone. Produite dans `03-identite-visuelle.md`, intégrée dans `02-specification-ux.md` §1.2, §1.5, §1.6, §3.4.1 et §4 |
 | **Cible Android** | **Android 8.0 (API 26) minimum** — `minSdk = 26` dans `app/android/app/build.gradle.kts`. Décidé le 26 août 2026 (#50) : un seul adaptive icon vectoriel, aucun `mipmap` PNG ; aucune dépendance n'exige davantage |
@@ -1486,14 +1486,18 @@ facture non bornée. Le palier gratuit est de **25 000 MAU/mois** ; au-delà, 4 
 Dispositif retenu :
 
 - **Aucun jeton Mapbox permanent dans l'APK.** L'app demande à l'api un **jeton temporaire**
-  (`tk.`, Tokens API, durée maximale d'une heure, portées publiques seules) à l'entrée sur la
+  (`tk.`, Tokens API, durée maximale d'une heure, les quatre portées de lecture nommées ci-dessous
+  et rien d'autre) à l'entrée sur la
   carte et le renouvelle avant expiration. La route est authentifiée — seule une session valide
   obtient un jeton — et couverte par le rate limiting par compte de §12.4. Un seul jeton
   temporaire est partagé par tous les clients, mis en cache dans Valkey (§13.8) : une émission
   par heure, quel que soit le nombre d'instances.
 - **Un seul secret Mapbox, côté serveur** : un jeton secret (`sk.`) aux portées `tokens:write`
-  plus les quatre portées publiques, et rien d'autre — s'il fuit, il ne sait émettre que des
-  jetons de lecture. Il vit dans le `.env` du serveur (règles ci-dessus), jamais dans l'image ni
+  plus **`styles:tiles`, `styles:read`, `fonts:read` et `datasets:read`** — nommées une à une, et
+  rien d'autre. Ne jamais écrire « les portées publiques » comme raccourci : Mapbox ne publie
+  aucune liste figée, il les définit par la propriété `public` de `GET /scopes/v1/{username}`, et
+  la console en coche davantage par défaut (`vision:read` au 30 août 2026). S'il fuit, ce secret
+  ne sait émettre que des jetons de lecture. Il vit dans le `.env` du serveur (règles ci-dessus), jamais dans l'image ni
   dans l'APK.
 - **Coupure en un geste, sans release** : supprimer ce `sk.` dans la console Mapbox éteint tous
   les jetons temporaires en une heure au plus ; la carte passe dans son état « Erreur » (spec UX
@@ -1686,9 +1690,8 @@ Le brief impose **le moins de pages possible**.
 | **Zones sensibles** (écoles, hôpitaux, autoroutes, voies ferrées) | **Aucune exclusion géographique.** Impossible de distinguer un élève légitimement dans son école d'un intrus ; une exclusion punirait les joueurs légitimes et pourrait aggraver la responsabilité en laissant croire à une protection inexistante. À la place : avertissement de sécurité à l'onboarding + clause CGU. **Atténuation structurelle : la mécanique ne crée aucune incitation à entrer dans une zone précise** — les hexagones sont partout, uniformes, sans bonus (contrairement aux jeux à points d'intérêt fixes). À réexaminer si le jeu grandit |
 | **Fiabilité de la capture app fermée** | ~90 % réaliste sur Android. Surcouches constructeur |
 | **Revue Google Play** pour la localisation en arrière-plan | Formulaire + vidéo. Source classique de retard |
-| **Marques voisines** | Non bloquant. « Carpendo » ne partage aucune de nos classes (35 seule) ; « Harpendore » couvre les classes 9 et 41, mais le signe diffère et la protection est britannique. Le risque se matérialise à un **dépôt** dans l'UE, pas à l'exploitation (§1) |
+| **Marques voisines** | **Non bloquant pour l'exploitation.** Le risque ne se matérialiserait qu'à un **dépôt de marque**, UE comme Royaume-Uni. Inventaire et motif en §1 ; relevé complet dans `documents/archive/decision-marque-signes-voisins.md` |
 | **Diffusion des zones capturées** | **Mention explicite dans les CGU et la politique de confidentialité** (§13.12) : « les autres joueurs verront les zones que tu captures, **et quand tu les as capturées** ». La granularité est la tuile H3 res. 10, soit **~130 m** — une zone approximative, jamais une coordonnée GPS (arbitrage §7.5). ⚠️ **Révisé le 13 août 2026 :** cette mention était affichée **à l'entrée en partie**, dans une modale dédiée ; elle en a été retirée sur décision du porteur, au motif qu'elle figure déjà dans les documents juridiques. **Elle devient donc une obligation portée par eux seuls, et cesse d'être facultative dans leur rédaction.** Le lien « Lire les conditions d'utilisation » de la modale de sécurité (spec UX §6) devient le seul chemin d'information dans le parcours. Le code n'est partagé qu'à des personnes de confiance ; en cas de fuite ou de perte de confiance, le départ définitif (§4.4) neutralise les tuiles et efface l'historique visible — c'est le mécanisme de sortie, et il suppose que le joueur sache ce qui est visible |
-
 | **Charge de neutralisation** | Dizaines de milliers de lignes sur une partie longue. Traitement asynchrone obligatoire |
 | **Délai MVP** | 6-9 mois à <8 h/semaine. Variante réduite (~3 mois) à proposer |
 | **Tracelet — bus factor de 1** | Mainteneur unique, projet jeune, fiabilité 24 h non vérifiée sur Xiaomi/Samsung. **Parade : interface `LocationProvider`** (§13.2) |
@@ -1897,7 +1900,9 @@ n'était pas celui que le document nommait.
 | Ancienne décision | Nouvelle décision |
 |---|---|
 | §1 : « TMview / INPI / EUIPO : seul « Carpendo » existe » | **Faux, corrigé.** Six signes : « Carpendo » ×2 (vivantes, Sellbee GmbH, classe 35), « Harpendore » ×2 (une vivante, UK00003105925, classes 9/16/25/28/35/41/45), « ARPENDOR » (classe 33) et « ARPENDOBBIN », toutes deux expirées. **Aucune marque « Arpendo »** |
-| §16 : « Marque « Carpendo » — non bloquant, à réévaluer avant dépôt » | **Conclusion inchangée, motif corrigé.** Carpendo ne partage aucune de nos classes ; le seul signe couvrant les classes 9 et 41 est « Harpendore », britannique et distinct. Le risque est un risque de **dépôt** dans l'UE, pas d'exploitation |
+| §16 : « Marque « Carpendo » — non bloquant, à réévaluer avant dépôt » | **Conclusion inchangée, motif corrigé.** Carpendo ne partage aucune de nos classes ; le seul signe couvrant les classes 9 et 41 est « Harpendore », britannique et distinct. Le risque est un risque de **dépôt de marque**, dans l'UE comme au Royaume-Uni, pas d'exploitation |
+| §13.10, `CLAUDE.md` : « les quatre portées publiques », « les portées publiques par défaut » | **Raccourci supprimé.** Les quatre portées de lecture sont nommées une à une. Mapbox ne publie aucune liste figée de portées publiques — il les définit par la propriété `public` de `GET /scopes/v1/{username}` — et la console en coche davantage (`vision:read`). Vérifié via `context7` le 30 août 2026 |
+| §19 : « Recherche « ARPENDO » sur le Play Store et l'App Store » | **Faite le 30 août 2026** : aucune application de ce nom sur l'un ni l'autre. Retirée des vérifications restantes |
 
 Raisonnement et relevé complet : `documents/archive/decision-marque-signes-voisins.md`.
 Répercuté dans le §1, le §16 et l'issue #30.
@@ -1928,7 +1933,6 @@ Répercuté dans le §1, le §16 et l'issue #30.
 **Vérifications manuelles restant à la charge du porteur :**
 
 - Disponibilité du domaine `arpendo.com` / `.fr` chez un registrar
-- Recherche « ARPENDO » sur le Play Store et l'App Store
 - Raccordement de l'instance PostgreSQL managée au Private Network, à valider à la création
 - Régime de TVA applicable (particulier +20 %, ou structure avec numéro intracommunautaire) —
   cette seule question déplace le point de rupture budgétaire d'environ 50 joueurs

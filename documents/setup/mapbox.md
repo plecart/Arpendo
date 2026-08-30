@@ -19,14 +19,16 @@ anonyme et irrévocable sans nouvelle release. L'app demande donc à l'api un **
 préfixe obtenu est donc un contrôle : un jeton qui n'a pas le préfixe attendu a une portée de
 trop ou de moins — le recréer.
 
-**Les portées publiques par défaut sont cinq, pas quatre.** Outre `styles:tiles`, `styles:read`,
-`fonts:read` et `datasets:read`, la console **pré-coche `vision:read`** à chaque création de
-jeton. Le Vision SDK n'est nulle part dans la stack : la décocher partout. Constaté en console le
-30 août 2026 (issue #30).
+**Ne jamais employer « les portées publiques » comme raccourci.** Mapbox n'en publie aucune liste
+figée : il les définit par la propriété `public` de `GET /scopes/v1/{username}`, et l'ensemble peut
+bouger. Le projet en veut **quatre**, nommées une à une : `styles:tiles`, `styles:read`,
+`fonts:read`, `datasets:read`. La console en coche davantage — `vision:read` au 30 août 2026,
+constaté en console (issue #30) — et le Vision SDK n'est nulle part dans la stack : la décocher
+partout.
 
-**Ne jamais faire relire un secret pour le vérifier.** Un `sk.` se contrôle par une question
-fermée — « commence-t-il bien par `sk.` ? » — jamais en demandant d'en citer une partie : la
-réponse la plus simple à une telle question est de coller le jeton entier.
+Le contrôle du préfixe se fait par **oui ou non** — « commence-t-il bien par `sk.` ? ». Ne jamais
+demander d'en citer une partie : la réponse la plus simple à une telle question est de coller le
+jeton entier.
 
 ---
 
