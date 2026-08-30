@@ -52,8 +52,8 @@ dans la variable d'environnement **`MAPBOX_DEVKIT_TOKEN`**, posée dans le bloc 
 variable système, ni `.env` de l'app, que Claude Code ne lit pas) : un
 jeton **public `pk.`** aux quatre portées de lecture `styles:read`, `styles:tiles`, `fonts:read`
 et `datasets:read` — la console en coche davantage à la création (`vision:read`), à décocher.
-**Ne demander ni `styles:list` ni `styles:write`** : ce sont des
-portées *secrètes*, Mapbox émettrait alors un jeton `sk.` — inutilement puissant ici. Les outils
+**Ne demander ni `styles:list` ni `styles:write`** : ce sont des portées *secrètes*, Mapbox
+émettrait alors un jeton `sk.` — inutilement puissant ici. Les outils
 de validation du skill sont du **traitement local** : ils n'appellent
 aucune API et fonctionnent même avec un jeton factice. Le jeton ne sert qu'à laisser le serveur
 démarrer. Distinct des deux jetons de l'app (`mapbox-token-security`).
