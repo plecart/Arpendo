@@ -2,7 +2,8 @@
 # `.claude/pipeline.config.md` et `.github/workflows/ci.yml` n'appellent que ces recettes :
 # quand une commande change, elle change ICI, à un seul endroit.
 #
-# Monorepo : `api/` + `worker/` en Python (uv), `app/` en Flutter.
+# Monorepo : `api/` en Python (uv) — dont le worker, second point d'entrée du même paquet —
+# et `app/` en Flutter.
 
 # Version du SDK Flutter : `.fvmrc` à la racine en est la source unique, dans TOUS les
 # environnements. Seul le *fournisseur* diffère, parce que le besoin diffère : en local, FVM isole
@@ -41,7 +42,7 @@ lint: lint-api lint-app
 fmt: fmt-api fmt-app
 fmt-check: fmt-check-api fmt-check-app
 
-# ─── api/ + worker/ (Python) ───────────────────────────────────────────────────
+# ─── api/ (Python) — api HTTP et worker, un seul paquet ───────────────────────
 
 # `working-directory` plutôt que `cd X && …` : l'attribut ne dépend d'aucun shell, là où `&&`
 # n'existe pas en PowerShell 5.1 — la seule version présente sous Windows 11.
@@ -149,3 +150,10 @@ build:
 # Dockerfile ne se reconstruisent que si `pyproject.toml` ou `uv.lock` changent.
 up:
     docker compose -f infra/docker-compose.yml --env-file .env up -d --build
+
+# Reprend les sources du worker. Elles sont montées comme celles de l'api, mais lui ne recharge pas
+# à chaud : il n'y a pas d'équivalent de `--reload` pour une boucle asyncio. `--env-file` est
+# indispensable ici pour la même raison que ci-dessus — sans lui, Compose cherche son `.env` dans
+# `infra/` et refuse de démarrer sur `VALKEY_PASSWORD` manquant.
+restart-worker:
+    docker compose -f infra/docker-compose.yml --env-file .env restart worker

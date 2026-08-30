@@ -30,6 +30,13 @@ select = ["E", "F", "I", "UP", "B"]
 # connaît `BaseSettings` et rend ses champs facultatifs à la construction.
 plugins = ["pydantic.mypy"]
 
+# Le test d'intégration du worker exécute du code du paquet dans un SECOND processus. Sans cette
+# option, ses lignes ne sont pas comptées : pytest-cov 7 a retiré son support des sous-processus et
+# renvoie aux « patch options » de coverage, qui font le travail à sa place. Poser `subprocess`
+# active aussi `parallel` — chaque processus écrit sa propre mesure, et pytest-cov les combine.
+[tool.coverage.run]
+patch = ["subprocess"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

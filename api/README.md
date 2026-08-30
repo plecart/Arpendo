@@ -8,7 +8,7 @@ worker — un seul paquet, deux points d'entrée, deux conteneurs (cadrage §13.
 
 Deux façons, pour deux besoins.
 
-**La pile complète, en conteneurs** — PostgreSQL 17, Valkey 8 et l'api, décrits par
+**La pile complète, en conteneurs** — PostgreSQL 17, Valkey 8, l'api et le worker, décrits par
 `infra/docker-compose.yml`. C'est le mode de référence : c'est cette pile que la production
 reproduit, à deux écarts près documentés en tête du fichier compose.
 
@@ -20,6 +20,10 @@ just up
 Les sources sont montées dans le conteneur `api` et uvicorn tourne en `--reload` : éditer
 `src/` recharge le serveur sans rien reconstruire. Un changement de dépendance, lui, demande une
 image neuve — `just up` la rebâtit, et ne coûte rien quand rien n'a bougé.
+
+**Le conteneur `worker` monte les mêmes sources mais ne recharge pas** : il n'y a pas d'équivalent
+de `--reload` pour une boucle asyncio, et en inventer un serait du code de production qui ne sert
+qu'au poste. Après avoir édité une tâche : `just restart-worker`.
 
 **L'api seule, sur le poste** — pour attacher un débogueur ou un profileur au processus.
 
@@ -215,6 +219,57 @@ Sûr du côté de l'usurpation, dégradé du côté de la disponibilité — pas
 Dans la pile locale, les requêtes venues de l'hôte atteignent le conteneur avec pour pair la
 passerelle du bridge Docker : tout le trafic de la machine partage donc un seul compteur tant
 qu'aucun reverse proxy n'est devant. Sans conséquence au quota par défaut.
+## Le worker
+
+**Un seul paquet, deux points d'entrée** (cadrage §13.0) : l'api HTTP et le worker sont deux hôtes
+de la même couche de services. Même image, commande différente, **conteneur distinct** — ils ne
+fusionnent jamais, parce qu'une tâche planifiée ne doit s'exécuter qu'une fois quel que soit le
+nombre d'instances HTTP (§13.9 règle 2).
+
+```
+python -m arpendo_api.worker
+```
+
+Il ouvre les ressources partagées par le même `open_resources` que l'api, déroule sa table de
+tâches, et s'arrête sur SIGTERM en libérant tout.
+
+**Contrairement à l'api, il ne se lance pas sur un poste Windows** : son fichier de battement est
+un chemin POSIX absolu (`/tmp/…`). C'est voulu — ce chemin est le seul qui restera inscriptible
+quand #45 posera un système de fichiers en lecture seule.
+
+**Un tour de tâche qui échoue ne fait pas tomber le worker** : le tour est perdu, l'erreur part sur
+le journal de la stdlib (que #42 configurera) en nommant la tâche fautive, et le tour suivant
+repart. Plusieurs joueurs dépendent de ce processus — l'échec d'une purge sur un hoquet de la base
+est un incident local, pas une raison de priver tout le monde des autres tâches.
+
+**Le prix de cette règle, à connaître** : une tâche définitivement cassée boucle et journalise sans
+fin, et le conteneur **reste `healthy`** — le battement est une entrée distincte de la table, il
+continue de battre. Un healthcheck vert dit que le worker tourne, pas que ses tâches réussissent ;
+c'est le journal qui le dit.
+
+**Ajouter une tâche planifiée, c'est ajouter une entrée à `TASKS`** — un nom, un intervalle, une
+coroutine qui reçoit les ressources :
+
+```python
+TASKS: Mapping[str, tuple[float, Task]] = {"battement": (HEARTBEAT_INTERVAL, _heartbeat)}
+```
+
+Ni la boucle, ni l'ouverture des ressources, ni l'arrêt n'ont à changer. Chaque entrée tourne dans
+sa **propre tâche asyncio**, réunies par un `TaskGroup` : une tâche lente n'en retarde aucune
+autre, et si l'une venait à lever malgré la garde ci-dessus, les autres sont annulées plutôt que
+laissées à tourner sur des ressources déjà fermées. L'attente entre deux tours porte sur
+l'**événement d'arrêt** et non sur le temps — sans quoi un `docker compose stop` devrait patienter
+jusqu'au prochain réveil, ce qui deviendra insupportable à la première tâche horaire.
+
+Une seule tâche à la naissance : le **battement**, qui repose toutes les 10 secondes la date de
+`/tmp/arpendo-worker-battement`. Le fichier n'a pas de contenu — c'est sa date que lit la sonde
+du conteneur. Les tâches réelles (fin de partie, purges de rétention, bilans du flux, envoi des push)
+arrivent avec les domaines Territoire et Flux.
+
+**L'arrêt passe par `signal.signal`, jamais par `loop.add_signal_handler`** : le second lève
+`NotImplementedError` sous Windows, où ce projet se développe. Le gestionnaire s'exécute hors du
+contrôle de la boucle, donc il ne touche pas l'événement directement — `call_soon_threadsafe` est
+le seul pont sûr.
 
 ## Migrations
 
@@ -258,6 +313,8 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
 - `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
   déclarative et les conventions de schéma — sa docstring en est la référence), `session.py` (la
   session par requête), `migrations/` (Alembic).
+- `src/arpendo_api/worker/` — le **second point d'entrée** : la boucle de tâches périodiques et
+  son point d'entrée `python -m arpendo_api.worker`.
 - `src/arpendo_api/domains/` — un paquet par domaine métier, créé avec le premier.
 
 **Les réglages sensibles sont des `Secret`** — le mot de passe Valkey et l'URL de base, qui porte

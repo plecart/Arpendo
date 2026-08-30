@@ -67,6 +67,11 @@ services:
 
   api:
     build: ../api
+    # Une seule image pour les deux points d'entrée du paquet (cadrage §13.0) : même contexte de
+    # build, commandes différentes. Sans ce nom partagé, Compose construirait deux fois le même
+    # Dockerfile et garderait deux artefacts identiques sous des noms dérivés des services.
+    # Balise `dev` et non `latest` : ce n'est pas une image publiée, et §13.10 proscrit `latest`.
+    image: arpendo-api:dev
     environment:
       # Les conteneurs se joignent par nom de service, jamais par `localhost` — d'où des URL
       # différentes de celles du `.env`, qui sont le point de vue de l'hôte. Seul le mot de passe
@@ -104,6 +109,54 @@ services:
       valkey:
         condition: service_healthy
     # Sonde héritée de `api/Dockerfile` : une seule déclaration pour tous les environnements.
+
+  worker:
+    # Même contexte de build et même image que `api` : un seul paquet, deux points d'entrée
+    # (cadrage §13.0), une seule construction.
+    build: ../api
+    image: arpendo-api:dev
+    environment:
+      # **Les cinq** variables que `Settings` exige, recopiées depuis `api` : la classe valide la
+      # configuration entière au démarrage, quel que soit l'hôte, et un worker à qui il en manque
+      # une refuse de démarrer. Les deux seuils du limiteur ne servent à aucune tâche d'ici, mais
+      # ils sont requis et sans défaut — les omettre empêcherait le conteneur de démarrer.
+      # `FORWARDED_ALLOW_IPS`, en revanche, n'est pas reprise : elle est lue par uvicorn, que ce
+      # point d'entrée n'exécute pas. Pas d'ancre YAML pour factoriser tout ça — elle arrive avec
+      # #42, qui touchera les deux services.
+      DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
+      VALKEY_URL: redis://valkey:6379/0
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+      RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
+      RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+    command: ["python", "-m", "arpendo_api.worker"]
+    volumes:
+      # Sources montées comme pour `api`, mais **sans rechargement à chaud** : il n'y a pas
+      # d'équivalent de `--reload` pour une boucle asyncio, et en inventer un serait du code de
+      # production qui ne sert qu'au poste. Après édition : `just restart-worker`.
+      - ../api/src:/app/src
+    depends_on:
+      # Mêmes conditions que `api` : le worker ouvre ses connexions au démarrage.
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      # L'image porte la sonde HTTP de l'api ; le worker n'écoute sur aucun port, donc il la
+      # remplace par la seule chose qui prouve qu'il tourne : la fraîcheur de son fichier de
+      # battement. `os.stat` lève si le fichier n'existe pas — un worker qui n'a jamais battu est
+      # `unhealthy`, sans qu'on ait à traiter ce cas à part.
+      #
+      # 20 = deux fois l'intervalle de `arpendo_api.worker.HEARTBEAT_INTERVAL`. La valeur est
+      # **recopiée**, duplication assumée : Compose ne sait pas lire une constante Python. La
+      # changer d'un côté sans l'autre rend la sonde fausse — d'où ce commentaire, qui nomme la
+      # constante.
+      test: ["CMD", "python", "-c", "import os, sys, time; sys.exit(0 if time.time() - os.stat('/tmp/arpendo-worker-battement').st_mtime < 20 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      # Le premier battement n'a lieu qu'une fois les ressources ouvertes : sans ce délai de
+      # grâce, le conteneur serait déclaré `unhealthy` avant d'avoir eu sa chance.
+      start_period: 15s
 
 volumes:
   postgres-data:

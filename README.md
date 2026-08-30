@@ -147,10 +147,13 @@ ils existent pour éviter qu'une décision close soit rouverte sans élément no
 
 ## Ce qui n'existe pas encore
 
-- **Presque aucun code applicatif.** `api/` (FastAPI, `GET /health`) et `app/` (Flutter, écran
-  vide sur le thème des jetons du §1) sont des squelettes ; chacun a son README. Le worker
-  n'existe pas : il naît comme second point d'entrée du paquet `arpendo_api`, avec sa première
-  tâche réelle.
+- **Presque aucun code applicatif.** `api/` (FastAPI, `GET /health`, journal d'événements et bus
+  Valkey) et `app/` (Flutter, écran vide sur le thème des jetons du §1) sont des squelettes ;
+  chacun a son README. Le **worker existe** — second point d'entrée du paquet `arpendo_api`, même
+  image, commande différente, conteneur distinct — mais il ne porte encore aucune tâche métier :
+  seulement sa boucle, son battement de vie et la preuve du chemin worker → Valkey → api. Les
+  tâches réelles (fin de partie, purges de rétention, bilans du flux, push) arrivent avec les
+  domaines Territoire et Flux.
 - **Pas de modèle glTF du marqueur.** Sa spécification complète est au §3.4.1 de la spec UX ;
   c'est un travail de modeleur, pas de designer.
 - **Pas de PDF de spécification complète.** C'est le point 6 du §17 du cadrage.
