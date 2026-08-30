@@ -3,13 +3,17 @@
 import asyncio
 import os
 import signal
+import sys
+import uuid
 from pathlib import Path
 from typing import cast
 
 import pytest
-from conftest import MoteurEspion
+from conftest import MoteurEspion, evenements_persistes
+from fastapi import FastAPI
 
 from arpendo_api import worker
+from arpendo_api.core.bus import subscribe
 from arpendo_api.core.resources import Resources
 from arpendo_api.worker import TASKS, run, stop_on_sigterm
 
@@ -18,6 +22,50 @@ RESSOURCES_INUTILISEES = cast(Resources, None)
 
 Le battement n'écrit qu'un fichier : lui ouvrir un moteur et un client Valkey pour l'éprouver
 donnerait à croire qu'il en dépend.
+"""
+
+PUBLIE_DANS_UN_AUTRE_PROCESSUS = """
+import asyncio
+import sys
+import uuid
+
+sys.path.insert(0, sys.argv[1])
+import evenements
+
+from arpendo_api.core.bus import publish
+from arpendo_api.worker import run
+
+partie = uuid.UUID(sys.argv[2])
+arret = asyncio.Event()
+
+
+async def publier(ressources):
+    async with ressources.sessionmaker() as session:
+        await publish(
+            session,
+            ressources.valkey,
+            *(evenements.Capture(game_id=partie, hexagones=n) for n in (1, 2, 3)),
+        )
+    arret.set()
+
+
+asyncio.run(run({"publier": (0.01, publier)}, arret))
+"""
+"""Ce que le second processus exécute — et rien d'autre.
+
+Il importe `run` comme le ferait le conteneur, puis lui passe une table d'une seule tâche. Aucun
+mode « test » n'existe dans le worker : c'est la table qui change, pas le code.
+
+`evenements` est atteint par `sys.path`, **sous ce nom exact** : sa docstring dit pourquoi — un
+second nom réexécuterait le corps de classe et la garde du registre lèverait.
+"""
+
+DELAI_INTEGRATION = 30.0
+"""Secondes accordées au second processus, du lancement au dernier message.
+
+Bien plus large que les autres délais de cette suite : un interpréteur neuf doit démarrer et
+importer SQLAlchemy, pydantic et redis avant d'écrire quoi que ce soit. Ce n'est pas un budget de
+fonctionnement, c'est un filet — le dépasser signifie que rien n'est parti.
 """
 
 DELAI = 5.0
@@ -46,6 +94,30 @@ async def test_run_deroule_la_table_et_passe_les_ressources_a_chaque_tache() -> 
 
     assert len(recues) == 1
     assert await recues[0].valkey.ping() is True
+
+
+async def test_une_tache_est_repetee_jusqu_a_l_arret(app: FastAPI) -> None:
+    """« Périodique » est ce que cette boucle promet — encore faut-il l'observer.
+
+    Sans ce test, un `_repeat` qui exécuterait la tâche **une seule fois** puis rendrait la main
+    passerait tous les autres au vert : ils posent tous l'événement d'arrêt dès le premier appel.
+
+    L'arrêt vient du compteur et non d'une temporisation : le test dure ce que durent trois tours,
+    pas une durée choisie d'avance.
+    """
+    arret = asyncio.Event()
+    tours = 0
+
+    async def compter(_: Resources) -> None:
+        nonlocal tours
+        tours += 1
+        if tours == 3:
+            arret.set()
+
+    async with asyncio.timeout(DELAI):
+        await run({"compter": (0.001, compter)}, arret)
+
+    assert tours == 3
 
 
 async def test_run_libere_les_ressources_quand_il_s_arrete(moteur_espion: MoteurEspion) -> None:
@@ -118,3 +190,35 @@ async def test_le_gestionnaire_de_sigterm_pose_l_evenement_d_arret(
     await asyncio.sleep(0)
 
     assert arret.is_set()
+
+
+async def test_le_worker_publie_et_l_api_recoit_dans_l_ordre(
+    app: FastAPI, partie: uuid.UUID, journal_nettoye: None
+) -> None:
+    """Le chemin complet **worker → Valkey → api**, à travers une vraie frontière de processus.
+
+    C'est la raison d'être de #44 : deux abonnés dans le même processus ne prouveraient pas le
+    franchissement, seulement que le pub/sub fonctionne en mémoire.
+
+    L'abonnement est ouvert — et **confirmé** — avant que le second processus ne démarre : c'est
+    l'ordre qui rend l'observation possible, un abonné qui arrive après la publication ne verrait
+    rien et le test rougirait sans raison.
+    """
+    async with subscribe(app.state.valkey, partie) as flux:
+        processus = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-c",
+            PUBLIE_DANS_UN_AUTRE_PROCESSUS,
+            str(Path(__file__).parent),
+            str(partie),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        async with asyncio.timeout(DELAI_INTEGRATION):
+            recus = [await anext(flux) for _ in range(3)]
+            _, erreurs = await processus.communicate()
+
+    assert processus.returncode == 0, erreurs.decode(errors="replace")
+    assert [recu.hexagones for recu in recus] == [1, 2, 3]
+    assert len(await evenements_persistes(app, partie)) == 3
