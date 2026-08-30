@@ -222,3 +222,49 @@ async def test_l_abonnement_est_enregistre_a_l_entree_et_defait_a_la_sortie(
         assert await app.state.valkey.pubsub_numsub(canal) == [(canal.encode(), 1)]
 
     assert await app.state.valkey.pubsub_numsub(canal) == [(canal.encode(), 0)]
+
+
+class ClientQuiRegardeLaBase:
+    """Un client Valkey qui note, **au moment où le PUBLISH part**, ce qu'une session neuve voit.
+
+    Doublure d'une frontière du système — le client Valkey — et non d'un de nos modules, et elle
+    enveloppe le vrai client au lieu de le remplacer : le message part réellement, l'abonné le
+    reçoit réellement. Seul l'instant de l'observation est ajouté.
+
+    C'est le seul montage déterministe pour cet invariant. Lire la base *après* le retour de
+    `publish` ne prouve rien — le commit a eu lieu de toute façon — et la lire depuis l'abonné
+    ferait dépendre le verdict de l'ordre d'ordonnancement de deux coroutines.
+    """
+
+    def __init__(self, vrai: object, app: FastAPI, partie: uuid.UUID) -> None:
+        self.vrai = vrai
+        self.app = app
+        self.partie = partie
+        self.lignes_visibles_au_publish: list[int] = []
+
+    async def publish(self, canal: str, message: str) -> object:
+        self.lignes_visibles_au_publish.append(
+            len(await evenements_persistes(self.app, self.partie))
+        )
+        return await self.vrai.publish(canal, message)
+
+
+async def test_la_ligne_est_commise_avant_que_le_message_ne_parte(
+    app: FastAPI, partie: uuid.UUID, journal_nettoye: None
+) -> None:
+    """L'invariant du bus — journalisé **puis** diffusé — n'est tenu que par l'ordre des awaits.
+
+    Rien d'autre ne le protège : ni type, ni contrainte de base, ni gate. Les autres tests de
+    `publish` le laissent donc passer, parce qu'ils lisent la base après le retour de `publish`,
+    quand le commit a eu lieu quoi qu'il arrive — mesuré : une mutation `flush` → PUBLISH →
+    `commit` les laisse tous verts, celui-ci compris dans sa première rédaction.
+
+    Ce qui distingue les deux implémentations est ce qu'une **autre** session voit à l'instant
+    précis où le message part : la ligne, ou rien.
+    """
+    espion = ClientQuiRegardeLaBase(app.state.valkey, app, partie)
+
+    async with fabrique_de(app)() as session:
+        await publish(session, espion, Capture(game_id=partie, hexagones=1))
+
+    assert espion.lignes_visibles_au_publish == [1]
