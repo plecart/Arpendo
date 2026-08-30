@@ -1046,7 +1046,7 @@ graph TB
 
     subgraph EXT["🔌 EXTERNES"]
         GOOG["Google Identity — SSO<br/>JWKS en cache local (TTL)"]
-        MBX["Mapbox — tuiles<br/>⚠️ jeton extractible de l'APK"]
+        MBX["Mapbox — tuiles<br/>jeton temporaire d'1 h émis par l'api<br/>❌ aucun jeton dans l'APK"]
         FCM["FCM — push"]
         SENTRY["Sentry — plan Developer<br/>⚠️ scrubbing PII obligatoire<br/>+ 1 moniteur d'uptime inclus"]
     end
@@ -1338,6 +1338,7 @@ Chaque report est conditionné à un **événement observable**, jamais à une i
 | **Instance hors gamme « Development »** | Même jour. Scaleway positionne explicitement les DEV1 pour « construire, tester et déployer de petites applications » : les garder en production publique serait un contresens assumé sans le dire | DEV1-S → **BASIC2-A2C-4G** : **+10,23 €/mois** |
 | **Redis managé + orchestrateur** | Le jour où une **seconde instance d'API doit tourner sur une seconde machine** | voir le chiffrage détaillé |
 | **Sentry Team** | Le jour où le quota de 5 000 erreurs/mois du plan Developer est atteint | **+26 $/mois** |
+| **Attestation Play Integrity** — seule une session attestée à la connexion obtient un jeton Mapbox temporaire (§13.10) | Le jour où le **ratio MAU / joueurs actifs réels diverge**, ou celui de la publication publique — le premier des deux. Dépend de Play App Signing (§13.11) | Quota gratuit de 10 000 vérifications/jour, suffisant en attestant à la connexion et non à chaque jeton ; ~1 à 2 jours de développement |
 
 Pendant la bêta fermée (piste interne, ≤ 100 testeurs, application non listée publiquement),
 l'absence de WAF de bordure est couverte par : le rate limiting applicatif déjà exigé en §12.4,
@@ -1362,7 +1363,7 @@ file locale de positions.
 | Rôle | Pourquoi c'est nécessaire |
 |---|---|
 | **Pub/Sub → diffusion SSE** | ⚠️ **Obligatoire dès aujourd'hui, et pas seulement à partir de 2 instances.** Le **worker est un processus distinct de l'api** (§13.0) : il produit la fin de partie, les bilans agrégés du flux (§11.5) et la neutralisation progressive (§4.4), alors que les connexions SSE vivent dans l'`api`. Sans bus partagé, **rien de ce que produit le worker n'atteint les joueurs**. Le cas « 2 instances d'API » n'est qu'une seconde raison, future |
-| Cache partagé | Classement vivant, liste des participants, viewports agrégés |
+| Cache partagé | Classement vivant, liste des participants, viewports agrégés, **jeton Mapbox temporaire** (§13.10 — une émission par heure pour toutes les instances) |
 | Compteurs de rate limit | Doivent être **globaux**. Aujourd'hui l'api et le worker partagent déjà le même compteur ; demain les N instances aussi |
 | Verrous distribués | **Préparé, pas encore utile** : avec un seul conteneur worker, aucune tâche ne peut s'exécuter deux fois. Le verrou devient nécessaire au premier worker supplémentaire |
 
@@ -1477,11 +1478,34 @@ Aucune étude, aucun schéma, aucun budget aujourd'hui.
 
 #### Les deux risques externes chiffrés
 
-**⚠️ Le jeton Mapbox est extractible de l'APK — risque financier n°1.** N'importe qui peut le
-sortir du binaire et brûler le quota MAU, facturé au projet. Le palier gratuit est de
-**25 000 MAU/mois** ; au-delà, 4 $ par millier. Contre-mesures : jeton à portée minimale,
-restrictions d'usage, rotation, **alerte de budget dès le premier dollar facturé**, et
-**surveillance du ratio MAU / joueurs actifs réels** — une divergence est la signature d'un vol.
+**⚠️ Le jeton Mapbox est le risque financier n°1 — l'app n'en porte donc aucun.** Mapbox ne
+sait restreindre un jeton que par URL de navigateur, restriction qui rend le jeton inutilisable
+par un SDK mobile ; il n'existe ni restriction par nom de paquet, ni plafond de dépense. Un jeton
+public (`pk.`) cuit dans l'APK serait extractible, anonyme et irrévocable sans nouvelle release :
+facture non bornée. Le palier gratuit est de **25 000 MAU/mois** ; au-delà, 4 $ par millier.
+Dispositif retenu :
+
+- **Aucun jeton Mapbox permanent dans l'APK.** L'app demande à l'api un **jeton temporaire**
+  (`tk.`, Tokens API, durée maximale d'une heure, portées publiques seules) à l'entrée sur la
+  carte et le renouvelle avant expiration. La route est authentifiée — seule une session valide
+  obtient un jeton — et couverte par le rate limiting par compte de §12.4. Un seul jeton
+  temporaire est partagé par tous les clients, mis en cache dans Valkey (§13.8) : une émission
+  par heure, quel que soit le nombre d'instances.
+- **Un seul secret Mapbox, côté serveur** : un jeton secret (`sk.`) aux portées `tokens:write`
+  plus les quatre portées publiques, et rien d'autre — s'il fuit, il ne sait émettre que des
+  jetons de lecture. Il vit dans le `.env` du serveur (règles ci-dessus), jamais dans l'image ni
+  dans l'APK.
+- **Coupure en un geste, sans release** : supprimer ce `sk.` dans la console Mapbox éteint tous
+  les jetons temporaires en une heure au plus ; la carte passe dans son état « Erreur » (spec UX
+  §7), et le compte fautif se bannit par son statut (§12.6).
+- **Détection** : **alerte de budget dès le premier dollar facturé** et **surveillance du ratio
+  MAU / joueurs actifs réels** — une divergence est la signature d'un abus. Procédure d'émission,
+  de rotation et de coupure : `documents/setup/mapbox.md`.
+
+Ce qui reste : un titulaire de compte peut obtenir un jeton frais chaque heure. Ce risque est
+attribuable, limité et bannissable — il ne l'était pas avec un jeton dans l'APK. Le durcissement
+suivant, l'attestation Play Integrity à la connexion, est un déclencheur de §13.7, pas un
+chantier du MVP.
 
 **⚠️ Sentry capture le contexte des requêtes par défaut** — donc potentiellement des **coordonnées
 GPS et des jetons**. Le scrubbing PII doit être configuré explicitement, sinon on reconstruit
@@ -1537,7 +1561,7 @@ moins de 8 h/semaine.
 
 | Priorité | Poste | Pourquoi | Garde-fou |
 |---|---|---|---|
-| **1** | **Mapbox** | Facture **non bornée** : jeton volé dans l'APK, aucun signal préalable | Alerte dès le 1er dollar facturé (seuil 25 000 MAU) + surveillance du ratio MAU/joueurs |
+| **1** | **Mapbox** | Facture **non bornée** par Mapbox : ni plafond de dépense, ni restriction mobile d'un jeton, aucun signal préalable | Aucun jeton dans l'APK — jeton temporaire d'une heure émis par l'api, coupure par suppression du secret serveur (§13.10) ; alerte dès le 1er dollar facturé (seuil 25 000 MAU) + surveillance du ratio MAU/joueurs |
 | **2** | **Sentry** | 5 000 erreurs/mois consommables en heures si une exception boucle | Filtrage entrant + échantillonnage dès le jour 1 |
 | **3** | **Stockage PostgreSQL** | Croît de façon monotone, la facture ne redescend jamais | Les purges de §12.3 (72 h / 12 mois) **sont le garde-fou de coût**, pas seulement une obligation RGPD |
 | 4 | Alerte globale de compte | Filet de dernier recours | Alerte à 50 € puis 100 € HT |
@@ -1668,7 +1692,7 @@ Le brief impose **le moins de pages possible**.
 | **Charge de neutralisation** | Dizaines de milliers de lignes sur une partie longue. Traitement asynchrone obligatoire |
 | **Délai MVP** | 6-9 mois à <8 h/semaine. Variante réduite (~3 mois) à proposer |
 | **Tracelet — bus factor de 1** | Mainteneur unique, projet jeune, fiabilité 24 h non vérifiée sur Xiaomi/Samsung. **Parade : interface `LocationProvider`** (§13.2) |
-| **Jeton Mapbox extractible de l'APK** | **Risque financier n°1.** Palier gratuit 25 000 MAU/mois, puis 4 $/millier. Portée minimale, restrictions, rotation, **alerte de budget dès le 1er dollar** (§13.10) |
+| **Jeton Mapbox** | **Risque financier n°1.** Palier gratuit 25 000 MAU/mois, puis 4 $/millier ; Mapbox n'offre ni plafond ni restriction mobile. **Parade : aucun jeton dans l'APK** — jeton temporaire d'une heure émis par l'api aux sessions authentifiées, secret serveur à portée minimale, coupure sans release, **alerte de budget dès le 1er dollar** (§13.10) |
 | **Serveur unique = point de défaillance unique** | **Assumé au MVP.** Une panne de la VM rend le service totalement indisponible. Atténuation : serveur jetable et reconstructible par script (§13.11), moniteur d'uptime branché dès le jour 1, snapshot régulier. La donnée, elle, est protégée par le PITR du PostgreSQL managé |
 | **IP d'origine exposée** (pas de WAF de bordure pendant la bêta) | **Assumé.** Exposition au DDoS volumétrique, acceptable sur une piste de test interne à ≤100 testeurs. Déclencheur de réactivation écrit en §13.7 |
 | **Correctifs OS et Docker à la charge du porteur** | ~15 min/mois avec `unattended-upgrades` et reconstruction d'image par la CI. Contrepartie assumée de l'auto-hébergement |
@@ -1844,6 +1868,24 @@ L'interrogatoire de l'issue #50 (icône de lancement Android) a fixé la **versi
 tranché sur planche de variantes (variante A″2 : œuf calculé, cercle, hexagone) — l'intention du
 §1.5 de `03-identite-visuelle.md` est inchangée, seul son bloc SVG et `documents/assets/icone-app.svg`
 changent. Aucune règle du jeu, aucune section 1 à 17 n'est rouverte.
+
+### 18.7 Révision du 30 août 2026, après la vérification des jetons Mapbox
+
+Au moment d'ouvrir le compte Mapbox (issue #30), vérification à la source : Mapbox ne sait
+restreindre un jeton que par URL de navigateur — restriction qui rend le jeton inutilisable par un
+SDK mobile — et n'offre aucun plafond de dépense. Les « restrictions d'usage » que §13.10 citait
+en contre-mesure n'existaient pas sur Android, et le jeton public dans l'APK laissait une facture
+non bornée, irrévocable sans release.
+
+| Ancienne décision | Nouvelle décision |
+|---|---|
+| §13.10, §16 : jeton public `pk.` dans l'APK, « portée minimale, restrictions d'usage, rotation, alerte de budget » | **Aucun jeton Mapbox dans l'APK.** L'api émet un jeton temporaire d'une heure aux sessions authentifiées, partagé et mis en cache dans Valkey (§13.8) ; un seul secret serveur (`tokens:write` + portées publiques) ; coupure par suppression de ce secret ; l'alerte et le ratio MAU/joueurs restent, comme détection |
+| §13.7 : quatre reports conditionnés | Cinquième : attestation Play Integrity à la connexion, déclenchée par une divergence du ratio MAU/joueurs ou la publication publique |
+| §13.0 : « Mapbox — ⚠️ jeton extractible de l'APK » | « Mapbox — jeton temporaire d'1 h émis par l'api, aucun jeton dans l'APK » |
+
+Raisonnement et options écartées : `documents/archive/decision-jeton-mapbox.md`. Répercuté dans
+`04-chiffrage.md` §4 et §5, le README « Ce qui reste ouvert », `documents/setup/mapbox.md`
+(procédure), et les issues #4, #30, #37 plus une issue neuve pour la route d'émission.
 
 ---
 

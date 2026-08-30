@@ -89,6 +89,70 @@ explicite persiste.
 après un `commit` déclencherait un rechargement, impossible à attendre en async, et une réponse
 HTTP est sérialisée *après* le commit.
 
+## Événements et bus
+
+Le journal d'événements de domaine (§12.6) a deux faces. `DomainEvent` est **la ligne** — ce que
+PostgreSQL garde, source de l'audit, du débogage et du flux d'activité. `Event` est **le type** —
+une base Pydantic dont chaque sous-classe déclare son identifiant :
+
+```python
+from typing import ClassVar
+
+from arpendo_api.core.journal import Event
+
+
+class TileCaptured(Event):
+    type: ClassVar[str] = "tile.captured"
+
+    tile: int
+```
+
+Déclarer la sous-classe suffit : elle s'inscrit au registre `EVENTS` sous son identifiant, et c'est
+ce registre qui permet de rendre à un message reçu la classe qui l'a produit. Deux classes sous le
+même identifiant lèvent à la déclaration — sinon la seconde remplacerait la première en silence et
+les abonnés décoderaient dans la mauvaise classe. Les identifiants sont **en anglais, pointés**,
+`entité.participe` : ils sont stockés en colonne, donc soumis à la règle des identifiants
+techniques. Le MVP n'en livre encore aucun ; le premier vient avec le domaine Partie.
+
+**`publish` journalise, commet, puis diffuse — dans cet ordre.**
+
+```python
+from arpendo_api.core.bus import publish
+
+await publish(session, valkey, TileCaptured(game_id=partie, tile=42))
+```
+
+C'est `publish` qui **clôt l'unité de travail** : la garantie « rien n'est diffusé qui ne soit
+journalisé » est la séquence de ses awaits, et non une discipline laissée à l'appelant. Il est
+variadique — un fait de domaine en produit parfois plusieurs, et un lot, c'est un commit et N
+messages, dans l'ordre de l'appel. Un objet qui n'est pas l'instance d'une sous-classe inscrite est
+refusé **avant la première écriture**. Un événement **sans partie** est journalisé et jamais
+publié : il n'a pas de canal. En retour, chaque instance reçoit l'`id` et l'`occurred_at` de sa
+ligne commise — le premier deviendra le `Last-Event-ID` de la SSE.
+
+**`subscribe` est un gestionnaire de contexte**, et pas une simple fabrique d'itérateur :
+
+```python
+from arpendo_api.core.bus import subscribe
+
+async with subscribe(valkey, partie) as flux:
+    async for evenement in flux:
+        ...
+```
+
+À l'entrée, il attend la **confirmation d'abonnement du serveur** : `PubSub.subscribe()` n'écrit
+que sur la socket sans lire la réponse, et publier aussitôt après risque de partir avant que le
+serveur n'ait enregistré l'abonné — mesuré, sans l'attente il ne l'avait enregistré que 12 fois sur
+30 — sans que rien ne le signale. À la sortie, il ferme le `PubSub` et rend sa connexion. Un
+canal par partie (`game:<uuid>`), composé à un seul endroit. Un message d'un type que ce processus
+ne connaît pas est **sauté** — un producteur plus récent ne doit pas faire perdre à l'abonné les
+messages qu'il sait lire — tandis qu'une clé inattendue dans la charge utile fait lever : le fil
+reste une frontière.
+
+**Aucune reconnexion écrite ici, aucune lecture rejouée** : une coupure remonte à l'appelant. Le
+cadrage §13.8 la pose comme indolore par conception — l'appelant se réabonne, le journal a tout
+gardé. Un serveur injoignable se constate dès l'entrée du contexte, pas à la première lecture.
+
 ## Limitation de débit
 
 Chaque requête est comptée dans Valkey, par **dimension** et par clé, en fenêtre fixe. Au-delà du
@@ -188,7 +252,9 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
   domaines s'y ajoutent sous `/v1` ; `/health` reste à la racine, parce qu'il s'adresse aux
   sondes et non aux clients.
 - `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
-  l'environnement du paquet), `valkey.py`, `health.py`.
+  l'environnement du paquet), `valkey.py`, `health.py`, `journal.py` (la ligne, le type, le
+  registre), `bus.py` (`publish` / `subscribe`), `resources.py` (les ressources partagées et leur
+  cycle de vie).
 - `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
   déclarative et les conventions de schéma — sa docstring en est la référence), `session.py` (la
   session par requête), `migrations/` (Alembic).
@@ -200,11 +266,17 @@ et rien d'autre ; la valeur ne sort que par un `.get_secret_value()` explicite, 
 fabrique qui la consomme. Un futur secret — clé de session, DSN Sentry, jeton FCM — se déclare
 avec le même alias.
 
-**Les ressources partagées sont ouvertes par le cycle de vie et rangées dans `app.state`** : leur
-durée de vie est exactement celle de l'application, et deux applications de test n'en partagent
-jamais une. Chacune est empilée sur un `AsyncExitStack` dès sa naissance, donc libérée même si la
-suivante échoue à naître ou si une fermeture lève. Ajouter une ressource, c'est deux lignes dans
-le cycle de vie — la créer, l'empiler.
+**Les ressources partagées — moteur, fabrique de sessions, client Valkey — sont ouvertes par
+`core/resources.py`**, et par personne d'autre. `open_resources(settings)` les empile sur un
+`AsyncExitStack` dès leur naissance, donc chacune est libérée même si la suivante échoue à naître
+ou si une fermeture lève. **Ajouter une ressource, c'est deux lignes là-bas** — la créer, l'empiler
+— au bon rang : l'ordre de création est celui des dépendances, l'ordre de libération s'en déduit.
+
+Le module ignore FastAPI, et c'est ce qui compte : les **deux points d'entrée du paquet** (§13.0)
+l'appelleront, l'hôte HTTP depuis son cycle de vie et le worker, quand il naîtra, depuis sa boucle.
+Le cycle de vie HTTP ne fait que consommer le résultat et le ranger dans `app.state`, dont la durée
+de vie est exactement celle de l'application — deux applications de test n'y partagent jamais une
+ressource. C'est là que les sondes de `/health` et la session par requête vont les chercher.
 
 **Ajouter une dépendance à `/health`, c'est ajouter une entrée à `PROBES`** — la table de module
 qui associe un nom de réponse à un aller-retour vers la dépendance. La route ne nomme aucune

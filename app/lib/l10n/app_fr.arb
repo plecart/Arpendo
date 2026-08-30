@@ -4,5 +4,25 @@
   "marqueAccroche": "prends du terrain",
   "@marqueAccroche": {
     "description": "Cité — cadrage §1, ne pas modifier. Accroche du bloc marque (signe, nom, accroche), sous le logotype : écran d'attente (UX §2.1), Connexion (UX §4), Accueil (UX §5)."
+  },
+
+  "bandeauPasDeReseau": "Pas de réseau. La reprise est automatique.",
+  "@bandeauPasDeReseau": {
+    "description": "Bandeau, priorité 5 de la table UX §2.4 : le téléphone n'a aucune interface réseau active, coupure de moins de 5 min. Sans action."
+  },
+
+  "bandeauMiseAJourDisponible": "Une nouvelle version est disponible.",
+  "@bandeauMiseAJourDisponible": {
+    "description": "Bandeau, priorité 12 de la table UX §2.4 : version recommandée non atteinte et non fermée pour cette version (UX §11.2)."
+  },
+
+  "bandeauActionMettreAJour": "Mettre à jour",
+  "@bandeauActionMettreAJour": {
+    "description": "Bandeau, action de la priorité 12 (UX §2.4) : ouvre la fiche Play Store."
+  },
+
+  "bandeauActionFermer": "Fermer",
+  "@bandeauActionFermer": {
+    "description": "Bandeau, action de la priorité 12 (UX §2.4) : masque le bandeau jusqu'à la version suivante (UX §11.2)."
   }
 }

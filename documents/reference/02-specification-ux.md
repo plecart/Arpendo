@@ -478,7 +478,7 @@ zéro à deux actions à droite. Les actions sont des boutons texte de **48 dp d
 | Paramètre | Valeurs |
 |---|---|
 | `severite` | `info` · `avertissement` · `bloquant` |
-| `icone` | glyphe 24 dp — **jamais la couleur seule** pour distinguer les sévérités |
+| *(icône)* | **dérivée de `severite`**, pas un paramètre : cercle · triangle · octogone, 24 dp — la sévérité se porte par la **forme**, **jamais la couleur seule** |
 | `texte` | chaîne i18n |
 | `actions` | 0 à 2 boutons texte |
 | `bloquant` | masque la carte et coupe les interactions de jeu |
@@ -501,7 +501,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
 | 11 | Notifications refusées | avertissement | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
-| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · fermer |
+| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · « Fermer » |
 | 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
 Notes de comportement :

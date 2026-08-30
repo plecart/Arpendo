@@ -2,9 +2,25 @@ import pytest
 from fastapi import FastAPI
 from sqlalchemy import text
 
-from arpendo_api import main
+from arpendo_api.core import resources
+from arpendo_api.core.resources import open_resources
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
+
+
+async def test_les_ressources_s_ouvrent_sans_application(settings: Settings) -> None:
+    """Le worker n'a pas d'application : il ouvre les mêmes ressources, par le même chemin.
+
+    C'est tout l'objet de l'extraction — sans elle, ce bloc ne serait atteignable qu'à travers
+    FastAPI, et le second point d'entrée du paquet devrait le réécrire. Les trois sont utilisables,
+    pas seulement construites : c'est un aller-retour qui le prouve, pas un `is not None`.
+    """
+    async with open_resources(settings) as ressources:
+        async with ressources.engine.connect() as connexion:
+            assert await connexion.scalar(text("SELECT 1")) == 1
+        async with ressources.sessionmaker() as session:
+            assert await session.scalar(text("SELECT 1")) == 1
+        assert await ressources.valkey.ping() is True
 
 
 async def test_le_demarrage_ouvre_une_connexion_utilisable_a_postgresql(app: FastAPI) -> None:
@@ -43,9 +59,13 @@ class ClientRecalcitrant:
 
 @pytest.fixture
 def moteur_espion(monkeypatch: pytest.MonkeyPatch) -> MoteurEspion:
-    """Substitue au moteur une doublure qui note sa libération."""
+    """Substitue au moteur une doublure qui note sa libération.
+
+    La substitution vise ``core.resources``, où les fabriques sont désormais appelées : c'est le
+    module qui ouvre les ressources, quel que soit l'hôte qui les consomme.
+    """
     moteur = MoteurEspion()
-    monkeypatch.setattr(main, "create_engine", lambda _: moteur)
+    monkeypatch.setattr(resources, "create_engine", lambda _: moteur)
     return moteur
 
 
@@ -75,7 +95,7 @@ async def test_le_moteur_est_libere_si_la_fermeture_du_client_valkey_leve(
     settings: Settings, moteur_espion: MoteurEspion, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """L'autre bout du même contrat : une fermeture qui lève n'emporte pas les suivantes."""
-    monkeypatch.setattr(main, "create_valkey", lambda _: ClientRecalcitrant())
+    monkeypatch.setattr(resources, "create_valkey", lambda _: ClientRecalcitrant())
 
     await _demarrage_echoue(settings, RuntimeError)
 
