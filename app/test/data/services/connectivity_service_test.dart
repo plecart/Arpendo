@@ -141,6 +141,24 @@ void main() {
     },
   );
 
+  test('un incident bascule le flux en ligne même après une coupure', () async {
+    // La conséquence assumée du cadrage §10.3, et la seule qui surprenne : un
+    // incident survenant alors que le dernier état connu était « hors ligne »
+    // ne laisse pas l'état tel quel, il le renverse.
+    final service = _service(
+      _jamaisSondee,
+      evenements: _flux([
+        const [ConnectivityResult.none],
+        PlatformException(code: 'x'),
+      ]),
+    );
+
+    await expectLater(
+      service.enLigne(),
+      emitsInOrder([false, true, emitsDone]),
+    );
+  });
+
   test('toute autre erreur du flux remonte au lieu de mentir', () async {
     final service = _service(
       _jamaisSondee,

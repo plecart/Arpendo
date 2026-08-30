@@ -271,12 +271,20 @@ L'étendre, c'est l'envelopper, pas le modifier : un verbe de plus naît avec so
 | « suis-je en ligne, là, maintenant ? » | `isOnline()` | un `Future<bool>`, une sonde ponctuelle |
 | « préviens-moi quand ça change » | `enLigne()` | un `Stream<bool>`, **un événement par changement d'état** |
 
-`enLigne()` n'émet pas l'état courant à l'abonnement : un appelant qui a besoin de savoir où il en
-est au démarrage lit `isOnline()` d'abord. Son `distinct` ne fait pas double emploi avec celui du
-plugin — celui-ci compare des **listes d'interfaces**, si bien qu'un passage du Wi-Fi aux données
-mobiles le traverse et produirait deux « en ligne » ; le nôtre compare l'état. Les deux verbes ont
-la même tolérance aux incidents de plateforme (« présumer en ligne », cadrage §10.3), et laissent
-remonter toute autre erreur.
+**Ne pas se fier au premier événement d'`enLigne()` pour connaître l'état initial** : sur Android le
+plugin l'émet au premier abonnement, mais pas aux suivants — le canal est mis en cache et son
+`onListen` ne se déclenche qu'au passage de zéro à un auditeur. Qui a besoin de savoir où il en est
+lit `isOnline()`, et traite un premier événement identique comme un doublon.
+
+Son `distinct` ne fait pas double emploi avec celui du plugin : celui-ci compare des **listes
+d'interfaces**, si bien qu'un passage du Wi-Fi aux données mobiles le traverse et produirait deux
+« en ligne » ; le nôtre compare l'état.
+
+Les deux verbes présument le réseau **présent** sur un incident de plateforme (cadrage §10.3) et
+laissent remonter toute autre erreur — pour `enLigne()`, cela veut dire qu'un incident survenu
+après une coupure fait basculer le flux en ligne. La parité s'arrête à un cas : un **plugin absent
+de la build** ne fait pas d'erreur sur le flux, il le rend muet ; c'est `isOnline()` qui reste
+tolérant à celui-là.
 
 C'est `enLigne()` qui alimente la ligne 5 du bandeau (UX §2.4) — voir « Composants uniques ».
 
