@@ -23,8 +23,7 @@ image neuve — `just up` la rebâtit, et ne coûte rien quand rien n'a bougé.
 
 **Le conteneur `worker` monte les mêmes sources mais ne recharge pas** : il n'y a pas d'équivalent
 de `--reload` pour une boucle asyncio, et en inventer un serait du code de production qui ne sert
-qu'au poste. Après avoir édité une tâche : `docker compose -f infra/docker-compose.yml restart
-worker`.
+qu'au poste. Après avoir édité une tâche : `just restart-worker`.
 
 **L'api seule, sur le poste** — pour attacher un débogueur ou un profileur au processus.
 
@@ -171,6 +170,17 @@ python -m arpendo_api.worker
 
 Il ouvre les ressources partagées par le même `open_resources` que l'api, déroule sa table de
 tâches, et s'arrête sur SIGTERM en libérant tout.
+
+**Contrairement à l'api, il ne se lance pas hors conteneur** : son fichier de battement est un
+chemin POSIX absolu (`/tmp/…`), qui n'existe pas sur un poste Windows. C'est voulu — ce chemin est
+le seul qui restera inscriptible quand #45 posera un système de fichiers en lecture seule.
+
+**Un tour de tâche qui échoue ne fait pas tomber le worker** : le tour est perdu, l'erreur part sur
+le journal de la stdlib (que #42 configurera), et le tour suivant repart. Plusieurs joueurs
+dépendent de ce processus — l'échec d'une purge sur un hoquet de la base est un incident local, pas
+une raison de priver tout le monde des autres tâches. Chaque boucle vit dans sa propre tâche
+asyncio, réunies par un `TaskGroup` : si l'une venait malgré tout à lever, les autres sont annulées
+plutôt que laissées à tourner sur des ressources déjà fermées.
 
 **Ajouter une tâche planifiée, c'est ajouter une entrée à `TASKS`** — un nom, un intervalle, une
 coroutine qui reçoit les ressources :

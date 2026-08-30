@@ -15,4 +15,8 @@ async def _main() -> None:
     await run(TASKS, stop_on_sigterm())
 
 
-asyncio.run(_main())
+if __name__ == "__main__":
+    # `python -m` exécute bien ce fichier sous ce nom, donc la garde ne change rien au conteneur.
+    # Elle empêche en revanche qu'un import — un outil d'analyse, une collecte de tests — démarre
+    # un worker par accident.
+    asyncio.run(_main())

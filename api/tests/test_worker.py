@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from arpendo_api import worker
 from arpendo_api.core.bus import subscribe
 from arpendo_api.core.resources import Resources
+from arpendo_api.core.settings import Settings
 from arpendo_api.worker import TASKS, run, stop_on_sigterm
 
 RESSOURCES_INUTILISEES = cast(Resources, None)
@@ -68,6 +69,13 @@ importer SQLAlchemy, pydantic et redis avant d'écrire quoi que ce soit. Ce n'es
 fonctionnement, c'est un filet — le dépasser signifie que rien n'est parti.
 """
 
+INTERVALLE_TRES_LONG = 3600.0
+"""Un intervalle qu'aucun test ne peut se permettre d'attendre.
+
+C'est ce qui rend observable la promesse de `_repeat` : l'attente entre deux tours porte sur
+l'événement d'arrêt, pas sur le temps. Avec un `sleep`, le test expirerait.
+"""
+
 DELAI = 5.0
 """Secondes accordées à un `run` qu'on attend arrêté.
 
@@ -76,7 +84,7 @@ manque. Très au-dessus du coût réel d'un tour de boucle sur des intervalles d
 """
 
 
-async def test_run_deroule_la_table_et_passe_les_ressources_a_chaque_tache() -> None:
+async def test_run_passe_les_ressources_ouvertes_a_la_tache_qu_il_deroule() -> None:
     """Une tâche reçoit de quoi travailler — les mêmes ressources que l'api, ouvertes par `run`.
 
     Elle pose elle-même l'événement d'arrêt : c'est le seul moyen d'observer *un* tour de boucle
@@ -96,7 +104,36 @@ async def test_run_deroule_la_table_et_passe_les_ressources_a_chaque_tache() -> 
     assert await recues[0].valkey.ping() is True
 
 
-async def test_une_tache_est_repetee_jusqu_a_l_arret(app: FastAPI) -> None:
+async def test_une_tache_qui_leve_ne_fait_tomber_ni_sa_boucle_ni_les_autres() -> None:
+    """Une purge qui échoue sur un hoquet de la base ne doit priver personne des autres tâches.
+
+    C'est la règle du serveur : plusieurs joueurs en dépendent, et l'échec d'un tour est un
+    incident local, pas une raison d'arrêter le worker. La tâche fautive reprend au tour
+    suivant, les autres n'en savent rien.
+
+    L'erreur n'est pas pour autant avalée — elle part sur le journal de la stdlib, que #42
+    configurera. Sans cela, une tâche définitivement cassée boucherait dans le vide en silence.
+    """
+    arret = asyncio.Event()
+    tours: list[str] = []
+
+    async def qui_leve(_: Resources) -> None:
+        tours.append("échec")
+        raise RuntimeError("hoquet de la base")
+
+    async def survivante(_: Resources) -> None:
+        tours.append("ok")
+        if tours.count("ok") == 3:
+            arret.set()
+
+    async with asyncio.timeout(DELAI):
+        await run({"qui_leve": (0.001, qui_leve), "survivante": (0.001, survivante)}, arret)
+
+    assert tours.count("ok") == 3
+    assert tours.count("échec") >= 3
+
+
+async def test_une_tache_est_repetee_jusqu_a_l_arret(settings: Settings) -> None:
     """« Périodique » est ce que cette boucle promet — encore faut-il l'observer.
 
     Sans ce test, un `_repeat` qui exécuterait la tâche **une seule fois** puis rendrait la main
@@ -104,6 +141,10 @@ async def test_une_tache_est_repetee_jusqu_a_l_arret(app: FastAPI) -> None:
 
     L'arrêt vient du compteur et non d'une temporisation : le test dure ce que durent trois tours,
     pas une durée choisie d'avance.
+
+    Les réglages sont passés explicitement, comme une application de test les passe à `create_app` :
+    c'est ce qui permet d'éprouver le worker contre un environnement décrit plutôt que contre celui
+    de la machine.
     """
     arret = asyncio.Event()
     tours = 0
@@ -115,13 +156,18 @@ async def test_une_tache_est_repetee_jusqu_a_l_arret(app: FastAPI) -> None:
             arret.set()
 
     async with asyncio.timeout(DELAI):
-        await run({"compter": (0.001, compter)}, arret)
+        await run({"compter": (0.001, compter)}, arret, settings)
 
     assert tours == 3
 
 
-async def test_run_libere_les_ressources_quand_il_s_arrete(moteur_espion: MoteurEspion) -> None:
-    """Un worker qui s'arrête sans rendre ses connexions les laisserait ouvertes côté serveur.
+async def test_run_libere_les_ressources_avant_de_rendre_la_main(
+    moteur_espion: MoteurEspion,
+) -> None:
+    """Un worker qui rend la main sans fermer ses connexions les laisserait ouvertes côté serveur.
+
+    La table est vide et l'arrêt déjà posé : ce test n'observe pas un arrêt, il observe que le
+    chemin de sortie libère — c'est délibérément le cas le plus dépouillé.
 
     La libération ne se voit pas de l'extérieur — `AsyncEngine.dispose` ne laisse aucune trace —
     d'où la doublure, qui est celle du démarrage de l'api : les deux hôtes ouvrent et libèrent par
@@ -203,6 +249,12 @@ async def test_le_worker_publie_et_l_api_recoit_dans_l_ordre(
     L'abonnement est ouvert — et **confirmé** — avant que le second processus ne démarre : c'est
     l'ordre qui rend l'observation possible, un abonné qui arrive après la publication ne verrait
     rien et le test rougirait sans raison.
+
+    C'est le seul test de la suite qui franchisse une frontière de processus, donc le seul qui
+    puisse échouer pour une raison invisible depuis pytest — un import manquant, une configuration
+    absente en CI. D'où le rattrapage de l'expiration : sans lui, le message serait un
+    `TimeoutError` nu et la `stderr` capturée exprès serait perdue. Le `finally` garantit qu'aucun
+    sous-processus ne survit au test, même coincé sur une connexion.
     """
     async with subscribe(app.state.valkey, partie) as flux:
         processus = await asyncio.create_subprocess_exec(
@@ -215,10 +267,67 @@ async def test_le_worker_publie_et_l_api_recoit_dans_l_ordre(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        async with asyncio.timeout(DELAI_INTEGRATION):
-            recus = [await anext(flux) for _ in range(3)]
+        try:
+            async with asyncio.timeout(DELAI_INTEGRATION):
+                recus = [await anext(flux) for _ in range(3)]
+                _, erreurs = await processus.communicate()
+        except TimeoutError:
+            processus.kill()
             _, erreurs = await processus.communicate()
+            pytest.fail(
+                "aucun message reçu ; le second processus a dit :\n"
+                + erreurs.decode(errors="replace")
+            )
+        finally:
+            if processus.returncode is None:
+                processus.kill()
+                await processus.wait()
 
     assert processus.returncode == 0, erreurs.decode(errors="replace")
     assert [recu.hexagones for recu in recus] == [1, 2, 3]
     assert len(await evenements_persistes(app, partie)) == 3
+
+
+async def test_les_taches_tournent_de_front_et_non_l_une_apres_l_autre() -> None:
+    """Une tâche lente n'en retarde aucune autre — c'est ce que la table promet, ici éprouvé.
+
+    Le montage est un interblocage volontaire : la première tâche attend un événement que seule la
+    seconde pose. Déroulées l'une après l'autre, elles ne finiraient jamais et le délai rougirait ;
+    de front, la seconde libère la première.
+    """
+    arret = asyncio.Event()
+    debloquee = asyncio.Event()
+
+    async def bloquante(_: Resources) -> None:
+        await debloquee.wait()
+        arret.set()
+
+    async def liberatrice(_: Resources) -> None:
+        debloquee.set()
+
+    async with asyncio.timeout(DELAI):
+        await run({"bloquante": (0.001, bloquante), "liberatrice": (0.001, liberatrice)}, arret)
+
+    assert debloquee.is_set()
+
+
+async def test_l_attente_entre_deux_tours_cede_immediatement_a_l_arret() -> None:
+    """`docker compose stop` ne doit pas attendre le prochain réveil d'une tâche horaire.
+
+    L'intervalle est d'une heure : si l'attente portait sur le temps plutôt que sur l'événement,
+    ce test expirerait au bout de cinq secondes au lieu de rendre la main aussitôt.
+    """
+    arret = asyncio.Event()
+    premier_tour = asyncio.Event()
+
+    async def tache(_: Resources) -> None:
+        premier_tour.set()
+
+    async def poser_l_arret_apres_le_premier_tour() -> None:
+        await premier_tour.wait()
+        arret.set()
+
+    async with asyncio.timeout(DELAI):
+        async with asyncio.TaskGroup() as groupe:
+            groupe.create_task(run({"lente": (INTERVALLE_TRES_LONG, tache)}, arret))
+            groupe.create_task(poser_l_arret_apres_le_premier_tour())

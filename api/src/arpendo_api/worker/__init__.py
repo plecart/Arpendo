@@ -6,6 +6,7 @@ s'exécuter qu'une fois, quel que soit le nombre d'instances HTTP (§13.9 règle
 """
 
 import asyncio
+import logging
 import signal
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
@@ -13,6 +14,14 @@ from pathlib import Path
 
 from arpendo_api.core.resources import Resources, open_resources
 from arpendo_api.core.settings import Settings
+
+_journal = logging.getLogger(__name__)
+"""Le journal du worker.
+
+Aucun handler n'est configuré — c'est le sujet de #42 — mais la stdlib en pose un de dernier
+recours qui écrit sur ``stderr`` à partir de ``WARNING``. Un échec de tâche est donc visible dans
+``docker compose logs worker`` dès aujourd'hui, et #42 le formatera sans qu'une ligne change ici.
+"""
 
 Task = Callable[[Resources], Awaitable[None]]
 """Un tour de travail périodique, à partir des ressources partagées du processus.
@@ -59,6 +68,10 @@ TASKS: Mapping[str, tuple[float, Task]] = {"battement": (HEARTBEAT_INTERVAL, _he
 l'ouverture des ressources, ni l'arrêt n'ont à changer. Une seule à la naissance : le battement.
 Les tâches réelles — fin de partie, purges de rétention, bilans du flux, envoi des push — arrivent
 avec les domaines Territoire et Flux.
+
+**Le nom n'est lu par aucun code aujourd'hui** : ``run`` ne parcourt que les valeurs. Il est là
+pour deux raisons — le dictionnaire interdit deux entrées homonymes, et c'est le point d'accroche
+naturel du journal de #42, qui aura besoin de dire *quelle* tâche a échoué.
 """
 
 
@@ -71,30 +84,54 @@ async def _repeat(interval: float, task: Task, resources: Resources, stop: async
 
     La tâche s'exécute **avant** la première attente : un worker qui vient de démarrer a fait son
     premier tour tout de suite, ce dont le healthcheck du conteneur dépend.
+
+    **Un tour qui échoue ne fait pas tomber la boucle.** Plusieurs joueurs dépendent de ce
+    processus : l'échec d'une purge sur un hoquet de la base est un incident local, pas une raison
+    de priver tout le monde des autres tâches. Le tour est perdu, l'erreur est journalisée, le
+    suivant repart.
+
+    ``except Exception`` et non ``BaseException`` : ``CancelledError`` doit continuer de traverser,
+    sinon l'annulation du groupe ne pourrait plus arrêter cette boucle.
     """
     while not stop.is_set():
-        await task(resources)
+        try:
+            await task(resources)
+        except Exception:
+            _journal.exception("le tour de tâche a échoué")
         with suppress(TimeoutError):
             await asyncio.wait_for(stop.wait(), interval)
 
 
-async def run(tasks: Mapping[str, tuple[float, Task]], stop: asyncio.Event) -> None:
+async def run(
+    tasks: Mapping[str, tuple[float, Task]],
+    stop: asyncio.Event,
+    settings: Settings | None = None,
+) -> None:
     """Ouvre les ressources partagées, déroule la table de tâches, et libère tout à l'arrêt.
 
     Args:
         tasks: la table à dérouler — un nom, son intervalle en secondes, et la coroutine à
-            exécuter. Chaque entrée tourne dans sa propre boucle : une tâche lente n'en retarde
-            aucune autre.
+            exécuter. Chaque entrée tourne dans **sa propre tâche asyncio** : une tâche lente n'en
+            retarde aucune autre, et un test l'observe.
         stop: l'événement qui met fin à toutes les boucles. C'est l'appelant qui le pose — depuis
             un signal en production, directement dans un test.
+        settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement, comme le fait
+            ``create_app`` : c'est le cas du conteneur, qui lance le module sans argument. Un test
+            en fournit un explicite pour décrire l'environnement qu'il veut éprouver.
 
     Returns:
         Rien, et seulement une fois **toutes** les boucles terminées et les ressources libérées.
+
+    Note:
+        ``TaskGroup`` plutôt que ``gather`` : si une boucle venait à lever malgré la garde par
+        tour, ``gather`` rendrait la main **sans annuler ses sœurs**, qui continueraient de tourner
+        sur un moteur et un client déjà fermés — mesuré, quatre tours de plus. Le groupe, lui,
+        annule tout avant de remonter, donc cet état ne peut pas exister.
     """
-    async with open_resources(Settings()) as resources:
-        await asyncio.gather(
-            *(_repeat(interval, task, resources, stop) for interval, task in tasks.values())
-        )
+    async with open_resources(settings if settings is not None else Settings()) as resources:
+        async with asyncio.TaskGroup() as groupe:
+            for interval, task in tasks.values():
+                groupe.create_task(_repeat(interval, task, resources, stop))
 
 
 def stop_on_sigterm() -> asyncio.Event:
