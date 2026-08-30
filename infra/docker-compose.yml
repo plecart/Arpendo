@@ -13,7 +13,7 @@
 services:
   postgres:
     # PostgreSQL 17 : même majeure que la CI et que le service managé à commander (§13.6).
-    image: postgres:17
+    image: postgres:18
     environment:
       # Identifiants littéraux : ce conteneur ne contient que des données jetables, et les mettre
       # dans le `.env` donnerait à croire qu'il s'agit d'un secret. Ils sont l'exacte contrepartie
