@@ -37,7 +37,7 @@ def channel_for(game_id: uuid.UUID) -> str:
     return f"game:{game_id}"
 
 
-def _envelope(ligne: DomainEvent, game_id: uuid.UUID) -> str:
+def _envelope(row: DomainEvent, game_id: uuid.UUID) -> str:
     """La ligne commise, telle qu'elle voyage : ``{id, game_id, type, payload, occurred_at}``.
 
     Le message est la **forme de la ligne**, pas celle de l'événement Python. C'est ce qui
@@ -46,23 +46,23 @@ def _envelope(ligne: DomainEvent, game_id: uuid.UUID) -> str:
     source.
 
     Args:
-        ligne: la ligne commise à diffuser.
+        row: la ligne commise à diffuser.
         game_id: sa partie, exigée à part parce qu'une ligne peut ne pas en avoir. Une enveloppe
             n'a alors aucun canal où aller : le cas se traite **avant** d'appeler, et le type le
             rappelle plutôt qu'un ``str(None)`` glissé dans le message.
     """
     return json.dumps(
         {
-            "id": str(ligne.id),
+            "id": str(row.id),
             "game_id": str(game_id),
-            "type": ligne.type,
-            "payload": ligne.payload,
-            "occurred_at": ligne.occurred_at.isoformat(),
+            "type": row.type,
+            "payload": row.payload,
+            "occurred_at": row.occurred_at.isoformat(),
         }
     )
 
 
-def _decode(donnees: bytes) -> Event | None:
+def _decode(data: bytes) -> Event | None:
     """L'opération inverse d'``_envelope`` : l'événement typé d'un message, ou ``None``.
 
     ``None`` quand le type n'est inscrit dans **ce** processus : ce n'est pas une erreur, un
@@ -71,7 +71,7 @@ def _decode(donnees: bytes) -> Event | None:
     inattendue *dans* la charge utile, elle, fait lever — c'est ``extra="forbid"`` sur ``Event``,
     et le fil reste une frontière.
     """
-    message: dict[str, Any] = json.loads(donnees)
+    message: dict[str, Any] = json.loads(data)
     classe = EVENTS.get(message["type"])
     if classe is None:
         return None
@@ -80,14 +80,14 @@ def _decode(donnees: bytes) -> Event | None:
     )
 
 
-def _registered(evenement: Event) -> bool:
+def _registered(event: Event) -> bool:
     """Dit si l'objet est l'instance d'un type d'événement réellement inscrit au registre.
 
     L'identité, et non la seule présence de l'identifiant : un modèle étranger qui déclarerait
     ``type = "tile.captured"`` sans descendre d'``Event`` publierait une charge utile qu'aucun
     abonné ne saurait décoder.
     """
-    classe = type(evenement)
+    classe = type(event)
     return EVENTS.get(getattr(classe, "type", "")) is classe
 
 
@@ -146,7 +146,7 @@ async def publish(session: AsyncSession, valkey: Redis, *events: Event) -> None:
             await valkey.publish(channel_for(ligne.game_id), _envelope(ligne, ligne.game_id))
 
 
-async def _flux(pubsub: PubSub) -> AsyncIterator[Event]:
+async def _stream(pubsub: PubSub) -> AsyncIterator[Event]:
     """Décode les messages du canal, indéfiniment, en sautant ceux d'un type inconnu.
 
     ``PubSub.listen()`` plutôt qu'une boucle de ``get_message`` : il bloque jusqu'au message
@@ -204,4 +204,4 @@ async def subscribe(valkey: Redis, game_id: uuid.UUID) -> AsyncIterator[AsyncIte
     async with valkey.pubsub(ignore_subscribe_messages=True) as pubsub:
         await pubsub.subscribe(channel_for(game_id))
         await pubsub.get_message(timeout=None)
-        yield _flux(pubsub)
+        yield _stream(pubsub)
