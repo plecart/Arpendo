@@ -286,7 +286,8 @@ L'étendre, c'est l'envelopper, pas le modifier : un verbe de plus naît avec so
 
 **Ne pas se fier au premier événement d'`enLigne()` pour connaître l'état initial** : sur Android le
 plugin l'émet à l'abonnement, mais pas à tous — le canal est mis en cache et son `onListen` ne se
-déclenche qu'au passage de zéro à un auditeur, donc un second abonné simultané ne l'aura pas. Qui a besoin de savoir où il en est
+déclenche qu'au passage de zéro à un auditeur, si bien qu'un second abonné simultané ne le reçoit
+pas. Qui a besoin de savoir où il en est
 lit `isOnline()`, et traite un premier événement identique comme un doublon.
 
 Son `distinct` ne fait pas double emploi avec celui du plugin : celui-ci compare des **listes

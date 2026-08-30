@@ -87,9 +87,9 @@ class EntreeBandeau {
   ///
   /// Cela ne dit rien de son **contenu**, qui peut changer à rang constant : la
   /// ligne 8 porte un décompte à la seconde, la 13 un nombre de captures, la 6
-  /// voit son action apparaître après trente secondes. Rendre le contenu reste
-  /// affaire de reconstruction ordinaire ; seule la transition se décide sur la
-  /// priorité.
+  /// voit son action apparaître une trentaine de secondes **après** son seuil
+  /// de cinq minutes. Rendre le contenu reste affaire de reconstruction
+  /// ordinaire ; seule la transition se décide sur la priorité.
   final int priorite;
 
   /// La gravité, qui décide du glyphe et de la couleur au rendu.

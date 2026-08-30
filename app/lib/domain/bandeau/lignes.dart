@@ -19,22 +19,18 @@ import 'entree_bandeau.dart';
 /// Sans action : il n'y a rien à faire d'autre que d'attendre, et le dire est
 /// exactement ce que le texte fait.
 ///
-/// ponytail: sa condition est incomplète, et volontairement. La table du §2.4
-/// borne la ligne 5 à une « coupure de moins de cinq minutes » ; cette borne
-/// manque ici, faute d'horloge de coupure — elle appartient à Territoire, avec
-/// la ligne 6 (« Coupure de plus de 5 min »). **À reprendre par qui livrera la
-/// ligne 6**, dans le même lot.
-///
-/// **Ce que Territoire devra faire en livrant la ligne 6.** La spec veut que
-/// l'entrée 6 « prenne la main » au-delà de cinq minutes, mais elle ne
-/// l'obtient pas par le rang : 6 est un rang **plus haut** que 5, donc une
-/// priorité **moindre** — c'est le rang le plus bas qui gagne. La spec y arrive
-/// par l'exclusivité des conditions : passé cinq minutes, la ligne 5 cesse
-/// d'être active. Tant que la borne manque, les deux seraient actives
-/// ensemble et [resoudre] rendrait la 5, qui masquerait la 6 **en silence** —
-/// l'`assert` de [resoudre] ne voit que les collisions de rang, pas les
-/// conditions qui se recouvrent. Livrer la ligne 6 impose donc de donner sa
-/// borne à celle-ci.
+/// ponytail: sa condition est incomplète, et volontairement — la table du §2.4
+/// borne la ligne 5 à une « coupure de moins de cinq minutes », et cette borne
+/// manque ici, faute d'horloge de coupure. **À reprendre par qui livrera la
+/// ligne 6 (« Coupure de plus de 5 min »), dans le même lot**, sans quoi les
+/// deux lignes seront actives ensemble au-delà de cinq minutes et [resoudre]
+/// rendra la 5, qui masquera la 6 **en silence**. La spec veut l'inverse —
+/// « l'entrée 6 … prend la main sur les deux » — mais elle ne l'obtient pas par
+/// le rang : 6 est un rang **plus haut** que 5, donc une priorité **moindre**,
+/// puisque le rang le plus bas gagne. Elle l'obtient par l'exclusivité des
+/// conditions, qui rend la ligne 5 inactive passé le seuil. Et rien ne le
+/// signalera : l'`assert` de [resoudre] ne voit que les collisions de rang, pas
+/// les conditions qui se recouvrent.
 EntreeBandeau ligneReseauAbsent() => EntreeBandeau(
   priorite: 5,
   severite: Severite.avertissement,
