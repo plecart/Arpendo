@@ -54,6 +54,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - typecheck    : `just typecheck`
 - build        : `just build`
 - run local    : `just up`
+- reprise worker : `just restart-worker`   # sources montées, mais pas de rechargement à chaud
 - migrate      : `just migrate`               # `alembic upgrade head` sur la base du `.env`
 - migration    : `just migration MSG`         # autogenerate — fichier à relire avant commit (zone sensible)
 

@@ -26,8 +26,9 @@ recours qui écrit sur ``stderr`` à partir de ``WARNING``. Un échec de tâche 
 Task = Callable[[Resources], Awaitable[None]]
 """Un tour de travail périodique, à partir des ressources partagées du processus.
 
-Elle ne rend rien : seul compte qu'elle aboutisse. Elle reçoit les ressources plutôt que de les
-ouvrir, pour que toutes les tâches partagent un seul moteur et un seul client.
+Elle ne rend rien : seul compte qu'elle aboutisse — et elle a le droit de ne pas aboutir, un tour
+qui lève étant traité par ``_repeat`` sans conséquence pour les autres. Elle reçoit les ressources
+plutôt que de les ouvrir, pour que toutes les tâches partagent un seul moteur et un seul client.
 """
 
 
@@ -69,13 +70,14 @@ l'ouverture des ressources, ni l'arrêt n'ont à changer. Une seule à la naissa
 Les tâches réelles — fin de partie, purges de rétention, bilans du flux, envoi des push — arrivent
 avec les domaines Territoire et Flux.
 
-**Le nom n'est lu par aucun code aujourd'hui** : ``run`` ne parcourt que les valeurs. Il est là
-pour deux raisons — le dictionnaire interdit deux entrées homonymes, et c'est le point d'accroche
-naturel du journal de #42, qui aura besoin de dire *quelle* tâche a échoué.
+Le nom sert **au journal** : c'est lui qui dit quelle tâche a raté son tour, sans quoi il faudrait
+lire la trace pour le savoir. Le dictionnaire interdit par ailleurs deux entrées homonymes.
 """
 
 
-async def _repeat(interval: float, task: Task, resources: Resources, stop: asyncio.Event) -> None:
+async def _repeat(
+    name: str, interval: float, task: Task, resources: Resources, stop: asyncio.Event
+) -> None:
     """Exécute une tâche, attend son intervalle, recommence — jusqu'à l'événement d'arrêt.
 
     L'attente porte sur l'**événement**, pas sur le temps : un ``sleep`` obligerait l'arrêt à
@@ -97,7 +99,7 @@ async def _repeat(interval: float, task: Task, resources: Resources, stop: async
         try:
             await task(resources)
         except Exception:
-            _journal.exception("le tour de tâche a échoué")
+            _journal.exception("le tour de la tâche %s a échoué", name)
         with suppress(TimeoutError):
             await asyncio.wait_for(stop.wait(), interval)
 
@@ -130,8 +132,8 @@ async def run(
     """
     async with open_resources(settings if settings is not None else Settings()) as resources:
         async with asyncio.TaskGroup() as groupe:
-            for interval, task in tasks.values():
-                groupe.create_task(_repeat(interval, task, resources, stop))
+            for name, (interval, task) in tasks.items():
+                groupe.create_task(_repeat(name, interval, task, resources, stop))
 
 
 def stop_on_sigterm() -> asyncio.Event:

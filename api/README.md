@@ -171,16 +171,19 @@ python -m arpendo_api.worker
 Il ouvre les ressources partagées par le même `open_resources` que l'api, déroule sa table de
 tâches, et s'arrête sur SIGTERM en libérant tout.
 
-**Contrairement à l'api, il ne se lance pas hors conteneur** : son fichier de battement est un
-chemin POSIX absolu (`/tmp/…`), qui n'existe pas sur un poste Windows. C'est voulu — ce chemin est
-le seul qui restera inscriptible quand #45 posera un système de fichiers en lecture seule.
+**Contrairement à l'api, il ne se lance pas sur un poste Windows** : son fichier de battement est
+un chemin POSIX absolu (`/tmp/…`). C'est voulu — ce chemin est le seul qui restera inscriptible
+quand #45 posera un système de fichiers en lecture seule.
 
 **Un tour de tâche qui échoue ne fait pas tomber le worker** : le tour est perdu, l'erreur part sur
-le journal de la stdlib (que #42 configurera), et le tour suivant repart. Plusieurs joueurs
-dépendent de ce processus — l'échec d'une purge sur un hoquet de la base est un incident local, pas
-une raison de priver tout le monde des autres tâches. Chaque boucle vit dans sa propre tâche
-asyncio, réunies par un `TaskGroup` : si l'une venait malgré tout à lever, les autres sont annulées
-plutôt que laissées à tourner sur des ressources déjà fermées.
+le journal de la stdlib (que #42 configurera) en nommant la tâche fautive, et le tour suivant
+repart. Plusieurs joueurs dépendent de ce processus — l'échec d'une purge sur un hoquet de la base
+est un incident local, pas une raison de priver tout le monde des autres tâches.
+
+**Le prix de cette règle, à connaître** : une tâche définitivement cassée boucle et journalise sans
+fin, et le conteneur **reste `healthy`** — le battement est une entrée distincte de la table, il
+continue de battre. Un healthcheck vert dit que le worker tourne, pas que ses tâches réussissent ;
+c'est le journal qui le dit.
 
 **Ajouter une tâche planifiée, c'est ajouter une entrée à `TASKS`** — un nom, un intervalle, une
 coroutine qui reçoit les ressources :
@@ -190,7 +193,9 @@ TASKS: Mapping[str, tuple[float, Task]] = {"battement": (HEARTBEAT_INTERVAL, _he
 ```
 
 Ni la boucle, ni l'ouverture des ressources, ni l'arrêt n'ont à changer. Chaque entrée tourne dans
-sa propre boucle : une tâche lente n'en retarde aucune autre. L'attente entre deux tours porte sur
+sa **propre tâche asyncio**, réunies par un `TaskGroup` : une tâche lente n'en retarde aucune
+autre, et si l'une venait à lever malgré la garde ci-dessus, les autres sont annulées plutôt que
+laissées à tourner sur des ressources déjà fermées. L'attente entre deux tours porte sur
 l'**événement d'arrêt** et non sur le temps — sans quoi un `docker compose stop` devrait patienter
 jusqu'au prochain réveil, ce qui deviendra insupportable à la première tâche horaire.
 

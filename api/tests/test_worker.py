@@ -1,6 +1,7 @@
 """Le worker : ce qu'il déroule, et comment il s'arrête."""
 
 import asyncio
+import logging
 import os
 import signal
 import sys
@@ -104,7 +105,9 @@ async def test_run_passe_les_ressources_ouvertes_a_la_tache_qu_il_deroule() -> N
     assert await recues[0].valkey.ping() is True
 
 
-async def test_une_tache_qui_leve_ne_fait_tomber_ni_sa_boucle_ni_les_autres() -> None:
+async def test_une_tache_qui_leve_ne_fait_tomber_ni_sa_boucle_ni_les_autres(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Une purge qui échoue sur un hoquet de la base ne doit priver personne des autres tâches.
 
     C'est la règle du serveur : plusieurs joueurs en dépendent, et l'échec d'un tour est un
@@ -112,7 +115,11 @@ async def test_une_tache_qui_leve_ne_fait_tomber_ni_sa_boucle_ni_les_autres() ->
     suivant, les autres n'en savent rien.
 
     L'erreur n'est pas pour autant avalée — elle part sur le journal de la stdlib, que #42
-    configurera. Sans cela, une tâche définitivement cassée boucherait dans le vide en silence.
+    configurera. Ce point est **assuré par une assertion** et non par une intention : la garde
+    supprime l'échec du plan de contrôle, donc cette trace est la seule chose qui reste. Mesuré —
+    un `except Exception: pass` laisserait tout le reste de ce test au vert, et une tâche
+    définitivement cassée boucherait alors dans le vide en silence. La trace **nomme la tâche** :
+    avec trois tâches réelles, un message identique pour toutes obligerait à lire la pile.
     """
     arret = asyncio.Event()
     tours: list[str] = []
@@ -126,11 +133,15 @@ async def test_une_tache_qui_leve_ne_fait_tomber_ni_sa_boucle_ni_les_autres() ->
         if tours.count("ok") == 3:
             arret.set()
 
-    async with asyncio.timeout(DELAI):
-        await run({"qui_leve": (0.001, qui_leve), "survivante": (0.001, survivante)}, arret)
+    with caplog.at_level(logging.ERROR):
+        async with asyncio.timeout(DELAI):
+            await run({"qui_leve": (0.001, qui_leve), "survivante": (0.001, survivante)}, arret)
 
     assert tours.count("ok") == 3
     assert tours.count("échec") >= 3
+    echecs = [trace for trace in caplog.records if trace.exc_info]
+    assert echecs, "l'échec du tour n'a laissé aucune trace"
+    assert "qui_leve" in echecs[0].getMessage()
 
 
 async def test_une_tache_est_repetee_jusqu_a_l_arret(settings: Settings) -> None:
@@ -331,3 +342,17 @@ async def test_l_attente_entre_deux_tours_cede_immediatement_a_l_arret() -> None
         async with asyncio.TaskGroup() as groupe:
             groupe.create_task(run({"lente": (INTERVALLE_TRES_LONG, tache)}, arret))
             groupe.create_task(poser_l_arret_apres_le_premier_tour())
+
+    assert premier_tour.is_set()
+
+
+@pytest.mark.parametrize("settings", [{"valkey_url": "pas-une-url"}], indirect=True)
+async def test_run_ouvre_les_reglages_qu_on_lui_donne(settings: Settings) -> None:
+    """Le paramètre `settings` n'a de valeur que si `run` s'en sert vraiment.
+
+    L'environnement décrit ici est **invalide** : un schéma d'URL que `Redis.from_url` refuse. Un
+    `run` qui lirait l'environnement de la machine au lieu du paramètre démarrerait sans broncher,
+    et ce test rougirait. C'est le même montage que celui du démarrage de l'api, à la fixture près.
+    """
+    with pytest.raises(ValueError):
+        await run({}, asyncio.Event(), settings)
