@@ -109,10 +109,14 @@ pas. Une clé `None` veut dire « cet axe ne s'applique pas à cette requête »
 | `FORWARDED_ALLOW_IPS` | lue par **uvicorn**, pas par `Settings` — voir plus bas |
 
 **Échec ouvert** : Valkey injoignable, la requête passe sans être comptée (cadrage §13.8 — la perte
-de Valkey est indolore par conception, et des compteurs remis à zéro sont sans conséquence). Seules
-`ConnectionError` et `TimeoutError` de redis-py sont attrapées ; elles sont sœurs, l'une n'hérite
-pas de l'autre, il faut donc nommer les deux. Attraper `Exception` désarmerait la limitation en
-silence au premier bug du limiteur, au lieu de le faire sortir en 500.
+de Valkey est indolore par conception, et des compteurs remis à zéro sont sans conséquence). Sont
+attrapées `ConnectionError` et `TimeoutError` de redis-py — sœurs, l'une n'hérite pas de l'autre,
+il faut donc nommer les deux — **et les cinq sous-classes de la première**, dont
+`AuthenticationError`. Un mot de passe Valkey erroné désarme donc la limitation en silence ; c'est
+`/health` qui le dit, en répondant 503. Assumé : rejeter chaque requête sur une erreur de
+configuration ferait une panne totale là où l'on a un service dégradé et bruyamment signalé.
+Attraper `Exception`, en revanche, désarmerait la limitation au premier bug du limiteur au lieu de
+le faire sortir en 500.
 
 ### L'adresse comptée, et à qui l'on croit
 
@@ -121,16 +125,27 @@ Le limiteur ne lit **jamais** `X-Forwarded-For`. Il compte `request.client.host`
 le proxy **si et seulement si** le pair figure dans `FORWARDED_ALLOW_IPS`. Une seule décision, un
 seul endroit. Trois nuances qui se paient cher :
 
-- **`*` n'est total que seul.** `FORWARDED_ALLOW_IPS=*` fait confiance à tout le monde, mais
-  `*,10.0.0.1` ne fait confiance à personne — le `*` y est traité comme un nom d'hôte littéral,
-  qu'aucun pair ne portera. Une valeur vide ne fait confiance à personne non plus.
+- **Ne jamais poser `*`.** Il ne se contente pas de faire confiance à tout le monde : il
+  **change d'algorithme**. Sous `*`, uvicorn retient le **premier** hôte de la liste — celui de
+  gauche, entièrement écrit par le client — et ne le valide même pas comme adresse : un
+  `X-Forwarded-For: pas-une-ip` devient tel quel la clé de comptage. Le limiteur est alors à la
+  fois contournable (une valeur différente à chaque requête) et une fabrique de clés arbitraires
+  qui vivent une fenêtre entière. Le raccourci est tentant quand l'adresse de la passerelle est
+  imprévisible ; il désarme la limitation.
+- **`*` accompagné n'est pas `*`.** `FORWARDED_ALLOW_IPS=*,10.0.0.1` ne vaut pas « tout le
+  monde » : le `*` y devient un nom d'hôte littéral que personne ne porte, et la liste se comporte
+  exactement comme `10.0.0.1`. Le raccourci total n'existe que pour `*` **seul**. Une valeur vide,
+  elle, ne fait confiance à personne.
 - **L'adresse retenue est le premier hôte non fiable en partant de la droite**, pas le premier de
   la liste. Chaque proxy ajoute à la fin : la droite est le seul bout qu'un client ne contrôle pas.
 - **La liste accepte les IP, les CIDR et les littéraux.** Une IP mal écrite ne lève rien : elle
   devient un littéral, qui ne correspondra jamais à personne.
 
-**En production**, y poser le réseau de Caddy — périmètre de #45. Tant que rien n'y est posé, le
-défaut `127.0.0.1` fait qu'aucun en-tête n'est cru : l'état sûr.
+**En production**, y poser le réseau de Caddy — périmètre de #45 — et **ne pas s'en remettre au
+défaut**. Derrière un reverse proxy dont l'adresse n'est pas déclarée, aucun en-tête n'est cru et
+le limiteur compte l'adresse interne de Caddy pour *tous* les joueurs : le quota par adresse
+devient un plafond global, « et le premier joueur actif bloquerait les autres » (cadrage §13.7).
+Sûr du côté de l'usurpation, dégradé du côté de la disponibilité — pas un état où l'on s'installe.
 
 Dans la pile locale, les requêtes venues de l'hôte atteignent le conteneur avec pour pair la
 passerelle du bridge Docker : tout le trafic de la machine partage donc un seul compteur tant

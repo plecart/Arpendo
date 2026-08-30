@@ -12,10 +12,11 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from arpendo_api.core.settings import Settings
 
 KEY_PREFIX = "ratelimit"
-"""Préfixe de toute clé de compteur : ``ratelimit:<dimension>:<clé>``.
+"""Espace de noms des compteurs dans Valkey : ``ratelimit:<dimension>:<clé>``.
 
-Un espace de noms à lui seul, pour qu'un ``SCAN`` puisse énumérer les compteurs sans toucher au
-reste de ce que le projet range dans Valkey — c'est ce que fait la purge des tests.
+Séparé du reste pour qu'un ``SCAN`` les énumère sans rien toucher d'autre. Les tests épinglent ce
+format en clair plutôt que de l'importer : le recomposer depuis cette constante les rendrait
+aveugles au jour où elle change.
 """
 
 
@@ -86,9 +87,15 @@ async def _retry_after(valkey: Redis, key: str, quota: int, window: int) -> int 
 
     **Échoue ouvert** : Valkey injoignable rend ``None``, donc la requête passe sans être comptée
     (cadrage §13.8 — la perte de Valkey est indolore par conception, et des compteurs remis à
-    zéro sont sans conséquence). Les deux exceptions attrapées sont étroites et sœurs :
-    ``TimeoutError`` n'hérite pas de ``ConnectionError``, il faut nommer les deux. Attraper
-    ``Exception`` transformerait un bug de ce module en trou silencieux dans la limitation.
+    zéro sont sans conséquence). Les deux exceptions nommées sont sœurs : ``TimeoutError``
+    n'hérite pas de ``ConnectionError``, il faut donc citer les deux.
+
+    L'ensemble attrapé est plus large qu'il n'en a l'air : ``ConnectionError`` a cinq
+    sous-classes, dont ``AuthenticationError``. Un mot de passe Valkey erroné désarme donc la
+    limitation au lieu de faire échouer l'api — et c'est ``/health`` qui le signale, en 503.
+    C'est le choix assumé : rejeter chaque requête sur une erreur de configuration ferait une
+    panne totale là où l'on a un service dégradé et visible. Attraper ``Exception``, en revanche,
+    transformerait un bug de ce module en trou silencieux dans la limitation.
 
     Args:
         valkey: le client de l'application.
@@ -98,10 +105,10 @@ async def _retry_after(valkey: Redis, key: str, quota: int, window: int) -> int 
 
     Returns:
         Les secondes à attendre — au moins 1 — si la requête dépasse le quota, ``None`` si elle
-        passe. ``max(ttl, 1)`` protège l'en-tête contre le ``-1`` que ``TTL`` rend sur une clé
-        sans expiration : l'atomicité ci-dessus interdit à ce module d'en créer une, mais rien
-        n'interdit à un autre écrivain de poser une clé de ce nom, et un ``Retry-After`` négatif
-        est un en-tête invalide.
+        passe. ``max(ttl, 1)`` est une défense en profondeur, sans chemin connu pour y mener : un
+        ``TTL`` de ``-1`` supposerait une clé sans expiration, or l'atomicité interdit à ce module
+        d'en créer une et ``EXPIRE NX`` réparerait celle qu'un autre écrivain aurait posée, dans
+        ce même pipeline. Le garde coûte un appel et évite un ``Retry-After`` invalide.
     """
     try:
         async with valkey.pipeline() as batch:
