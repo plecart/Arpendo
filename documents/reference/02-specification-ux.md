@@ -1285,9 +1285,10 @@ réduction** : le §2.2 ne décompte plus le header de la hauteur disponible, et
 | Puce gauche, superposée | Pastille de delta, transitoire, calée sur le bord droit **intérieur** — **elle n'occupe aucune largeur propre** (§ « Le score vivant », point 3) | `type-label` |
 
 **Les deux puces ne portent aucune cible tactile.** Elles sont **entièrement inertes** : de
-l'information à lire, rien à toucher, ce qui applique la bande haute du §1.4 sans exception. Elles
-sont donc en `IgnorePointer` — le glissement de carte les traverse, exactement comme la pile
-d'activité (§7.2.1) — **et elles restent dans l'arbre d'accessibilité**, avec un `Semantics`
+l'information à lire, rien à toucher, et elles ne se réclament d'aucune des deux exceptions que le
+§1.4 accorde à cette bande. Elles sont donc en `IgnorePointer` — le glissement de carte les
+traverse, exactement comme la pile d'activité (§7.2.1) — **et elles restent dans l'arbre
+d'accessibilité**, avec un `Semantics`
 explicite posé en dehors de l'`IgnorePointer`. L'accès aux Paramètres passe par la barre d'onglets
 de la feuille Partie (§7.4).
 
