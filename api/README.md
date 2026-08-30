@@ -177,8 +177,8 @@ de Valkey est indolore par conception, et des compteurs remis à zéro sont sans
 attrapées `ConnectionError` et `TimeoutError` de redis-py — sœurs, l'une n'hérite pas de l'autre,
 il faut donc nommer les deux — **et tout ce qui hérite de la première**, dont
 `AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. Aucune trace dans les
-journaux jusqu'à #42, mais `/health` le dit en répondant 503. Assumé : rejeter chaque requête sur une erreur de
-configuration ferait une panne totale là où l'on a un service dégradé et bruyamment signalé.
+journaux jusqu'à #42, mais `/health` le dit en répondant 503. Assumé : rejeter chaque requête sur
+une erreur de configuration ferait une panne totale là où l'on a un service dégradé et signalé.
 Attraper `Exception`, en revanche, désarmerait la limitation au premier bug du limiteur au lieu de
 le faire sortir en 500.
 
@@ -187,7 +187,7 @@ le faire sortir en 500.
 Le limiteur ne lit **jamais** `X-Forwarded-For`. Il compte `request.client.host`, que le
 `ProxyHeadersMiddleware` d'uvicorn — actif par défaut — a déjà remplacé par l'adresse annoncée par
 le proxy **si et seulement si** le pair figure dans `FORWARDED_ALLOW_IPS`. Une seule décision, un
-seul endroit. Trois nuances qui se paient cher :
+seul endroit. Les nuances qui se paient cher :
 
 - **Ne jamais poser `*`.** Il ne se contente pas de faire confiance à tout le monde : il
   **change d'algorithme**. Sous `*`, uvicorn retient le **premier** hôte de la liste — celui de
