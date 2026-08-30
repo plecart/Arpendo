@@ -76,6 +76,13 @@ class EntreeBandeau {
   ///
   /// Les rangs ne se renumérotent pas : ils sont l'identité des lignes dans la
   /// spécification, et une ligne ajoutée plus tard prend un rang libre.
+  ///
+  /// **C'est donc aussi l'identité de l'entrée pour l'affichage.** Deux entrées
+  /// construites depuis la même ligne ne sont pas égales — la classe n'a ni
+  /// `==` ni `hashCode`, et les fabriques de `lignes.dart` rendent un objet
+  /// neuf à chaque appel, closures comprises. Un affichage qui veut savoir si
+  /// le bandeau a changé compare les priorités, jamais les entrées : comparer
+  /// les objets rejouerait la transition à chaque reconstruction.
   final int priorite;
 
   /// La gravité, qui décide du glyphe et de la couleur au rendu.
@@ -95,9 +102,14 @@ class EntreeBandeau {
   ///
   /// **À ne pas confondre avec [Severite.bloquant]**, que la spécification
   /// nomme du même mot : la sévérité décide du glyphe et de la couleur, ce
-  /// drapeau décide de l'état « carte masquée » (§12.2). Les deux se suivent
-  /// souvent sans jamais se déduire l'un de l'autre — la ligne 3 est de
-  /// sévérité `bloquant` alors que la partie continue.
+  /// drapeau décide de l'état « carte masquée » (§12.2).
+  ///
+  /// Dans la table du §2.4 telle qu'elle existe aujourd'hui, les deux
+  /// coïncident : les trois seules lignes de sévérité `bloquant` — 1, 2 et 3 —
+  /// sont exactement celles que le §12.2 nomme comme masquant la carte. Ils
+  /// restent deux paramètres parce que la spécification les distingue, et
+  /// parce que rien n'interdit une ligne future de gravité `bloquant` qui
+  /// laisserait la carte vivre. Aucun des deux ne se déduit de l'autre.
   final bool bloquant;
 }
 
@@ -112,15 +124,19 @@ class EntreeBandeau {
 /// entrée chez lui et la joint à [actives]. Il n'existe volontairement aucune
 /// énumération centrale des conditions, qu'une ligne nouvelle devrait modifier.
 ///
-/// Deux entrées de même priorité violeraient la règle d'exclusivité du §2.4 —
-/// « aucune condition ne doit pouvoir être vraie en même temps qu'une condition
-/// plus prioritaire ». Un `assert` les refuse en debug ; en release, le choix
-/// reste déterministe (la première rencontrée).
+/// Un `assert` refuse en debug **deux entrées de même rang** — une bourde de
+/// numérotation, puisqu'un rang identifie une ligne du §2.4. Il ne fait que
+/// cela : la règle d'exclusivité du §2.4 est bien plus forte — « aucune
+/// condition ne doit pouvoir être vraie en même temps qu'une condition plus
+/// prioritaire » — et elle porte sur les **conditions**, que ce module ne voit
+/// pas. Deux lignes dont les conditions se recouvrent passeront ici sans un
+/// mot, et la mieux classée masquera l'autre ; c'est au domaine qui déclare
+/// une ligne de garantir que sa condition exclut celles d'au-dessus.
 EntreeBandeau? resoudre(Iterable<EntreeBandeau> actives) {
   assert(
     actives.map((entree) => entree.priorite).toSet().length == actives.length,
-    "Deux entrées de même priorité : la règle d'exclusivité de la spec UX "
-    '§2.4 veut que deux conditions ne soient jamais vraies ensemble.',
+    'Deux entrées portent le même rang : un rang identifie une ligne de la '
+    'table de la spec UX §2.4, deux lignes ne peuvent pas partager le leur.',
   );
   if (actives.isEmpty) return null;
   return actives.reduce(

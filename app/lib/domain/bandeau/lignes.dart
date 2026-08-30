@@ -1,15 +1,15 @@
-/// Les lignes de la table du §2.4 que cette application sait déjà former.
+/// Les deux lignes de la table du §2.4 qui n'ont pas encore de domaine
+/// propriétaire — le réseau ira à Territoire, la mise à jour à la séquence de
+/// démarrage.
 ///
 /// **Ce fichier n'est pas le registre des lignes du bandeau, et il ne le
-/// deviendra pas.** Une ligne appartient au domaine qui possède sa condition —
-/// les permissions, le territoire, la partie — et s'y déclare, sans que
-/// [resoudre] ni ce fichier changent. Les deux ci-dessous n'ont pas encore de
-/// domaine propriétaire : le réseau ira à Territoire avec la fenêtre de cinq
-/// minutes (lignes 4 et 6), la mise à jour à la séquence de démarrage. Elles
-/// déménageront chez eux quand ces domaines existeront.
+/// deviendra pas** : une ligne se déclare dans le domaine qui possède sa
+/// condition. Le pourquoi et la marche à suivre sont dans `app/README.md`,
+/// section « Composants uniques ».
 ///
-/// Aucune n'évalue sa condition : c'est la racine de composition qui décide si
-/// une ligne est active, et qui joint celles qui le sont à [resoudre].
+/// Aucune de ces fabriques n'évalue sa condition : c'est la racine de
+/// composition qui décide si une ligne est active, et qui joint celles qui le
+/// sont à [resoudre].
 library;
 
 import 'entree_bandeau.dart';
@@ -17,9 +17,23 @@ import 'entree_bandeau.dart';
 /// Ligne 5 — le téléphone n'a aucune interface réseau active (§2.4).
 ///
 /// Sans action : il n'y a rien à faire d'autre que d'attendre, et le dire est
-/// exactement ce que le texte fait. La nuance « coupure de moins de cinq
-/// minutes » de la table appartient à la ligne 6, plus prioritaire, qui prendra
-/// la main quand Territoire la livrera — cette ligne-ci n'a donc pas d'horloge.
+/// exactement ce que le texte fait.
+///
+/// **Sa condition est incomplète, et volontairement.** La table du §2.4 borne
+/// la ligne 5 à une « coupure de moins de cinq minutes » ; cette borne manque
+/// ici, faute d'horloge de coupure — elle appartient à Territoire, avec la
+/// ligne 6 (« Coupure de plus de 5 min »).
+///
+/// **Ce que Territoire devra faire en livrant la ligne 6.** La spec veut que
+/// l'entrée 6 « prenne la main » au-delà de cinq minutes, mais elle ne
+/// l'obtient pas par le rang : 6 est un rang **plus haut** que 5, donc une
+/// priorité **moindre** — c'est le rang le plus bas qui gagne. La spec y arrive
+/// par l'exclusivité des conditions : passé cinq minutes, la ligne 5 cesse
+/// d'être active. Tant que la borne manque, les deux seraient actives
+/// ensemble et [resoudre] rendrait la 5, qui masquerait la 6 **en silence** —
+/// l'`assert` de [resoudre] ne voit que les collisions de rang, pas les
+/// conditions qui se recouvrent. Livrer la ligne 6 impose donc de donner sa
+/// borne à celle-ci.
 EntreeBandeau ligneReseauAbsent() => EntreeBandeau(
   priorite: 5,
   severite: Severite.avertissement,

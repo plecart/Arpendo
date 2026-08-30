@@ -478,7 +478,7 @@ zéro à deux actions à droite. Les actions sont des boutons texte de **48 dp d
 | Paramètre | Valeurs |
 |---|---|
 | `severite` | `info` · `avertissement` · `bloquant` |
-| `icone` | glyphe 24 dp — **jamais la couleur seule** pour distinguer les sévérités |
+| *(icône)* | **dérivée de `severite`**, pas un paramètre : cercle · triangle · octogone, 24 dp — la sévérité se porte par la **forme**, **jamais la couleur seule** |
 | `texte` | chaîne i18n |
 | `actions` | 0 à 2 boutons texte |
 | `bloquant` | masque la carte et coupe les interactions de jeu |
