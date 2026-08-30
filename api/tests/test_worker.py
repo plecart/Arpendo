@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import signal
 from pathlib import Path
 from typing import cast
 
@@ -10,7 +11,7 @@ from conftest import MoteurEspion
 
 from arpendo_api import worker
 from arpendo_api.core.resources import Resources
-from arpendo_api.worker import TASKS, run
+from arpendo_api.worker import TASKS, run, stop_on_sigterm
 
 RESSOURCES_INUTILISEES = cast(Resources, None)
 """Ce que reçoit une tâche qui n'a besoin de rien.
@@ -86,3 +87,34 @@ async def test_le_battement_cree_le_fichier_puis_en_rafraichit_la_date(
     await battre(RESSOURCES_INUTILISEES)
 
     assert fichier.stat().st_mtime > 0
+
+
+async def test_le_gestionnaire_de_sigterm_pose_l_evenement_d_arret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Le câblage s'éprouve **sans envoyer de signal** : on appelle le gestionnaire qu'il a posé.
+
+    Envoyer un vrai SIGTERM sous pytest tuerait la suite ou dépendrait de la plateforme. Ce qu'on
+    veut vérifier n'est de toute façon pas que le système délivre les signaux, mais que *notre*
+    gestionnaire pose l'événement.
+
+    Les deux assertions qui encadrent le `sleep(0)` sont ce qui éprouve le **passage par la
+    boucle** : `call_soon_threadsafe` dépose le réveil au lieu de l'exécuter sur place, donc
+    l'événement n'est pas encore posé au retour du gestionnaire. Un `stop.set()` appelé
+    directement — le raccourci qu'un gestionnaire de signal n'a pas le droit de prendre — le
+    poserait immédiatement, et la première assertion tomberait.
+    """
+    poses: dict[int, object] = {}
+    monkeypatch.setattr(
+        signal, "signal", lambda numero, gestionnaire: poses.setdefault(numero, gestionnaire)
+    )
+
+    arret = stop_on_sigterm()
+    assert not arret.is_set()
+
+    poses[signal.SIGTERM](signal.SIGTERM, None)
+    assert not arret.is_set()
+
+    await asyncio.sleep(0)
+
+    assert arret.is_set()

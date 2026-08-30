@@ -6,6 +6,7 @@ s'exécuter qu'une fois, quel que soit le nombre d'instances HTTP (§13.9 règle
 """
 
 import asyncio
+import signal
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
 from pathlib import Path
@@ -94,3 +95,29 @@ async def run(tasks: Mapping[str, tuple[float, Task]], stop: asyncio.Event) -> N
         await asyncio.gather(
             *(_repeat(interval, task, resources, stop) for interval, task in tasks.values())
         )
+
+
+def stop_on_sigterm() -> asyncio.Event:
+    """Rend l'événement d'arrêt que le prochain SIGTERM posera.
+
+    À appeler depuis la boucle, avant ``run`` : c'est de la boucle courante que le gestionnaire a
+    besoin pour rendre la main sans risque.
+
+    ``signal.signal`` et **jamais** ``loop.add_signal_handler`` : le second lève
+    ``NotImplementedError`` sous Windows, où ce projet se développe. Le premier existe partout, au
+    prix d'une contrainte — le gestionnaire s'exécute **hors du contrôle de la boucle**, entre deux
+    instructions de bytecode, donc il ne peut pas toucher un objet asyncio directement.
+    ``call_soon_threadsafe`` est le seul pont sûr : il dépose le réveil dans la boucle, qui
+    l'exécute quand elle reprend la main.
+
+    C'est ce qui rend l'arrêt d'un conteneur propre : ``docker compose stop`` envoie SIGTERM, la
+    boucle sort de ses attentes, ``run`` libère les ressources, et le processus se termine sans que
+    Docker ait à le tuer au bout de son délai de grâce.
+
+    Returns:
+        L'événement, non posé. Le poser est le seul effet du signal.
+    """
+    stop = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    signal.signal(signal.SIGTERM, lambda *_: loop.call_soon_threadsafe(stop.set))
+    return stop
