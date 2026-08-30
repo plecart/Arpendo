@@ -37,6 +37,17 @@ abstract final class Espacements {
   static const double x12 = 48;
 }
 
+/// Cibles tactiles — §1.4.
+abstract final class CiblesTactiles {
+  /// Côté minimal d'une cible tactile, en dp — **aucune exception** (§1.4).
+  ///
+  /// Y compris autour d'une icône dessinée en 24 dp : c'est la *zone* qui
+  /// s'étend, pas le dessin. Un bouton texte du bandeau (§2.4) mesure donc ce
+  /// côté en hauteur, et c'est lui qui décide de la hauteur du bandeau dès
+  /// qu'une action est présente.
+  static const double min = 48;
+}
+
 /// Rayons d'angle — §1.3.
 abstract final class Rayons {
   /// `radius-sm` — champ de saisie, pastille de couleur.
