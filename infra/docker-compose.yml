@@ -39,7 +39,7 @@ services:
       retries: 10
 
   valkey:
-    image: valkey/valkey:8
+    image: valkey/valkey:9
     environment:
       # Mot de passe obligatoire même sans port publié (§13.10, « Valkey authentifié »).
       # `VALKEY_EXTRA_FLAGS` plutôt qu'un `command:` qui réécrirait la ligne de commande de
