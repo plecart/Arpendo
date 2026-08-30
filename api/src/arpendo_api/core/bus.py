@@ -1,8 +1,8 @@
 """Le bus d'événements : ce qui journalise, et ce qui diffuse.
 
-Deux fonctions et rien d'autre — ``publish`` d'un côté, ``subscribe`` de l'autre — sans aucune
-dépendance au transport HTTP : la couche de services (cadrage §12.6) appelle les mêmes fonctions
-depuis l'api et depuis le worker.
+Deux opérations — ``publish`` d'un côté, ``subscribe`` de l'autre — et le nom de canal qu'elles
+partagent, sans aucune dépendance au transport HTTP : la couche de services (cadrage §12.6)
+appellera les mêmes fonctions depuis l'api et depuis le worker.
 """
 
 import json
@@ -17,11 +17,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from arpendo_api.core.journal import EVENTS, DomainEvent, Event
 
-_FILLED_AT_PUBLICATION = {"id", "game_id", "occurred_at"}
-"""Les champs d'``Event`` que porte la ligne du journal, et non sa charge utile.
+_ROW_FIELDS = {"id", "game_id", "occurred_at"}
+"""Les champs d'``Event`` que porte la ligne du journal en colonnes, et non sa charge utile.
 
 Une seule liste pour les deux sens : ``publish`` les **exclut** de la charge utile qu'il écrit,
-``_decode`` les **relit** à côté d'elle. Les séparer laisserait dériver l'encodage du décodage."""
+``_decode`` les **relit** à côté d'elle. Les séparer laisserait dériver l'encodage du décodage.
+
+Ils n'ont pas tous la même origine — ``game_id`` vient de l'appelant, ``id`` et ``occurred_at`` de
+la ligne commise — mais ils partagent ce qui compte ici : la colonne les porte, la charge utile ne
+doit pas les porter une seconde fois."""
 
 
 def channel_for(game_id: uuid.UUID) -> str:
@@ -72,8 +76,19 @@ def _decode(donnees: bytes) -> Event | None:
     if classe is None:
         return None
     return classe.model_validate(
-        {**message["payload"], **{champ: message[champ] for champ in _FILLED_AT_PUBLICATION}}
+        {**message["payload"], **{champ: message[champ] for champ in _ROW_FIELDS}}
     )
+
+
+def _registered(evenement: Event) -> bool:
+    """Dit si l'objet est l'instance d'un type d'événement réellement inscrit au registre.
+
+    L'identité, et non la seule présence de l'identifiant : un modèle étranger qui déclarerait
+    ``type = "tile.captured"`` sans descendre d'``Event`` publierait une charge utile qu'aucun
+    abonné ne saurait décoder.
+    """
+    classe = type(evenement)
+    return EVENTS.get(getattr(classe, "type", "")) is classe
 
 
 async def publish(session: AsyncSession, valkey: Redis, *events: Event) -> None:
@@ -111,7 +126,7 @@ async def publish(session: AsyncSession, valkey: Redis, *events: Event) -> None:
         DomainEvent(
             game_id=evenement.game_id,
             type=type(evenement).type,
-            payload=evenement.model_dump(mode="json", exclude=_FILLED_AT_PUBLICATION),
+            payload=evenement.model_dump(mode="json", exclude=_ROW_FIELDS),
         )
         for evenement in events
     ]
@@ -125,19 +140,19 @@ async def publish(session: AsyncSession, valkey: Redis, *events: Event) -> None:
             await valkey.publish(channel_for(ligne.game_id), _envelope(ligne, ligne.game_id))
 
 
-def _registered(evenement: Event) -> bool:
-    """Dit si l'objet est l'instance d'un type d'événement réellement inscrit au registre."""
-    classe = type(evenement)
-    return EVENTS.get(getattr(classe, "type", "")) is classe
-
-
 async def _flux(pubsub: PubSub) -> AsyncIterator[Event]:
     """Décode les messages du canal, indéfiniment, en sautant ceux d'un type inconnu.
 
     ``PubSub.listen()`` plutôt qu'une boucle de ``get_message`` : il bloque jusqu'au message
-    suivant, ne rend que ce qui en est un, et s'arrête de lui-même quand l'abonnement est défait.
-    Une boucle maison rejouerait ces trois règles, avec une branche « rien à décoder » qu'aucun
-    test ne peut atteindre.
+    suivant et ne rend que ce qui en est un — une boucle maison rejouerait ces deux règles, avec une
+    branche « rien à décoder » qu'aucun test ne peut atteindre.
+
+    Sa condition d'arrêt (``while self.subscribed``) ne se rencontre que sur un désabonnement
+    explicite suivi d'une lecture. Un consommateur **suspendu dans une lecture** au moment où le
+    contexte se ferme ne s'arrête donc pas proprement : il reçoit une erreur de connexion (constaté
+    en relecture indépendante). Sans conséquence tant que le consommateur et le contexte vivent dans
+    la même tâche, ce qui est le cas ici ; à traiter quand la SSE lira ce flux depuis une tâche
+    séparée.
     """
     async for message in pubsub.listen():
         evenement = _decode(message["data"])
@@ -152,17 +167,25 @@ async def subscribe(valkey: Redis, game_id: uuid.UUID) -> AsyncIterator[AsyncIte
     Gestionnaire de contexte, et pas simple fabrique d'itérateur, pour deux raisons qui tiennent
     aux deux bouts :
 
-    - **à l'entrée**, il attend le message de confirmation du serveur. ``PubSub.subscribe()``
-      n'écrit que sur la socket : publier aussitôt après perd des messages — mesuré, 8 sur 30 — et
-      la perte est invisible, l'abonné voit simplement moins d'événements qu'il n'en a été publié.
-      L'attente est un ``get_message`` bloquant dont **la valeur est sans intérêt** : le ``PubSub``
-      est construit en ignorant les confirmations, donc il rend ``None``. Ce qui compte est qu'il
-      ait lu la réponse du serveur, et un test le constate depuis le serveur (``PUBSUB NUMSUB``) ;
+    - **à l'entrée**, il attend la réponse du serveur au ``SUBSCRIBE``. ``PubSub.subscribe()``
+      n'écrit que sur la socket sans la lire (sources de redis-py 8.1.0) : un message publié
+      aussitôt après risque de partir avant que le serveur n'ait enregistré l'abonné, et la perte
+      est invisible — celui-ci voit simplement moins d'événements qu'il n'en a été publié. Mesuré
+      en relecture indépendante : sans cette attente, le serveur n'avait enregistré l'abonnement
+      que 12 fois sur 30. L'attente est un ``get_message`` bloquant dont **la valeur est sans
+      intérêt** — le ``PubSub`` est construit en ignorant les confirmations, donc il rend ``None``.
+      Ce qui compte est qu'il ait lu la réponse, et un test le constate depuis le serveur
+      (``PUBSUB NUMSUB``) ;
     - **à la sortie**, il ferme le ``PubSub``, donc rend sa connexion au pool quoi qu'il arrive.
 
-    Aucune reconnexion : le client échoue vite et ne réessaie pas (``core.valkey``), donc la perte
-    de Valkey fait lever l'itérateur au lieu de le faire attendre en silence. Le cadrage §13.8 pose
-    cette perte comme indolore par conception — l'appelant se réabonne, le journal a tout gardé.
+    **Aucune reconnexion écrite ici, aucune lecture rejouée** : le client est réglé sur zéro
+    réessai (``core.valkey``), donc une coupure remonte à l'appelant au lieu de le faire attendre
+    en silence, et un serveur injoignable se constate dès l'entrée. Nuance vérifiée dans les
+    sources de redis-py 8.1.0 : ``Retry.call_with_retry`` appelle son ``failure_callback`` — pour
+    un ``PubSub``, un ``disconnect`` suivi d'un ``connect`` — *avant* de comparer le compteur au
+    nombre de réessais. Il y a donc une tentative de rétablir la socket, mais l'ordre qui a échoué
+    n'est pas rejoué. Le cadrage §13.8 pose cette perte comme indolore par conception : l'appelant
+    se réabonne, le journal a tout gardé.
 
     Args:
         valkey: le client sur lequel s'abonner.

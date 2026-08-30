@@ -1,9 +1,9 @@
 """Les ressources partagées de la couche de services, et leur cycle de vie.
 
 Un seul endroit ouvre le moteur, la fabrique de sessions et le client Valkey — et les libère. Les
-**deux points d'entrée du paquet** (cadrage §13.0) le consomment : l'hôte HTTP depuis son cycle de
-vie FastAPI, le worker depuis sa boucle. Rien ici ne connaît FastAPI : c'est ce qui rend le second
-hôte possible sans réécrire le premier.
+**deux points d'entrée du paquet** (cadrage §13.0) le consommeront : l'hôte HTTP depuis son cycle de
+vie FastAPI, et le worker, quand il naîtra, depuis sa boucle. Rien ici ne connaît FastAPI : c'est ce
+qui rend le second hôte possible sans réécrire le premier.
 """
 
 from collections.abc import AsyncIterator

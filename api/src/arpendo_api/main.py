@@ -24,7 +24,8 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     deux points d'entrée du paquet. Ce cycle de vie ne fait que la consommer et ranger le résultat
     — ajouter une ressource se fait là-bas, plus ici.
     """
-    async with open_resources(app.state.settings) as ressources:
+    settings: Settings = app.state.settings
+    async with open_resources(settings) as ressources:
         app.state.engine = ressources.engine
         app.state.sessionmaker = ressources.sessionmaker
         app.state.valkey = ressources.valkey

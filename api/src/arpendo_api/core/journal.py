@@ -88,6 +88,14 @@ class Event(BaseModel):
     ``extra="forbid"`` : à la réception, une clé que la classe ne connaît pas fait échouer le
     décodage au lieu d'être jetée en silence. Le fil est une frontière, même entre nos propres
     processus.
+
+    Deux conséquences de l'inscription automatique, à connaître avant de s'y heurter :
+
+    - une sous-classe qui **omet** ``type`` échoue à sa déclaration sur un ``AttributeError: type``
+      nu — l'erreur est immédiate, à l'import, mais elle ne dit pas ce qui manque ;
+    - **on ne sous-classe pas un type d'événement existant** : l'identifiant hérité est déjà
+      inscrit, donc la déclaration lève. Une variante d'un type est un type à part entière, avec
+      son propre identifiant.
     """
 
     model_config = ConfigDict(extra="forbid")
