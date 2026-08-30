@@ -1,4 +1,4 @@
-import time
+import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
@@ -11,10 +11,9 @@ from uvicorn import Config
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from arpendo_api.core import rate_limit
-from arpendo_api.core.health import PROBE_TIMEOUT
 from arpendo_api.core.rate_limit import Dimension
 from arpendo_api.core.settings import Settings
-from arpendo_api.core.valkey import CONNECT_TIMEOUT, create_valkey
+from arpendo_api.core.valkey import create_valkey
 from arpendo_api.main import create_app
 
 DEUX_REQUETES_PAR_FENETRE = {"rate_limit_ip_requests": 2}
@@ -99,7 +98,7 @@ async def test_la_fenetre_expire_et_le_quota_repart(client: AsyncClient) -> None
     assert (await client.get("/health")).status_code == 200
     assert (await client.get("/health")).status_code == 429
 
-    time.sleep(1.1)
+    await asyncio.sleep(1.1)
 
     assert (await client.get("/health")).status_code == 200
 
@@ -119,7 +118,7 @@ async def test_la_fenetre_ne_se_decale_pas_a_chaque_requete(
 
     assert echeance > 0, "un compteur sans échéance ne se réinitialiserait jamais"
 
-    time.sleep(0.05)
+    await asyncio.sleep(0.05)
     await client.get("/health")
 
     assert await valkey.pttl(COMPTEUR_LOCAL) < echeance
@@ -214,17 +213,13 @@ async def test_valkey_injoignable_laisse_passer_la_requete(client: AsyncClient) 
     constate la dépendance absente. C'est bien ce 503, et non un 200, qui prouve l'échec ouvert :
     il ne peut venir que de la route, donc le limiteur l'a laissée s'exécuter.
 
-    Et la panne se constate sans faire attendre : la tentative que le limiteur ajoute est bornée
-    par le délai de connexion du client, qui ne réessaie jamais. Le plafond est donc celui de
-    `/health` — un délai de client pour le limiteur, le budget de la sonde pour la sonde.
+    Le temps que coûte la panne n'est pas mesuré ici : `test_health.py` le fait déjà sur la même
+    requête, et deux chronomètres sur un même chemin ne prouvent qu'une fois.
     """
-    debut = time.perf_counter()
     reponse = await client.get("/health")
-    duree = time.perf_counter() - debut
 
     assert reponse.status_code == 503
     assert reponse.json()["valkey"] == "unreachable"
-    assert duree < CONNECT_TIMEOUT + PROBE_TIMEOUT
 
 
 class ValkeyBogue:
