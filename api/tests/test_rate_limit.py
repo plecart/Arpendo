@@ -290,14 +290,15 @@ def test_l_api_est_bien_servie_derriere_le_middleware_de_proxy() -> None:
     """La frontière de confiance n'existe que si le serveur enveloppe vraiment l'application.
 
     Tout ce qui précède éprouve l'algorithme d'uvicorn en construisant le middleware à la main ;
-    rien ne prouvait qu'il est là en production. Un `--no-proxy-headers` ajouté au `command:` du
-    compose le retirerait sans faire rougir un seul test, et l'api compterait alors l'adresse
-    interne de caddy pour tous les joueurs — « le premier joueur actif bloquerait les autres »
-    (cadrage §13.7).
+    rien ne prouvait qu'il enveloppe vraiment CETTE application. On la charge donc par son point
+    d'entrée réel et on regarde ce qui en sort : `ProxyHeadersMiddleware` est le dernier emballage
+    posé par `Config.load`, donc le plus externe.
 
-    On charge donc l'application comme le serveur le fait, par son point d'entrée réel, et on
-    regarde ce qui en sort. `ProxyHeadersMiddleware` est le dernier emballage posé par
-    `Config.load`, donc le plus externe.
+    Ce que la garde couvre : uvicorn changeant son défaut `proxy_headers`, ou une fabrique que
+    `Config.load` envelopperait autrement. Ce qu'elle ne couvre **pas** : un `--no-proxy-headers`
+    ajouté au `command:` du compose, que ce test ne lit pas. Cette régression-là ne s'attrape qu'à
+    la relecture du diff — et elle coûterait cher : l'api compterait l'adresse interne de caddy
+    pour tous les joueurs, « et le premier joueur actif bloquerait les autres » (cadrage §13.7).
     """
     config = Config("arpendo_api.main:create_app", factory=True)
     config.load()

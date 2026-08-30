@@ -111,9 +111,9 @@ pas. Une clé `None` veut dire « cet axe ne s'applique pas à cette requête »
 **Échec ouvert** : Valkey injoignable, la requête passe sans être comptée (cadrage §13.8 — la perte
 de Valkey est indolore par conception, et des compteurs remis à zéro sont sans conséquence). Sont
 attrapées `ConnectionError` et `TimeoutError` de redis-py — sœurs, l'une n'hérite pas de l'autre,
-il faut donc nommer les deux — **et les cinq sous-classes de la première**, dont
-`AuthenticationError`. Un mot de passe Valkey erroné désarme donc la limitation en silence ; c'est
-`/health` qui le dit, en répondant 503. Assumé : rejeter chaque requête sur une erreur de
+il faut donc nommer les deux — **et tout ce qui hérite de la première**, dont
+`AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. Aucune trace dans les
+journaux jusqu'à #42, mais `/health` le dit en répondant 503. Assumé : rejeter chaque requête sur une erreur de
 configuration ferait une panne totale là où l'on a un service dégradé et bruyamment signalé.
 Attraper `Exception`, en revanche, désarmerait la limitation au premier bug du limiteur au lieu de
 le faire sortir en 500.
@@ -136,8 +136,9 @@ seul endroit. Trois nuances qui se paient cher :
   monde » : le `*` y devient un nom d'hôte littéral que personne ne porte, et la liste se comporte
   exactement comme `10.0.0.1`. Le raccourci total n'existe que pour `*` **seul**. Une valeur vide,
   elle, ne fait confiance à personne.
-- **L'adresse retenue est le premier hôte non fiable en partant de la droite**, pas le premier de
-  la liste. Chaque proxy ajoute à la fin : la droite est le seul bout qu'un client ne contrôle pas.
+- **Hors `*`, l'adresse retenue est le premier hôte non fiable en partant de la droite**, pas le
+  premier de la liste. Chaque proxy ajoute à la fin : la droite est le seul bout qu'un client ne
+  contrôle pas.
 - **La liste accepte les IP, les CIDR et les littéraux.** Une IP mal écrite ne lève rien : elle
   devient un littéral, qui ne correspondra jamais à personne.
 
