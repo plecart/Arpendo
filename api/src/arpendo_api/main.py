@@ -6,6 +6,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from fastapi import FastAPI
 
 from arpendo_api.core import health
+from arpendo_api.core.rate_limit import RateLimitMiddleware
 from arpendo_api.core.settings import Settings
 from arpendo_api.core.valkey import create_valkey
 from arpendo_api.db.engine import create_engine
@@ -64,5 +65,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """
     app = FastAPI(title="Arpendo", lifespan=_lifespan)
     app.state.settings = settings if settings is not None else Settings()
+    app.add_middleware(RateLimitMiddleware)
     app.include_router(health.router)
     return app

@@ -89,6 +89,53 @@ explicite persiste.
 après un `commit` déclencherait un rechargement, impossible à attendre en async, et une réponse
 HTTP est sérialisée *après* le commit.
 
+## Limitation de débit
+
+Chaque requête est comptée dans Valkey, par **dimension** et par clé, en fenêtre fixe. Au-delà du
+quota, l'api répond **429** avec un `Retry-After` valant ce qu'il reste de la fenêtre. Aucune route
+n'est exemptée : `/health` compte comme les autres, ses quelques sondes par minute étant
+négligeables devant le quota — et c'est ce qui en fait l'endpoint réel des tests.
+
+**Ajouter un axe de limitation, c'est ajouter une entrée à `DIMENSIONS`** (`core/rate_limit.py`),
+sur le modèle de `PROBES` : un nom, une fonction qui tire la clé de la requête, et deux fonctions
+qui lisent le quota et la fenêtre dans les réglages. Le middleware ne les connaît pas et ne change
+pas. Une clé `None` veut dire « cet axe ne s'applique pas à cette requête » : elle passe alors sans
+être comptée. Seul axe aujourd'hui : `ip`, sous la clé `ratelimit:ip:<adresse>`.
+
+| Réglage | Rôle |
+|---|---|
+| `RATE_LIMIT_IP_REQUESTS` | requêtes autorisées par adresse et par fenêtre |
+| `RATE_LIMIT_IP_WINDOW_SECONDS` | durée de la fenêtre, en secondes |
+| `FORWARDED_ALLOW_IPS` | lue par **uvicorn**, pas par `Settings` — voir plus bas |
+
+**Échec ouvert** : Valkey injoignable, la requête passe sans être comptée (cadrage §13.8 — la perte
+de Valkey est indolore par conception, et des compteurs remis à zéro sont sans conséquence). Seules
+`ConnectionError` et `TimeoutError` de redis-py sont attrapées ; elles sont sœurs, l'une n'hérite
+pas de l'autre, il faut donc nommer les deux. Attraper `Exception` désarmerait la limitation en
+silence au premier bug du limiteur, au lieu de le faire sortir en 500.
+
+### L'adresse comptée, et à qui l'on croit
+
+Le limiteur ne lit **jamais** `X-Forwarded-For`. Il compte `request.client.host`, que le
+`ProxyHeadersMiddleware` d'uvicorn — actif par défaut — a déjà remplacé par l'adresse annoncée par
+le proxy **si et seulement si** le pair figure dans `FORWARDED_ALLOW_IPS`. Une seule décision, un
+seul endroit. Trois nuances qui se paient cher :
+
+- **`*` n'est total que seul.** `FORWARDED_ALLOW_IPS=*` fait confiance à tout le monde, mais
+  `*,10.0.0.1` ne fait confiance à personne — le `*` y est traité comme un nom d'hôte littéral,
+  qu'aucun pair ne portera. Une valeur vide ne fait confiance à personne non plus.
+- **L'adresse retenue est le premier hôte non fiable en partant de la droite**, pas le premier de
+  la liste. Chaque proxy ajoute à la fin : la droite est le seul bout qu'un client ne contrôle pas.
+- **La liste accepte les IP, les CIDR et les littéraux.** Une IP mal écrite ne lève rien : elle
+  devient un littéral, qui ne correspondra jamais à personne.
+
+**En production**, y poser le réseau de Caddy — périmètre de #45. Tant que rien n'y est posé, le
+défaut `127.0.0.1` fait qu'aucun en-tête n'est cru : l'état sûr.
+
+Dans la pile locale, les requêtes venues de l'hôte atteignent le conteneur avec pour pair la
+passerelle du bridge Docker : tout le trafic de la machine partage donc un seul compteur tant
+qu'aucun reverse proxy n'est devant. Sans conséquence au quota par défaut.
+
 ## Migrations
 
 Le schéma est versionné par Alembic, configuré dans le `[tool.alembic]` de `pyproject.toml` — pas
