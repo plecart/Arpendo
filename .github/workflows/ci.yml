@@ -117,9 +117,14 @@ jobs:
 
       - name: Tests
         # Coordonnées des conteneurs `services` ci-dessus — les tests parlent à de vrais
-        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les trois variables que
+        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les cinq variables que
         # `arpendo_api.core.settings.Settings` lit, et les seules : toute autre est absente parce
         # qu'aucun code ne la lit encore.
+        #
+        # `FORWARDED_ALLOW_IPS` n'y figure pas, bien qu'elle soit dans `.env.example` : elle est
+        # lue par uvicorn, que la suite ne démarre jamais. Le test de la frontière de confiance
+        # construit `ProxyHeadersMiddleware` lui-même — sinon il ne pourrait pas éprouver le pair
+        # de confiance et le pair inconnu dans la même suite.
         #
         # `127.0.0.1` et non `localhost`, comme dans `.env.example` : une seule forme d'adresse
         # dans les trois environnements, et aucune dépendance à l'ordre du résolveur.
@@ -127,4 +132,6 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres
           VALKEY_URL: redis://127.0.0.1:6379/0
           VALKEY_PASSWORD: valkey-de-ci
+          RATE_LIMIT_IP_REQUESTS: "600"
+          RATE_LIMIT_IP_WINDOW_SECONDS: "60"
         run: just test

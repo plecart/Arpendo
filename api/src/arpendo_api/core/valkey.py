@@ -11,9 +11,12 @@ CONNECT_TIMEOUT = 0.5
 
 Très au-dessus du coût réel — une poignée de millisecondes sur le réseau local d'un compose ou
 d'un hôte — et sous le budget de la sonde de santé, pour qu'un serveur muet se constate au lieu
-de s'attendre. Le client ignore volontairement ``health.PROBE_TIMEOUT`` : c'est le test « conclut
-par refus et non par expiration » qui tient la relation entre les deux, et qui rougit si l'un des
-deux réglages passe sous l'autre.
+de s'attendre. Le client ignore volontairement ``health.PROBE_TIMEOUT`` : c'est un test qui
+confronte les deux constantes et rougit si celle-ci passait au-dessus de l'autre.
+
+Ce délai se paie **une fois par client et par requête**, et le chemin de ``/health`` en traverse
+deux : celui du limiteur de débit, puis celui de la sonde. Le relever allonge donc d'autant chaque
+requête pendant une panne de Valkey.
 """
 
 
