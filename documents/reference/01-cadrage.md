@@ -1905,7 +1905,8 @@ n'était pas celui que le document nommait.
 | §19 : « Recherche « ARPENDO » sur le Play Store et l'App Store » | **Faite le 30 août 2026** : aucune application de ce nom sur l'un ni l'autre. Retirée des vérifications restantes |
 
 Raisonnement et relevé complet : `documents/archive/decision-marque-signes-voisins.md`.
-Répercuté dans le §1, le §16 et l'issue #30.
+Répercuté dans le §1, le §16, le §19, le §13.10, `CLAUDE.md`, le README et les issues #4, #30
+et #80.
 
 ---
 
