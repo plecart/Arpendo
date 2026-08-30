@@ -63,6 +63,7 @@ marque dans l'UE ou au Royaume-Uni**, qui reste « non fait, non urgent » (§1)
 - `01-cadrage.md` §16, ligne « Marque « Carpendo » » → « Marques voisines », motif corrigé.
 - `01-cadrage.md` §18.8 — entrée de journal.
 - `01-cadrage.md` §19 — la recherche stores en sort, elle est faite.
-- Issue #30, critère 6 — nommait « Carpendo » comme le signe à réévaluer ; critères 5 et 7 corrigés
-  dans la même passe. Issues #4 et #80 — citations d'un titre de README qui n'existe plus, et du
-  raccourci « les quatre portées publiques ».
+- Issue #30 — critère 6 (nommait « Carpendo » comme le signe à réévaluer), critères 5 et 7, et la
+  citation du titre de README dans le bloc « Parent ».
+- Issues #4 et #80 — le raccourci « les portées publiques » dans les énoncés, et la citation du
+  même titre de README dans #4.
