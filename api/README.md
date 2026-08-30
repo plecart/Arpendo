@@ -144,9 +144,10 @@ async with subscribe(valkey, partie) as flux:
 que sur la socket sans lire la réponse, et publier aussitôt après risque de partir avant que le
 serveur n'ait enregistré l'abonné — mesuré, sans l'attente il ne l'avait enregistré que 12 fois sur
 30 — sans que rien ne le signale. À la sortie, il ferme le `PubSub` et rend sa connexion. Un
-canal par partie (`game:<uuid>`), composé à un seul endroit. Un message d'un type que ce processus ne connaît pas est
-**sauté** — un producteur plus récent ne doit pas faire perdre à l'abonné les messages qu'il sait
-lire — tandis qu'une clé inattendue dans la charge utile fait lever : le fil reste une frontière.
+canal par partie (`game:<uuid>`), composé à un seul endroit. Un message d'un type que ce processus
+ne connaît pas est **sauté** — un producteur plus récent ne doit pas faire perdre à l'abonné les
+messages qu'il sait lire — tandis qu'une clé inattendue dans la charge utile fait lever : le fil
+reste une frontière.
 
 **Aucune reconnexion écrite ici, aucune lecture rejouée** : une coupure remonte à l'appelant. Le
 cadrage §13.8 la pose comme indolore par conception — l'appelant se réabonne, le journal a tout
@@ -209,11 +210,10 @@ ou si une fermeture lève. **Ajouter une ressource, c'est deux lignes là-bas** 
 — au bon rang : l'ordre de création est celui des dépendances, l'ordre de libération s'en déduit.
 
 Le module ignore FastAPI, et c'est ce qui compte : les **deux points d'entrée du paquet** (§13.0)
-l'appelleront, l'hôte HTTP depuis son cycle de vie et le worker, quand il naîtra, depuis sa
-boucle. Le cycle de vie HTTP ne fait que consommer le résultat et le ranger dans `app.state`, dont
-la durée de vie est
-exactement celle de l'application — deux applications de test n'y partagent jamais une ressource.
-C'est là que les sondes de `/health` et la session par requête vont les chercher.
+l'appelleront, l'hôte HTTP depuis son cycle de vie et le worker, quand il naîtra, depuis sa boucle.
+Le cycle de vie HTTP ne fait que consommer le résultat et le ranger dans `app.state`, dont la durée
+de vie est exactement celle de l'application — deux applications de test n'y partagent jamais une
+ressource. C'est là que les sondes de `/health` et la session par requête vont les chercher.
 
 **Ajouter une dépendance à `/health`, c'est ajouter une entrée à `PROBES`** — la table de module
 qui associe un nom de réponse à un aller-retour vers la dépendance. La route ne nomme aucune

@@ -9,8 +9,14 @@ alimenté par la déclaration d'une sous-classe : charger ce fichier une seconde
 nom — ``tests.evenements`` plutôt que ``evenements`` — en réexécute le corps de classe, et la garde
 du registre lève ``ValueError: identifiant de type déjà inscrit``. C'est une propriété de
 ``sys.modules``, pas de l'endroit où le fichier est rangé : le déplacement depuis ``conftest.py``
-n'y change rien, seule cette consigne le fait. Le sous-processus de test de #44 devra donc
-faire ``sys.path.insert(0, …/api/tests)`` puis ``import evenements``.
+n'y change rien, seule cette consigne le fait. Le sous-processus de test de #44 devra donc faire
+``sys.path.insert(0, …/api/tests)`` puis ``import evenements``.
+
+La consigne suppose que **pytest** importe lui aussi ce fichier sous ce nom, ce qui tient tant que
+``tests/`` n'est pas un paquet et que le mode d'import reste celui par défaut. Poser un
+``tests/__init__.py`` ou passer à ``importmode = "importlib"`` ferait de pytest l'importateur de
+``tests.evenements`` — et c'est alors le ``import evenements`` du sous-processus qui deviendrait la
+seconde inscription, consigne respectée à la lettre.
 """
 
 from typing import ClassVar
