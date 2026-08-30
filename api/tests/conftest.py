@@ -13,6 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.schema import CreateIndex, CreateTable
 
+from arpendo_api.core import resources
 from arpendo_api.core.journal import DomainEvent
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
@@ -143,3 +144,29 @@ async def journal_nettoye(app: FastAPI, partie: uuid.UUID) -> AsyncIterator[None
     async with fabrique_de(app)() as session:
         await session.execute(delete(DomainEvent).where(DomainEvent.type.startswith(PREFIXE)))
         await session.commit()
+
+
+class MoteurEspion:
+    """Un moteur qui n'ouvre rien et note seulement qu'on l'a libéré.
+
+    Doublure de notre propre fabrique, et non d'une frontière du système : c'est le seul moyen
+    d'observer une libération, `AsyncEngine.dispose` ne laissant aucune trace visible.
+    """
+
+    def __init__(self) -> None:
+        self.libere = False
+
+    async def dispose(self) -> None:
+        self.libere = True
+
+
+@pytest.fixture
+def moteur_espion(monkeypatch: pytest.MonkeyPatch) -> MoteurEspion:
+    """Substitue au moteur une doublure qui note sa libération.
+
+    La substitution vise ``core.resources``, où les fabriques sont désormais appelées : c'est le
+    module qui ouvre les ressources, quel que soit l'hôte qui les consomme.
+    """
+    moteur = MoteurEspion()
+    monkeypatch.setattr(resources, "create_engine", lambda _: moteur)
+    return moteur

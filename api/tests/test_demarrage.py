@@ -1,4 +1,5 @@
 import pytest
+from conftest import MoteurEspion
 from fastapi import FastAPI
 from sqlalchemy import text
 
@@ -36,37 +37,11 @@ def test_l_application_construite_sans_reglages_lit_l_environnement(settings: Se
     assert create_app().state.settings == settings
 
 
-class MoteurEspion:
-    """Un moteur qui n'ouvre rien et note seulement qu'on l'a libéré.
-
-    Doublure de notre propre fabrique, et non d'une frontière du système : c'est le seul moyen
-    d'observer une libération, `AsyncEngine.dispose` ne laissant aucune trace visible.
-    """
-
-    def __init__(self) -> None:
-        self.libere = False
-
-    async def dispose(self) -> None:
-        self.libere = True
-
-
 class ClientRecalcitrant:
     """Un client Valkey qui refuse de se fermer."""
 
     async def aclose(self) -> None:
         raise RuntimeError("fermeture impossible")
-
-
-@pytest.fixture
-def moteur_espion(monkeypatch: pytest.MonkeyPatch) -> MoteurEspion:
-    """Substitue au moteur une doublure qui note sa libération.
-
-    La substitution vise ``core.resources``, où les fabriques sont désormais appelées : c'est le
-    module qui ouvre les ressources, quel que soit l'hôte qui les consomme.
-    """
-    moteur = MoteurEspion()
-    monkeypatch.setattr(resources, "create_engine", lambda _: moteur)
-    return moteur
 
 
 async def _demarrage_echoue(settings: Settings, erreur: type[Exception]) -> None:
