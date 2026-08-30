@@ -4,11 +4,13 @@ import asyncio
 import json
 import uuid
 from datetime import UTC, datetime
+from typing import ClassVar
 
 import pytest
 import uuid6
 from conftest import Capture, evenements_persistes, fabrique_de
 from fastapi import FastAPI
+from pydantic import BaseModel
 from redis.exceptions import RedisError
 
 from arpendo_api.core.bus import channel_for, publish, subscribe
@@ -23,23 +25,40 @@ boucle locale — le dépasser signifie que le message n'est jamais parti.
 """
 
 
-async def test_publier_un_objet_non_inscrit_leve_avant_toute_ecriture(
-    app: FastAPI, partie: uuid.UUID
-) -> None:
-    """Le refus précède l'écriture : un lot dont un seul élément est invalide ne laisse rien.
+class Usurpateur(BaseModel):
+    """Un modèle étranger qui *déclare* l'identifiant d'un type inscrit, sans en être une instance.
 
-    Refuser *après* le premier `add` publierait la moitié du lot — précisément l'état partiel que
-    le commit explicite de la session existe pour éviter. La base nue `Event` est le cas le plus
-    piégeux : c'est bien un modèle, il n'a simplement pas d'identifiant de type.
+    C'est le seul objet qui distingue « l'identifiant est connu » de « cette classe est celle qui
+    l'a inscrit » : une vérification qui se contenterait de la présence de la clé au registre
+    l'accepterait, et publierait une charge utile qu'aucun abonné ne saurait décoder.
+    """
+
+    type: ClassVar[str] = Capture.type
+
+
+@pytest.mark.parametrize(
+    "intrus",
+    [Event(), {"type": Capture.type}, Usurpateur()],
+    ids=["base-nue", "dict", "modele-etranger"],
+)
+async def test_publier_un_objet_non_inscrit_leve_avant_toute_ecriture(
+    app: FastAPI, partie: uuid.UUID, intrus: object
+) -> None:
+    """Le refus précède l'écriture : un lot dont un seul élément est invalide n'écrit rien.
+
+    Refuser *après* le premier `add` laisserait une unité de travail à moitié montée — exactement
+    l'état partiel que le commit explicite existe pour éviter.
+
+    C'est `session.new` qui le prouve, et pas la base : à la sortie de la session, ce qui n'a pas
+    été commis est annulé de toute façon, donc une base vide ne distingue pas « refusé avant
+    l'écriture » de « refusé après ». Mesuré — sans cette assertion, une implémentation qui ajoute
+    les lignes valides puis lève reste verte.
     """
     async with fabrique_de(app)() as session:
         with pytest.raises(TypeError):
-            await publish(
-                session,
-                app.state.valkey,
-                Capture(game_id=partie, hexagones=3),
-                Event(game_id=partie),
-            )
+            await publish(session, app.state.valkey, Capture(game_id=partie, hexagones=3), intrus)
+
+        assert not session.new
 
     assert await evenements_persistes(app, partie) == []
 
@@ -120,6 +139,7 @@ async def test_un_evenement_sans_partie_est_journalise_mais_jamais_publie(
 
     assert orphelin.id is not None and orphelin.occurred_at is not None
     assert message["channel"].decode() == channel_for(partie)
+    assert json.loads(message["data"])["payload"] == {"hexagones": 1}
 
 
 async def test_un_message_d_un_type_inconnu_est_saute_sans_lever(
@@ -153,20 +173,23 @@ async def test_un_message_d_un_type_inconnu_est_saute_sans_lever(
 
 
 @pytest.mark.parametrize("settings", [{"valkey_url": "redis://127.0.0.1:1/0"}], indirect=True)
-async def test_l_abonnement_leve_si_valkey_est_injoignable(app: FastAPI) -> None:
+async def test_l_abonnement_leve_a_l_entree_si_valkey_est_injoignable(app: FastAPI) -> None:
     """Aucune reconnexion maison : la perte se constate, elle ne s'attend pas (cadrage §13.8).
 
-    Le port 1 n'écoute pas. `RedisError` et non sa sous-classe exacte : **la classe dépend de la
-    plateforme** — mesuré, un port fermé donne un refus (`ConnectionError`) là où la pile réseau
-    répond, et une expiration (`TimeoutError`) là où elle laisse tomber le paquet, ce qui est le
-    cas sur ce poste. Ce que le bus promet est le même des deux côtés : l'itérateur lève, il
-    n'attend pas. Le client ne réessaie jamais — c'est `core.valkey` qui le règle, et son propre
-    test tient cette propriété.
+    Le port 1 n'écoute pas. C'est **l'entrée du contexte** qui lève, pas la première lecture : le
+    `SUBSCRIBE` a besoin d'une connexion, et l'appelant apprend donc l'absence du serveur avant
+    d'avoir un flux entre les mains. Le `pytest.fail` est ce qui rend le test précis : atteindre le
+    corps du contexte échouerait, au lieu de passer pour un succès.
+
+    `RedisError` et non sa sous-classe exacte : **la classe dépend de la plateforme** — mesuré, un
+    port fermé donne un refus (`ConnectionError`) là où la pile réseau répond, et une expiration
+    (`TimeoutError`) là où elle laisse tomber le paquet, ce qui est le cas sur ce poste. Le client
+    ne réessaie jamais — c'est `core.valkey` qui le règle, et son propre test tient cette propriété.
     """
     async with asyncio.timeout(DELAI_DE_RECEPTION):
         with pytest.raises(RedisError):
-            async with subscribe(app.state.valkey, uuid.uuid4()) as flux:
-                await anext(flux)
+            async with subscribe(app.state.valkey, uuid.uuid4()):
+                pytest.fail("l'abonnement aurait dû lever avant de rendre le flux")
 
 
 async def test_l_abonnement_est_enregistre_a_l_entree_et_defait_a_la_sortie(
@@ -177,6 +200,13 @@ async def test_l_abonnement_est_enregistre_a_l_entree_et_defait_a_la_sortie(
     À l'entrée, `PUBSUB NUMSUB` à 1 prouve que le serveur a traité l'abonnement — c'est ce que
     l'attente de la confirmation garantit, et sans elle un message publié dans la foulée se perd.
     À la sortie, 0 prouve que le `PubSub` a bien été fermé et sa connexion rendue.
+
+    **La première moitié est probabiliste, et il vaut mieux le savoir que le croire déterministe.**
+    Mesuré en relecture indépendante : en retirant l'attente de la confirmation, `NUMSUB` vaut
+    quand même 1 douze fois sur trente — le serveur a souvent traité le `SUBSCRIBE` avant qu'on
+    l'interroge. Ce test rougirait donc dans deux tiers des exécutions, pas dans toutes. C'est le
+    seul garde-fou de cette ligne ; le rendre déterministe demanderait de suspendre le serveur
+    entre les deux ordres, ce que rien ici ne permet.
     """
     canal = channel_for(partie)
 
