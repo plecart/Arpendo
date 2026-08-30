@@ -112,7 +112,7 @@ services:
     volumes:
       # Sources montées comme pour `api`, mais **sans rechargement à chaud** : il n'y a pas
       # d'équivalent de `--reload` pour une boucle asyncio, et en inventer un serait du code de
-      # production qui ne sert qu'au poste. Après édition : `docker compose restart worker`.
+      # production qui ne sert qu'au poste. Après édition : `just restart-worker`.
       - ../api/src:/app/src
     depends_on:
       # Mêmes conditions que `api` : le worker ouvre ses connexions au démarrage.

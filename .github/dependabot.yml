@@ -1,7 +1,8 @@
 # Mises à jour de dépendances — cadrage §13.11 (« Dependabot ou Renovate, fichiers de
 # verrouillage commités »). Une bibliothèque de géolocalisation abandonnée est un risque réel.
 #
-# `/api`, `/app` et `/infra` portent chacun leur manifeste. Il n'y a **pas** de `/worker` : le
+# Quatre écosystèmes : les actions du dépôt à la racine, puis `/api`, `/app` et `/infra`, qui
+# portent chacun leur manifeste. Il n'y a **pas** de `/worker` : le
 # worker est un second point d'entrée du paquet `arpendo_api`, pas un projet distinct — il n'a ni
 # manifeste ni verrou propres, et une entrée pour lui surveillerait un répertoire inexistant.
 version: 2

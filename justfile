@@ -150,3 +150,10 @@ build:
 # Dockerfile ne se reconstruisent que si `pyproject.toml` ou `uv.lock` changent.
 up:
     docker compose -f infra/docker-compose.yml --env-file .env up -d --build
+
+# Reprend les sources du worker. Elles sont montées comme celles de l'api, mais lui ne recharge pas
+# à chaud : il n'y a pas d'équivalent de `--reload` pour une boucle asyncio. `--env-file` est
+# indispensable ici pour la même raison que ci-dessus — sans lui, Compose cherche son `.env` dans
+# `infra/` et refuse de démarrer sur `VALKEY_PASSWORD` manquant.
+restart-worker:
+    docker compose -f infra/docker-compose.yml --env-file .env restart worker
