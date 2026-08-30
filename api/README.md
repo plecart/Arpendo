@@ -8,7 +8,7 @@ worker — un seul paquet, deux points d'entrée, deux conteneurs (cadrage §13.
 
 Deux façons, pour deux besoins.
 
-**La pile complète, en conteneurs** — PostgreSQL 17, Valkey 8 et l'api, décrits par
+**La pile complète, en conteneurs** — PostgreSQL 17, Valkey 8, l'api et le worker, décrits par
 `infra/docker-compose.yml`. C'est le mode de référence : c'est cette pile que la production
 reproduit, à deux écarts près documentés en tête du fichier compose.
 
@@ -20,6 +20,11 @@ just up
 Les sources sont montées dans le conteneur `api` et uvicorn tourne en `--reload` : éditer
 `src/` recharge le serveur sans rien reconstruire. Un changement de dépendance, lui, demande une
 image neuve — `just up` la rebâtit, et ne coûte rien quand rien n'a bougé.
+
+**Le conteneur `worker` monte les mêmes sources mais ne recharge pas** : il n'y a pas d'équivalent
+de `--reload` pour une boucle asyncio, et en inventer un serait du code de production qui ne sert
+qu'au poste. Après avoir édité une tâche : `docker compose -f infra/docker-compose.yml restart
+worker`.
 
 **L'api seule, sur le poste** — pour attacher un débogueur ou un profileur au processus.
 

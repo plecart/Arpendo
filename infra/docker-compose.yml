@@ -94,5 +94,49 @@ services:
         condition: service_healthy
     # Sonde héritée de `api/Dockerfile` : une seule déclaration pour tous les environnements.
 
+  worker:
+    # Même contexte de build que `api` : un seul paquet, deux points d'entrée (cadrage §13.0).
+    # Les deux services construisent donc aujourd'hui la même image deux fois ; un `image:` commun
+    # les fera partager le même artefact — il arrive avec le rebase sur #41, en même temps que les
+    # deux variables de rate limiting que `Settings` exigera.
+    build: ../api
+    environment:
+      # Toutes les variables que `Settings` exige, recopiées depuis `api` : la classe valide la
+      # configuration entière au démarrage, quel que soit l'hôte, et un worker à qui il en manque
+      # une refuse de démarrer. Pas d'ancre YAML pour les factoriser — elle arrive avec #42, qui
+      # touchera les deux services.
+      DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
+      VALKEY_URL: redis://valkey:6379/0
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+    command: ["python", "-m", "arpendo_api.worker"]
+    volumes:
+      # Sources montées comme pour `api`, mais **sans rechargement à chaud** : il n'y a pas
+      # d'équivalent de `--reload` pour une boucle asyncio, et en inventer un serait du code de
+      # production qui ne sert qu'au poste. Après édition : `docker compose restart worker`.
+      - ../api/src:/app/src
+    depends_on:
+      # Mêmes conditions que `api` : le worker ouvre ses connexions au démarrage.
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      # L'image porte la sonde HTTP de l'api ; le worker n'écoute sur aucun port, donc il la
+      # remplace par la seule chose qui prouve qu'il tourne : la fraîcheur de son fichier de
+      # battement. `os.stat` lève si le fichier n'existe pas — un worker qui n'a jamais battu est
+      # `unhealthy`, sans qu'on ait à traiter ce cas à part.
+      #
+      # 20 = deux fois l'intervalle de `arpendo_api.worker.HEARTBEAT_INTERVAL`. La valeur est
+      # **recopiée**, duplication assumée : Compose ne sait pas lire une constante Python. La
+      # changer d'un côté sans l'autre rend la sonde fausse — d'où ce commentaire, qui nomme la
+      # constante.
+      test: ["CMD", "python", "-c", "import os, sys, time; sys.exit(0 if time.time() - os.stat('/tmp/arpendo-worker-battement').st_mtime < 20 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      # Le premier battement n'a lieu qu'une fois les ressources ouvertes : sans ce délai de
+      # grâce, le conteneur serait déclaré `unhealthy` avant d'avoir eu sa chance.
+      start_period: 15s
+
 volumes:
   postgres-data:
