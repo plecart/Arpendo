@@ -573,3 +573,55 @@ libellé de l'action de fermeture de la ligne 12 à « **Fermer** ». Le §2.4 �
 guillemets français et le §11.2 dit seulement « fermable » : aucun libellé n'était arrêté. C'est un
 **vide comblé**, pas un § rendu faux — `.claude/rules/decisions-vs-doc.md` le range explicitement
 hors du champ de l'arrêt, et il n'y a pas de raisonnement à conserver.
+
+---
+
+## 18.7 Amendement du §2.4 du 30 août 2026 — l'anatomie et les hauteurs du bandeau
+
+Découvert en construisant le widget `Bandeau` (#43, lot 2/2, PR #82), pas par un audit. **Aucune
+décision de conception n'est rouverte** : un seul bandeau à la fois, la sévérité portée par la
+forme, les textes de la table, les jetons employés — tout est inchangé. Ce sont deux affirmations
+d'anatomie qui étaient **arithmétiquement impossibles**, et personne ne les avait posées côte à
+côte avec le §1.2 et le §1.4.
+
+**Ce qui était faux, et pourquoi personne ne l'avait vu :**
+
+| Ce qui était écrit | Ce qui est vrai |
+|---|---|
+| « Hauteur 56 dp (**72 dp** si le texte passe sur deux lignes) » | Une ligne de `type-body` vaut **24 dp** (§1.2, `16 / 24`). Passer d'une ligne à deux ajoute donc 24 dp, jamais 16 : la paire (56, 72) exigerait un rembourrage vertical total de 32 dp **et** de 24 dp à la fois. Et une action, à elle seule, porte le contenu à 48 dp (§1.4) — un bandeau à une ligne **avec** un bouton ne pouvait pas faire 56 non plus, alors que **six des treize lignes** de la table portent une action |
+| « Icône 24 dp à gauche, texte `type-body`, zéro à deux actions **à droite** » | Sur l'écran de référence de 360 dp, il reste **260 dp** après les marges d'écran, le rembourrage interne, l'icône et son écart. « Réglages » + « Masquer pour cette partie » (priorités 10 et 11) les consomment entièrement, avant même le message. Sur la priorité 12, « Mettre à jour » + « Fermer » laissent ≈ 72 dp au message, qui s'y plierait sur six lignes. Et le garde `fr-XA` allonge **et** les libellés **et** le message de 30 % |
+
+**Le piège de détection, qui vaut pour la suite.** Les deux erreurs sont invisibles à la lecture :
+chaque phrase est plausible isolément, et il faut multiplier trois sections — §1.2 pour la ligne de
+texte, §1.4 pour la cible tactile, §0 pour la tolérance de longueur — pour voir qu'elles ne peuvent
+pas tenir ensemble. Elles ne sont sorties qu'au premier rendu réel, sur un débordement de 12 px.
+**Une anatomie qui énonce des hauteurs absolues doit dire de quoi elles se déduisent**, sinon rien
+ne rattrape l'écart entre le nombre écrit et le nombre que la mise en page produit.
+
+**Options examinées pour les hauteurs :**
+
+| Option | Retenue ? |
+|---|---|
+| Rembourrage `space-4` → **56 / 80 / 112**, et les hauteurs deviennent des résultats déduits | **Oui.** Conserve le 56 nominal, que le document cite déjà ailleurs (§11.2, bouton de 56 dp), garde le rembourrage sur l'échelle du §1.1, et laisse la hauteur entièrement dictée par le contenu comme l'exige le §0 |
+| Rembourrage `space-3` → 48 / 72 | Non. Sauverait le 72 mais ramènerait le bandeau à une ligne à **48 dp**, soit exactement le plancher de cible tactile du §1.4 : un message aussi haut qu'un bouton, et le 56 disparaîtrait du document |
+| Fixer la hauteur à 56 et laisser le texte se tronquer | Non. Interdit par le §0 — les conteneurs grandissent, ils ne tronquent pas — et par le garde `fr-XA`, qui refuse la troncature |
+
+**Options examinées pour l'anatomie :**
+
+| Option | Retenue ? |
+|---|---|
+| Actions sur une **seconde rangée**, alignées à droite | **Oui.** Convention de `MaterialBanner`. Le message garde toute la largeur, donc la mise en page ne dépend plus de la longueur des libellés ni de la locale ; les hauteurs restent déterministes |
+| Une rangée si ça tient, deux sinon (`Wrap` / `LayoutBuilder`) | Non. La hauteur deviendrait imprévisible — 56, 80 ou 112 selon un libellé et une locale — ce qui viderait de sens les hauteurs que ce § énonce, et doublerait la surface à tester |
+| Raccourcir les libellés pour tenir sur une rangée | Non. Rouvrirait des **textes arrêtés** après la passe de ton de #29, et « Masquer » seul ne dirait plus que c'est pour cette partie uniquement — ce que le §9.3 exige d'être clair |
+
+**§§ répercutés :** `02-specification-ux.md` §2.4, paragraphe « Anatomie » (réécrit en trois
+paragraphes : anatomie, hauteurs déduites, justification de la seconde rangée) · corps de l'issue
+#43, critère « hauteur 56/72 dp ». Le §2.4 n'est mentionné dans aucun document de rang 1, donc
+**aucune ligne au journal du cadrage**. §1.2, §1.4 et §0 sont **inchangés** : ce sont eux qui
+faisaient autorité, et c'est le §2.4 qui les contredisait. `pipeline.config.md` et `CLAUDE.md` ne
+sont pas touchés.
+
+**Deux jetons ajoutés au module de thème**, tous deux transcrits de sections closes et jusqu'ici
+absents : `Icones.taille` (24 dp, §1.8) et `CiblesTactiles.min` (48 dp, §1.4). Sans eux, la taille
+du glyphe et la hauteur des boutons auraient été des valeurs en dur dans le widget, ce que le
+critère d'acceptation de #43 interdit.

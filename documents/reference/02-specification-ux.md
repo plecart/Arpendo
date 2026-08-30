@@ -469,9 +469,22 @@ d'action sans effet (§4.2 et §4.3), mise à jour recommandée (§14.1). Le cad
 explicitement **un seul composant** (§9.3, dernière puce) ; ce document l'étend aux trois autres
 familles, parce qu'elles ont la même anatomie et le même emplacement.
 
-**Anatomie.** Hauteur 56 dp (72 dp si le texte passe sur deux lignes), largeur pleine moins
-`space-4` de chaque côté, `radius-md`, `elev-1`. Icône 24 dp à gauche, texte `type-body`,
-zéro à deux actions à droite. Les actions sont des boutons texte de **48 dp de haut**.
+**Anatomie.** Largeur pleine moins `space-4` de chaque côté, `radius-md`, `elev-1`, rembourrage
+interne `space-4`. Icône 24 dp à gauche, texte `type-body` à côté d'elle ; **zéro à deux actions
+sur une seconde rangée**, alignées à droite, séparées du message par `space-2`. Les actions sont
+des boutons texte de **48 dp de haut** (§1.4).
+
+**La hauteur est un résultat, jamais une consigne** (§0 : les conteneurs grandissent, ils ne
+tronquent pas) : **56 dp** sur une ligne sans action, **80 dp** dès que le message passe sur deux
+lignes, **112 dp** dès qu'une action est présente. Elles se déduisent du rembourrage et du
+contenu — une ligne de `type-body` vaut 24 dp (§1.2), une cible tactile 48 (§1.4) — et se
+vérifient par test ; elles ne se posent pas en constantes.
+
+**Pourquoi les actions ne partagent pas la rangée du message.** Sur l'écran de référence de
+360 dp, il reste 260 dp une fois retirés les marges, le rembourrage, l'icône et son écart. Les
+deux actions des priorités 10 et 11 — « Réglages » et « Masquer pour cette partie » — les
+consomment à elles seules. Le message garde donc toute la largeur, ce qui le rend insensible à la
+longueur des libellés comme à la tolérance de +30 % du §0.
 
 **Paramètres du composant :**
 
