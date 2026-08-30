@@ -30,11 +30,8 @@ EntreeBandeau _entree({
 );
 
 /// Monte [entree] sur l'écran de référence, dans le thème de l'application.
-Future<void> _monter(
-  WidgetTester tester,
-  EntreeBandeau entree, {
-  Brightness brightness = Brightness.light,
-}) async {
+Future<void> _monter(WidgetTester tester, EntreeBandeau entree) async {
+  const brightness = Brightness.light;
   tester.view.physicalSize = _ecranDeReference;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -65,6 +62,18 @@ const _glyphes = {
   Severite.bloquant: Icones.severiteBloquant,
 };
 
+/// La table des couleurs de glyphe du **§1.5**, transcrite depuis la
+/// spécification et non depuis le widget : c'est ce qui l'empêche d'être un
+/// miroir de l'implémentation, vert quel que soit le choix fait dans le code.
+///
+/// Les noms de jetons de la spec sont `on-surface-muted`, `warning` et
+/// `danger` ; le module de thème les expose sous les rôles ci-dessous.
+final _couleursDu15 = <Severite, Color Function(BuildContext)>{
+  Severite.info: (contexte) => Theme.of(contexte).colorScheme.onSurfaceVariant,
+  Severite.avertissement: (contexte) => CouleursChrome.of(contexte).warning,
+  Severite.bloquant: (contexte) => Theme.of(contexte).colorScheme.error,
+};
+
 void main() {
   for (final MapEntry(key: severite, value: glyphe) in _glyphes.entries) {
     testWidgets('la sévérité ${severite.name} se lit à sa silhouette', (
@@ -76,22 +85,88 @@ void main() {
     });
   }
 
-  testWidgets('la couleur du glyphe suit la sévérité', (tester) async {
-    for (final severite in Severite.values) {
+  for (final MapEntry(key: severite, value: attendue)
+      in _couleursDu15.entries) {
+    testWidgets('la sévérité ${severite.name} prend la couleur du §1.5', (
+      tester,
+    ) async {
       await _monter(tester, _entree(severite: severite));
-      final contexte = tester.element(find.byType(Icon));
-      final attendue = switch (severite) {
-        Severite.info => Theme.of(contexte).colorScheme.primary,
-        Severite.avertissement => CouleursChrome.of(contexte).warning,
-        Severite.bloquant => Theme.of(contexte).colorScheme.error,
-      };
 
       expect(
         tester.widget<Icon>(find.byType(Icon)).color,
-        attendue,
-        reason: 'sévérité ${severite.name}',
+        attendue(tester.element(find.byType(Icon))),
       );
-    }
+    });
+  }
+
+  testWidgets('les trois couleurs de sévérité sont distinctes', (tester) async {
+    await _monter(tester, _entree());
+    final contexte = tester.element(find.byType(Icon));
+
+    final rendues = _couleursDu15.values.map((lire) => lire(contexte)).toSet();
+
+    expect(rendues, hasLength(_couleursDu15.length));
+  });
+
+  testWidgets("l'anatomie du §2.4 est celle de la spécification", (
+    tester,
+  ) async {
+    await _monter(tester, _entree());
+    final contexte = tester.element(find.byType(Bandeau));
+    final couleurs = Theme.of(contexte).colorScheme;
+    final materiau = tester.widget<Material>(
+      find.descendant(
+        of: find.byType(Bandeau),
+        matching: find.byType(Material),
+      ),
+    );
+
+    expect(materiau.color, couleurs.surface, reason: 'fond opaque');
+    expect(materiau.elevation, Elevations.e1);
+    expect(
+      materiau.shape,
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Rayons.md),
+        // Le contour de 1 dp du §1.3 : sans lui, un bandeau clair disparaît
+        // sur un hexagone clair, et l'ombre portée n'y suffit pas.
+        side: BorderSide(color: couleurs.outline),
+      ),
+    );
+  });
+
+  testWidgets('le bandeau laisse une marge d\'écran de chaque côté', (
+    tester,
+  ) async {
+    await _monter(tester, _entree());
+
+    // Une largeur, donc mesurée sur la **géométrie du conteneur** et non sur
+    // du texte : la police de `flutter_test` fausse la mesure d'un glyphe,
+    // jamais celle d'un rembourrage.
+    final materiau = tester.getRect(
+      find.descendant(
+        of: find.byType(Bandeau),
+        matching: find.byType(Material),
+      ),
+    );
+
+    expect(materiau.left, Espacements.x4);
+    expect(_ecranDeReference.width - materiau.right, Espacements.x4);
+  });
+
+  testWidgets('un bouton respecte la cible tactile sur les deux axes', (
+    tester,
+  ) async {
+    await _monter(tester, _entree(actions: 1));
+
+    // La **contrainte déclarée**, pas la géométrie : une largeur rendue sous
+    // la police de test ne dit rien de la largeur réelle.
+    final style = tester
+        .widget<TextButton>(find.byType(TextButton))
+        .style!
+        .minimumSize!
+        .resolve({})!;
+
+    expect(style, const Size.square(CiblesTactiles.min));
   });
 
   testWidgets('le glyphe est dessiné à la taille du §1.8', (tester) async {

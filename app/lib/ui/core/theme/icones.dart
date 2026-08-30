@@ -1,8 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:phosphor_icons/phosphor_icons.dart';
 
-import 'mesures.dart';
-
 /// Table sémantique des icônes — spec UX §1.8.
 ///
 /// **Seul fichier du projet à importer `phosphor_icons`.** Les écrans nomment
@@ -27,8 +25,8 @@ import 'mesures.dart';
 abstract final class Icones {
   /// Taille de **dessin** d'une icône, en dp — §1.8.
   ///
-  /// À ne pas confondre avec la zone tactile, qui vaut
-  /// [CiblesTactiles.min] et s'étend *autour* du dessin (§1.4).
+  /// À ne pas confondre avec la zone tactile, qui vaut `CiblesTactiles.min`
+  /// (`mesures.dart`) et s'étend *autour* du dessin (§1.4).
   static const double taille = 24;
 
   /// Bandeau, sévérité `info` — §2.4.

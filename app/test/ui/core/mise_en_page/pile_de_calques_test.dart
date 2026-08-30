@@ -101,6 +101,36 @@ void main() {
     expect(tester.getTopLeft(find.byKey(cleHeader)).dy, _encoches.top);
   });
 
+  testWidgets('la safe area protège aussi du bas, pas seulement du haut', (
+    tester,
+  ) async {
+    const cleControles = Key('controles');
+
+    await tester.pumpWidget(
+      _sousEncoches(
+        PileDeCalques(
+          children: {
+            // Ancré en bas de son calque : c'est là que la barre de gestes
+            // mord, et c'est la bande où le §1.4 place toutes les actions
+            // fréquentes.
+            Calque.controles: Align(
+              alignment: Alignment.bottomLeft,
+              child: _repere(cleControles),
+            ),
+          },
+        ),
+        padding: _encoches,
+      ),
+    );
+
+    final ecran = tester.getSize(find.byType(PileDeCalques)).height;
+
+    expect(
+      ecran - tester.getBottomLeft(find.byKey(cleControles)).dy,
+      _encoches.bottom,
+    );
+  });
+
   testWidgets('clavier fermé, le rembourrage bas vaut la barre de gestes', (
     tester,
   ) async {
@@ -130,6 +160,23 @@ void main() {
     );
 
     expect(mesure, 300);
+  });
+
+  testWidgets('le rembourrage bas est une somme, pas un maximum', (
+    tester,
+  ) async {
+    // Cas **synthétique** : un appareil ne présente jamais les deux non nuls
+    // en même temps, puisque le clavier recouvre la barre de gestes. Il est
+    // néanmoins nécessaire, et c'est le seul qui distingue `+` de `max`, de
+    // `min` ou d'une lecture unique — trois implémentations que les cas réels
+    // laissent toutes passer.
+    const clavier = 300.0;
+    final mesure = await _rembourrageSous(
+      tester,
+      (enfant) => _sousEncoches(enfant, padding: _encoches, clavier: clavier),
+    );
+
+    expect(mesure, clavier + _encoches.bottom);
   });
 
   testWidgets('sous une safe area, le rembourrage bas est déjà consommé', (

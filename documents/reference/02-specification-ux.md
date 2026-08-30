@@ -436,9 +436,9 @@ document entre header, bandeaux d'état et bandeau de mise à jour.
 |---|---|
 | Encoche / barre d'état (safe area haute) | 24–48 |
 | **Puces de header** (§7.1) | **0** — elles flottent, la carte court dessous |
-| Bandeau, s'il y en a un | 56 |
+| Bandeau, s'il y en a un | 56 sans action, **112 avec** (§2.4) |
 | Barre de gestes (safe area basse) | 24–48 |
-| **Carte réellement visible** | **≈ 648 à 696 dp, soit 81 à 87 %** |
+| **Carte réellement visible** | **≈ 648 à 696 dp (81 à 87 %) sans bandeau à action, ≈ 592 à 640 dp (74 à 80 %) avec** |
 
 **Deux surfaces occultent la carte sans la réduire, et il faut les compter à part** — le
 pourcentage ci-dessus ne les déduit pas, exactement comme au §7.2.1 :
@@ -470,15 +470,23 @@ explicitement **un seul composant** (§9.3, dernière puce) ; ce document l'éte
 familles, parce qu'elles ont la même anatomie et le même emplacement.
 
 **Anatomie.** Largeur pleine moins `space-4` de chaque côté, `radius-md`, `elev-1`, rembourrage
-interne `space-4`. Icône 24 dp à gauche, texte `type-body` à côté d'elle ; **zéro à deux actions
-sur une seconde rangée**, alignées à droite, séparées du message par `space-2`. Les actions sont
-des boutons texte de **48 dp de haut** (§1.4).
+interne `space-4`. Icône 24 dp à gauche, `space-3` d'écart, puis le texte `type-body` ; **zéro à
+deux actions sur une seconde rangée**, alignées à droite, séparées du message par `space-2`. Les
+actions sont des boutons texte de **48 × 48 dp minimum** (§1.4, « aucune exception »).
 
 **La hauteur est un résultat, jamais une consigne** (§0 : les conteneurs grandissent, ils ne
-tronquent pas) : **56 dp** sur une ligne sans action, **80 dp** dès que le message passe sur deux
-lignes, **112 dp** dès qu'une action est présente. Elles se déduisent du rembourrage et du
-contenu — une ligne de `type-body` vaut 24 dp (§1.2), une cible tactile 48 (§1.4) — et se
-vérifient par test ; elles ne se posent pas en constantes.
+tronquent pas). Elle vaut `space-4` × 2 plus la hauteur du contenu, où une ligne de `type-body`
+compte 24 dp (§1.2) et une rangée d'actions 48 + `space-2` (§1.4). D'où, pour les cas courants :
+
+| Contenu | Hauteur |
+|---|---|
+| une ligne, aucune action | **56 dp** |
+| deux lignes, aucune action | **80 dp** |
+| une ligne, avec action(s) | **112 dp** |
+| deux lignes, avec action(s) | **136 dp** |
+
+Ce sont des **illustrations de la règle, pas une énumération** : un message plus long continue de
+grandir de 24 dp par ligne, et les tests mesurent, ils ne recopient pas.
 
 **Pourquoi les actions ne partagent pas la rangée du message.** Sur l'écran de référence de
 360 dp, il reste 260 dp une fois retirés les marges, le rembourrage, l'icône et son écart. Les

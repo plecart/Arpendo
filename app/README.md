@@ -61,7 +61,7 @@ ni glyphe ne se pose en dur ailleurs dans `lib/`.
 |---|---|---|
 | `theme.dart` | `themeArpendo(Brightness)`, les onze couleurs de chrome des deux modes, et `CouleursChrome` pour les deux que Material 3 ne nomme pas | 1.5 |
 | `typographie.dart` | les huit styles, leurs créneaux Material, la variante `.tabulaire` | 1.2, 1.7 |
-| `mesures.dart` | `Espacements`, `Rayons`, `Elevations` | 1.1, 1.3 |
+| `mesures.dart` | `Espacements`, `CiblesTactiles`, `Rayons`, `Elevations` | 1.1, 1.3, 1.4 |
 | `mouvement.dart` | `JetonMouvement` et `Mouvement.of(context)` | 1.6 |
 | `icones.dart` | la table sémantique Phosphor — **seul fichier à importer `phosphor_icons`** | 1.8 |
 
@@ -130,7 +130,7 @@ arrêtés par la spec UX — l'ARB les transcrit, il ne les rédige pas.
    définitif (UX §0). Un texte absent est une décision à prendre là-bas d'abord — voir
    `.claude/rules/decisions-vs-doc.md`.
 2. L'ajouter à `app_fr.arb` sous une clé en **camelCase français préfixée par son composant ou son
-   écran** (`marqueAccroche`, `bandeauPasDeConnexion`), jamais par le § : les § bougent, les
+   écran** (`marqueAccroche`, `bandeauPasDeReseau`), jamais par le § : les § bougent, les
    composants non.
 3. Lui donner une `description` qui **cite le §** d'où vient le texte. `gen-l10n` la rend en
    doc-comment du getter : elle se lit au point d'usage, sans ouvrir la spec.
@@ -245,12 +245,19 @@ coupées (§12.2) — se réalisera avec la carte, pas ici.
 | `ui/core/bandeau/bandeau.dart` | `Bandeau(entree)` — l'anatomie du §2.4 ; le glyphe et sa couleur se **dérivent** de `severite`, ils ne se passent pas en paramètre |
 | `ui/core/bandeau/emplacement_bandeau.dart` | `EmplacementBandeau(entree?)` — le créneau unique `Calque.bandeau` ; `null` libère la place, que la carte reprend en `motion-base` |
 
-**Aucune hauteur n'est posée dans le code.** 56 dp sur une ligne sans action, 80 dès que le message
-passe sur deux lignes, 112 dès qu'une action est présente : ce sont des résultats du rembourrage
-appliqué au contenu, et les tests les mesurent. Les actions vivent sur une **seconde rangée**,
-parce que deux libellés et un message ne tiennent pas côte à côte sur 360 dp — et ce sont des
-`Wrap`, pour que le réglage de taille de police du système à 200 % (§1.2) les fasse passer l'un
-sous l'autre plutôt que déborder.
+**Aucune hauteur n'est posée dans le code** : elle vaut le rembourrage plus le contenu, et grandit
+de 24 dp par ligne de message. 56 dp sur une ligne sans action, 80 sur deux, 112 dès qu'une action
+est présente, 136 pour deux lignes et une action — des résultats que les tests mesurent, pas des
+constantes. Les actions vivent sur une **seconde rangée**, parce que deux libellés et un message ne
+tiennent pas côte à côte sur 360 dp, et ce sont des `Wrap`, pour qu'un réglage de taille de police
+système à 200 % (§1.2) les fasse passer l'un sous l'autre plutôt que déborder.
+
+`ui/core/mise_en_page/apparition_animee.dart` porte l'apparition et la disparition, et c'est **le
+point unique où le §1.6 s'applique** — durées d'entrée et de sortie, réglage d'accessibilité.
+Tout composant qui doit rendre sa place en partant passe par lui plutôt que de réécrire un
+contrôleur. Deux pièges y sont documentés une fois pour toutes : `AnimatedSize` ne joue jamais son
+contrôleur à l'envers, donc sa `reverseDuration` est inerte ; et poser une `reverseCurve` sur un
+contrôleur qu'on rembobine applique un **second** miroir temporel, ce qui inverse l'effet voulu.
 
 ### La pile de calques et les safe areas
 

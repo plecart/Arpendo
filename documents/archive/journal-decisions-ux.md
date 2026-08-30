@@ -615,11 +615,27 @@ ne rattrape l'écart entre le nombre écrit et le nombre que la mise en page pro
 | Raccourcir les libellés pour tenir sur une rangée | Non. Rouvrirait des **textes arrêtés** après la passe de ton de #29, et « Masquer » seul ne dirait plus que c'est pour cette partie uniquement — ce que le §9.3 exige d'être clair |
 
 **§§ répercutés :** `02-specification-ux.md` §2.4, paragraphe « Anatomie » (réécrit en trois
-paragraphes : anatomie, hauteurs déduites, justification de la seconde rangée) · corps de l'issue
-#43, critère « hauteur 56/72 dp ». Le §2.4 n'est mentionné dans aucun document de rang 1, donc
-**aucune ligne au journal du cadrage**. §1.2, §1.4 et §0 sont **inchangés** : ce sont eux qui
-faisaient autorité, et c'est le §2.4 qui les contredisait. `pipeline.config.md` et `CLAUDE.md` ne
-sont pas touchés.
+paragraphes : anatomie, hauteurs déduites, justification de la seconde rangée) · **§2.2, budget
+vertical** · corps de l'issue #43, critère « hauteur 56/72 dp ». Le §2.4 n'est mentionné dans aucun
+document de rang 1, donc **aucune ligne au journal du cadrage**. §1.2, §1.4 et §0 sont
+**inchangés** : ce sont eux qui faisaient autorité, et c'est le §2.4 qui les contredisait.
+`pipeline.config.md` et `CLAUDE.md` ne sont pas touchés.
+
+**Correction de cette entrée, le 30 août 2026, après relecture indépendante.** La version initiale
+déclarait la cascade close en ayant vérifié les §§ dont le §2.4 **dépend** — §0, §1.2, §1.4 — et
+aucun de ceux qui **dépendent de lui**. Or le §2.2 chiffrait « Bandeau, s'il y en a un | 56 » et en
+déduisait « ≈ 648 à 696 dp, soit 81 à 87 % » de carte visible : avec 112 dp, soit **sept des treize
+lignes** de la table, c'est 592 à 640 dp, soit 74 à 80 %. Le §2.2 est amendé en conséquence, et sa
+conclusion — « empiler trois bandeaux ramènerait la carte sous 60 % » — survit *a fortiori*.
+Deux autres corrections du même passage : la liste des hauteurs omettait le cas **deux lignes avec
+action** (136 dp) et se lisait comme une énumération close alors qu'elle illustre une règle ; et le
+décompte « six lignes portent une action » était faux — ce sont **sept** (priorités 1, 2, 3, 6, 10,
+11 et 12).
+
+**Leçon générale, et c'est la raison d'être de cette correction.** Mesurer une cascade, c'est
+chercher dans **les deux sens** : les §§ qui fondent celui qu'on amende, et ceux qui le citent. Le
+§2.4 nommait lui-même le §2.2 comme sa justification (« le budget vertical du §2.2 ») — le lien
+était écrit, dans le § qu'on relisait, et il n'a pas été suivi.
 
 **Deux jetons ajoutés au module de thème**, tous deux transcrits de sections closes et jusqu'ici
 absents : `Icones.taille` (24 dp, §1.8) et `CiblesTactiles.min` (48 dp, §1.4). Sans eux, la taille

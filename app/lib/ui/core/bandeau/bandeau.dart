@@ -68,7 +68,7 @@ class Bandeau extends StatelessWidget {
                 children: [
                   Icon(
                     _glyphe(entree.severite),
-                    color: _couleur(entree.severite, context),
+                    color: _couleur(context, entree.severite),
                     size: Icones.taille,
                   ),
                   const SizedBox(width: Espacements.x3),
@@ -98,12 +98,13 @@ class Bandeau extends StatelessWidget {
                       TextButton(
                         onPressed: action.onPressed,
                         style: TextButton.styleFrom(
-                          // La cible tactile du §1.4, portée par le bouton
-                          // lui-même : aucun thème de composant n'existe
-                          // encore, et il naîtra avec le premier écran qui
-                          // puisse le valider à l'œil (#46).
-                          minimumSize: const Size(0, CiblesTactiles.min),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          // La cible tactile du §1.4 **sur les deux axes** :
+                          // « 48 × 48 dp, aucune exception ». Le défaut
+                          // Material vaut 64 × 40, donc trop plat. Porté par
+                          // le bouton lui-même faute de thème de composant :
+                          // celui-ci naîtra avec le premier écran qui puisse
+                          // le valider à l'œil (#46).
+                          minimumSize: const Size.square(CiblesTactiles.min),
                         ),
                         child: Text(action.libelle(textes)),
                       ),
@@ -130,12 +131,18 @@ IconData _glyphe(Severite severite) => switch (severite) {
   Severite.bloquant => Icones.severiteBloquant,
 };
 
-/// La couleur du glyphe — texte et icône seulement, jamais un aplat (§1.5).
+/// La couleur du glyphe, **transcrite de la table du §1.5** — les trois
+/// sévérités ne créent aucun jeton, la couleur n'est qu'un renfort pris dans
+/// les jetons existants, et le sens reste porté par la forme.
 ///
-/// `avertissement` n'a pas de rôle Material : c'est la seule des trois à venir
-/// de [CouleursChrome].
-Color _couleur(Severite severite, BuildContext context) => switch (severite) {
-  Severite.info => Theme.of(context).colorScheme.primary,
-  Severite.avertissement => CouleursChrome.of(context).warning,
-  Severite.bloquant => Theme.of(context).colorScheme.error,
-};
+/// `on-surface-muted` · `warning` · `danger`, dans cet ordre. Seule
+/// `avertissement` n'a pas de rôle Material : elle vient de [CouleursChrome].
+/// Ces couleurs ne colorent que du texte et des icônes, jamais un aplat.
+Color _couleur(BuildContext context, Severite severite) {
+  final couleurs = Theme.of(context).colorScheme;
+  return switch (severite) {
+    Severite.info => couleurs.onSurfaceVariant,
+    Severite.avertissement => CouleursChrome.of(context).warning,
+    Severite.bloquant => couleurs.error,
+  };
+}
