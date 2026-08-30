@@ -102,6 +102,10 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(_hauteur(tester), 0);
+    // Une fois parti, le bandeau est **démonté**, pas seulement replié à zéro :
+    // sinon il resterait abonné au thème et à la localisation, reconstruit à
+    // chaque changement de mode, et retiendrait les fermetures de ses actions.
+    expect(find.byType(Bandeau), findsNothing);
   });
 
   testWidgets('animations coupées, la place se libère immédiatement', (

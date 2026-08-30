@@ -25,14 +25,23 @@ import '../theme/mouvement.dart';
 /// ## Le piège de la courbe, à ne pas « corriger »
 ///
 /// La courbe posée ici est celle d'**entrée**, dans les deux sens, et c'est
-/// volontaire. [Mouvement.courbeEntree] et [Mouvement.courbeSortie] sont des
-/// **miroirs temporels** l'une de l'autre — `easeInCubic(t) = 1 −
-/// easeOutCubic(1 − t)`. Jouer la courbe d'entrée à l'envers **produit** donc
-/// le mouvement de sortie attendu. Poser `reverseCurve: courbeSortie`
-/// appliquerait un second miroir et rendrait la sortie brutale au début puis
-/// traînante — exactement ce que le §1.6 refuse. [Mouvement.courbeSortie] ne
-/// sert qu'aux animations de sortie jouées **en avant**, jamais à un
+/// volontaire. Rembobiner une courbe *ease-out* produit un mouvement *ease-in*
+/// — départ lent, fin rapide — c'est-à-dire ce que le §1.6 demande d'une
+/// sortie. Poser `reverseCurve:` [Mouvement.courbeSortie] appliquerait un
+/// **second** retournement et rendrait la sortie brutale au début puis
+/// traînante, l'inverse exact de la consigne. [Mouvement.courbeSortie] ne sert
+/// donc qu'aux animations de sortie jouées **en avant**, jamais à un
 /// contrôleur qu'on rembobine.
+///
+/// La correspondance est **approchée, pas exacte**, et il faut le savoir avant
+/// de vouloir la rendre exacte. Elle le serait entre les polynômes `t³` et
+/// `1 − (1 − t)³` ; les jetons du §1.6 sont les `Curves` de Flutter, des Bézier
+/// qui approchent ces polynômes à quelques pour cent près et dont les points de
+/// contrôle ne sont pas miroirs — `Cubic(0.55, 0.055, 0.675, 0.19)` contre
+/// `Cubic(0.215, 0.61, 0.355, 1.0)`. L'écart entre la sortie jouée ici et une
+/// `easeInCubic` jouée en avant culmine à **5 % de la course**, soit moins de
+/// 6 dp sur le plus haut bandeau, étalés sur 180 ms — très en deçà de ce que
+/// coûterait une seconde mécanique d'animation pour le supprimer.
 class ApparitionAnimee extends StatefulWidget {
   /// Anime [enfant] à la cadence de [jeton] ; `null` le fait disparaître.
   const ApparitionAnimee({
@@ -69,23 +78,21 @@ class _EtatApparitionAnimee extends State<ApparitionAnimee>
   void initState() {
     super.initState();
     _dernier = widget.enfant;
+    _controleur.addStatusListener(_oublierUneFoisParti);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Les durées se relisent à chaque changement de dépendances : le réglage
-    // d'accessibilité peut basculer pendant que l'application tourne, et
-    // `Mouvement.of` le suit (§1.6).
-    final mouvement = Mouvement.of(context);
-    _controleur
-      ..duration = mouvement.entree(widget.jeton)
-      ..reverseDuration = mouvement.sortie(widget.jeton);
+    _relireLesDurees();
   }
 
   @override
   void didUpdateWidget(ApparitionAnimee ancien) {
     super.didUpdateWidget(ancien);
+    // Le jeton fait partie de l'état à relire : `didChangeDependencies` ne se
+    // déclenche que sur un `InheritedWidget`, jamais sur un paramètre.
+    if (widget.jeton != ancien.jeton) _relireLesDurees();
     if (widget.enfant != null) _dernier = widget.enfant;
     final visible = widget.enfant != null;
     if (visible == (ancien.enfant != null)) return;
@@ -97,6 +104,31 @@ class _EtatApparitionAnimee extends State<ApparitionAnimee>
     _facteur.dispose();
     _controleur.dispose();
     super.dispose();
+  }
+
+  /// Recale les durées sur le jeton et sur le réglage d'accessibilité.
+  ///
+  /// Les deux peuvent changer pendant que l'application tourne — le second par
+  /// le système, le premier par un appelant qui change de jeton — et
+  /// [Mouvement.of] les suit tous deux (§1.6).
+  void _relireLesDurees() {
+    final mouvement = Mouvement.of(context);
+    _controleur
+      ..duration = mouvement.entree(widget.jeton)
+      ..reverseDuration = mouvement.sortie(widget.jeton);
+  }
+
+  /// Libère le sous-arbre une fois la sortie terminée.
+  ///
+  /// Sans cela l'enfant congédié resterait **monté** : mis en page, abonné au
+  /// `Theme`, au `MediaQuery` et à la localisation, donc reconstruit à chaque
+  /// changement de mode ou de locale, et retenant les fermetures de ses
+  /// actions. Un bandeau dont le contenu se rafraîchit — le décompte de la
+  /// ligne 8, le compte de captures de la ligne 13 — continuerait de vivre
+  /// invisible.
+  void _oublierUneFoisParti(AnimationStatus etat) {
+    if (etat != AnimationStatus.dismissed || _dernier == null) return;
+    setState(() => _dernier = null);
   }
 
   @override

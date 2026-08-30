@@ -630,7 +630,8 @@ conclusion — « empiler trois bandeaux ramènerait la carte sous 60 % » — s
 Deux autres corrections du même passage : la liste des hauteurs omettait le cas **deux lignes avec
 action** (136 dp) et se lisait comme une énumération close alors qu'elle illustre une règle ; et le
 décompte « six lignes portent une action » était faux — ce sont **sept** (priorités 1, 2, 3, 6, 10,
-11 et 12).
+11 et 12). Le §2.2 retient donc la **plage** 56 à 136 dp et chiffre les deux bornes : 81 à 87 % de
+carte visible avec un bandeau d'une ligne sans action, 71 à 77 % dans le cas le plus chargé.
 
 **Leçon générale, et c'est la raison d'être de cette correction.** Mesurer une cascade, c'est
 chercher dans **les deux sens** : les §§ qui fondent celui qu'on amende, et ceux qui le citent. Le

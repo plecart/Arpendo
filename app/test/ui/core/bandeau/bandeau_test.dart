@@ -31,7 +31,6 @@ EntreeBandeau _entree({
 
 /// Monte [entree] sur l'écran de référence, dans le thème de l'application.
 Future<void> _monter(WidgetTester tester, EntreeBandeau entree) async {
-  const brightness = Brightness.light;
   tester.view.physicalSize = _ecranDeReference;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -40,7 +39,7 @@ Future<void> _monter(WidgetTester tester, EntreeBandeau entree) async {
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: themeArpendo(brightness),
+      theme: themeArpendo(Brightness.light),
       home: Scaffold(
         body: Align(
           alignment: Alignment.topCenter,
@@ -50,6 +49,13 @@ Future<void> _monter(WidgetTester tester, EntreeBandeau entree) async {
     ),
   );
 }
+
+/// Les `Material` sous le bandeau — le sien d'abord, ceux de ses boutons
+/// ensuite, dans l'ordre de parcours de l'arbre.
+final _materiauDuBandeau = find.descendant(
+  of: find.byType(Bandeau),
+  matching: find.byType(Material),
+);
 
 /// La hauteur que le bandeau prend réellement.
 double _hauteur(WidgetTester tester) =>
@@ -114,12 +120,9 @@ void main() {
     await _monter(tester, _entree());
     final contexte = tester.element(find.byType(Bandeau));
     final couleurs = Theme.of(contexte).colorScheme;
-    final materiau = tester.widget<Material>(
-      find.descendant(
-        of: find.byType(Bandeau),
-        matching: find.byType(Material),
-      ),
-    );
+    // `.first` : le `Material` le plus externe est celui du bandeau. Chaque
+    // bouton d'action en construit un autre, plus profond dans l'arbre.
+    final materiau = tester.widget<Material>(_materiauDuBandeau.first);
 
     expect(materiau.color, couleurs.surface, reason: 'fond opaque');
     expect(materiau.elevation, Elevations.e1);
@@ -127,9 +130,12 @@ void main() {
       materiau.shape,
       RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Rayons.md),
-        // Le contour de 1 dp du §1.3 : sans lui, un bandeau clair disparaît
-        // sur un hexagone clair, et l'ombre portée n'y suffit pas.
-        side: BorderSide(color: couleurs.outline),
+        // Le contour du §1.3 : sans lui, un bandeau clair disparaît sur un
+        // hexagone clair, et l'ombre portée n'y suffit pas. Sa largeur de
+        // **1 dp** est écrite ici parce qu'elle vient de la spécification ;
+        // que ce soit aussi le défaut du SDK est une coïncidence, et le jour
+        // où ce défaut changerait, ce test le dirait.
+        side: BorderSide(color: couleurs.outline, width: 1),
       ),
     );
   });
@@ -142,12 +148,7 @@ void main() {
     // Une largeur, donc mesurée sur la **géométrie du conteneur** et non sur
     // du texte : la police de `flutter_test` fausse la mesure d'un glyphe,
     // jamais celle d'un rembourrage.
-    final materiau = tester.getRect(
-      find.descendant(
-        of: find.byType(Bandeau),
-        matching: find.byType(Material),
-      ),
-    );
+    final materiau = tester.getRect(_materiauDuBandeau.first);
 
     expect(materiau.left, Espacements.x4);
     expect(_ecranDeReference.width - materiau.right, Espacements.x4);
