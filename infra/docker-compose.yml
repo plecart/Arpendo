@@ -67,6 +67,11 @@ services:
 
   api:
     build: ../api
+    # Une seule image pour les deux points d'entrée du paquet (cadrage §13.0) : même contexte de
+    # build, commandes différentes. Sans ce nom partagé, Compose construirait deux fois le même
+    # Dockerfile et garderait deux artefacts identiques sous des noms dérivés des services.
+    # Balise `dev` et non `latest` : ce n'est pas une image publiée, et §13.10 proscrit `latest`.
+    image: arpendo-api:dev
     environment:
       # Les conteneurs se joignent par nom de service, jamais par `localhost` — d'où des URL
       # différentes de celles du `.env`, qui sont le point de vue de l'hôte. Seul le mot de passe
@@ -106,19 +111,23 @@ services:
     # Sonde héritée de `api/Dockerfile` : une seule déclaration pour tous les environnements.
 
   worker:
-    # Même contexte de build que `api` : un seul paquet, deux points d'entrée (cadrage §13.0).
-    # Les deux services construisent donc aujourd'hui la même image deux fois ; un `image:` commun
-    # les fera partager le même artefact — il arrive avec le rebase sur #41, en même temps que les
-    # deux variables de rate limiting que `Settings` exigera.
+    # Même contexte de build et même image que `api` : un seul paquet, deux points d'entrée
+    # (cadrage §13.0), une seule construction.
     build: ../api
+    image: arpendo-api:dev
     environment:
-      # Toutes les variables que `Settings` exige, recopiées depuis `api` : la classe valide la
+      # **Les cinq** variables que `Settings` exige, recopiées depuis `api` : la classe valide la
       # configuration entière au démarrage, quel que soit l'hôte, et un worker à qui il en manque
-      # une refuse de démarrer. Pas d'ancre YAML pour les factoriser — elle arrive avec #42, qui
-      # touchera les deux services.
+      # une refuse de démarrer. Les deux seuils du limiteur ne servent à aucune tâche d'ici, mais
+      # ils sont requis et sans défaut — les omettre empêcherait le conteneur de démarrer.
+      # `FORWARDED_ALLOW_IPS`, en revanche, n'est pas reprise : elle est lue par uvicorn, que ce
+      # point d'entrée n'exécute pas. Pas d'ancre YAML pour factoriser tout ça — elle arrive avec
+      # #42, qui touchera les deux services.
       DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
       VALKEY_URL: redis://valkey:6379/0
       VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+      RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
+      RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
     command: ["python", "-m", "arpendo_api.worker"]
     volumes:
       # Sources montées comme pour `api`, mais **sans rechargement à chaud** : il n'y a pas
