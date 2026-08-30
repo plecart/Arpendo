@@ -1,8 +1,9 @@
 # Mises à jour de dépendances — cadrage §13.11 (« Dependabot ou Renovate, fichiers de
 # verrouillage commités »). Une bibliothèque de géolocalisation abandonnée est un risque réel.
 #
-# Les répertoires `/api`, `/worker`, `/app` et `/infra` n'existent pas encore : Dependabot
-# n'y trouve aucun manifeste et reste silencieux. Les entrées s'activent seules au scaffold.
+# `/api`, `/app` et `/infra` portent chacun leur manifeste. Il n'y a **pas** de `/worker` : le
+# worker est un second point d'entrée du paquet `arpendo_api`, pas un projet distinct — il n'a ni
+# manifeste ni verrou propres, et une entrée pour lui surveillerait un répertoire inexistant.
 version: 2
 
 updates:
@@ -14,9 +15,7 @@ updates:
       prefix: "chore(ci)"
 
   - package-ecosystem: "uv"
-    directories:
-      - "/api"
-      - "/worker"
+    directory: "/api"
     schedule:
       interval: "weekly"
     commit-message:

@@ -153,6 +153,42 @@ reste une frontière.
 cadrage §13.8 la pose comme indolore par conception — l'appelant se réabonne, le journal a tout
 gardé. Un serveur injoignable se constate dès l'entrée du contexte, pas à la première lecture.
 
+## Le worker
+
+**Un seul paquet, deux points d'entrée** (cadrage §13.0) : l'api HTTP et le worker sont deux hôtes
+de la même couche de services. Même image, commande différente, **conteneur distinct** — ils ne
+fusionnent jamais, parce qu'une tâche planifiée ne doit s'exécuter qu'une fois quel que soit le
+nombre d'instances HTTP (§13.9 règle 2).
+
+```
+python -m arpendo_api.worker
+```
+
+Il ouvre les ressources partagées par le même `open_resources` que l'api, déroule sa table de
+tâches, et s'arrête sur SIGTERM en libérant tout.
+
+**Ajouter une tâche planifiée, c'est ajouter une entrée à `TASKS`** — un nom, un intervalle, une
+coroutine qui reçoit les ressources :
+
+```python
+TASKS: Mapping[str, tuple[float, Task]] = {"battement": (HEARTBEAT_INTERVAL, _heartbeat)}
+```
+
+Ni la boucle, ni l'ouverture des ressources, ni l'arrêt n'ont à changer. Chaque entrée tourne dans
+sa propre boucle : une tâche lente n'en retarde aucune autre. L'attente entre deux tours porte sur
+l'**événement d'arrêt** et non sur le temps — sans quoi un `docker compose stop` devrait patienter
+jusqu'au prochain réveil, ce qui deviendra insupportable à la première tâche horaire.
+
+Une seule tâche à la naissance : le **battement**, qui repose toutes les 10 secondes la date de
+`/tmp/arpendo-worker-battement`. Le fichier n'a pas de contenu — c'est sa date que lit la sonde
+du conteneur. Les tâches réelles (fin de partie, purges de rétention, bilans du flux, envoi des push)
+arrivent avec les domaines Territoire et Flux.
+
+**L'arrêt passe par `signal.signal`, jamais par `loop.add_signal_handler`** : le second lève
+`NotImplementedError` sous Windows, où ce projet se développe. Le gestionnaire s'exécute hors du
+contrôle de la boucle, donc il ne touche pas l'événement directement — `call_soon_threadsafe` est
+le seul pont sûr.
+
 ## Migrations
 
 Le schéma est versionné par Alembic, configuré dans le `[tool.alembic]` de `pyproject.toml` — pas
@@ -195,6 +231,8 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
 - `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
   déclarative et les conventions de schéma — sa docstring en est la référence), `session.py` (la
   session par requête), `migrations/` (Alembic).
+- `src/arpendo_api/worker/` — le **second point d'entrée** : la boucle de tâches périodiques et
+  son point d'entrée `python -m arpendo_api.worker`.
 - `src/arpendo_api/domains/` — un paquet par domaine métier, créé avec le premier.
 
 **Les réglages sensibles sont des `Secret`** — le mot de passe Valkey et l'URL de base, qui porte

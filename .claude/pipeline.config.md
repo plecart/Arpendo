@@ -82,7 +82,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   - Socle technique : `infra/`, `.github/`, `api/src/arpendo_api/core/`, `api/src/arpendo_api/db/`
   - Compte & identité : `api/src/arpendo_api/domains/compte/`, `app/lib/ui/features/compte/`
   - Partie : `api/src/arpendo_api/domains/partie/`, `app/lib/ui/features/partie/`
-  - Territoire : `api/src/arpendo_api/domains/territoire/`, `worker/`, `app/lib/data/`
+  - Territoire : `api/src/arpendo_api/domains/territoire/`, `api/src/arpendo_api/worker/`, `app/lib/data/`
   - Carte & rendu : `app/lib/ui/features/carte/`, `app/lib/ui/core/`
   - Flux & notifications : `api/src/arpendo_api/domains/flux/`, `app/lib/ui/features/flux/`
 - zones sensibles (arrêt humain avant commit) : migrations de schéma · écrans à valider
