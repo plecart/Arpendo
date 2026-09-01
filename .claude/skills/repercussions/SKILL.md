@@ -134,6 +134,13 @@ Citation delta : « <le fait exact du delta réel qui la falsifie> »
 (« ça pourrait interagir avec… », « il faudra peut-être vérifier… ») n'est pas une citation. C'est
 exactement ce qui noie le rapport et rend indécidable ce qui est vrai.
 
+**Troisième condition — la causalité.** La ligne citée de l'issue doit avoir été **vraie juste
+avant le merge** : relire l'état d'avant (`git show <base>:<fichier>`, corps de la PR) et vérifier
+que c'est bien **ce** delta qui la falsifie. « X est faux » et « ce changement a rendu X faux »
+sont deux affirmations différentes, et seule la seconde est une répercussion. Une tension
+préexistante appartient à la clôture qui l'a introduite, ou à personne — l'attribuer au merge
+courant fait perdre au mainteneur le seul repère qui rend le rapport actionnable.
+
 Deux niveaux, et deux seulement :
 
 - **bloquant** — la spec est fausse sur un point structurant ; développer l'issue en l'état
