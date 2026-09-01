@@ -222,9 +222,15 @@ edge cases / erreurs / race conditions, KISS/DRY/YAGNI à l'échelle de la PR �
 **duplication inter-commits**.
 
 **4.2 Relecture par un contexte vierge — obligatoire.** L'auto-review est faite par la session qui
-a écrit le code, avec les hypothèses qui l'ont produit ; elle ne les met pas à l'épreuve. Lancer
-un **agent de relecture** (sous-agent, lecture seule, sans accès à cette conversation) qui reçoit
-**uniquement** :
+a écrit le code, avec les hypothèses qui l'ont produit ; elle ne les met pas à l'épreuve.
+**L'exigence** : le diff est relu par un lecteur qui n'a pas ces hypothèses. **Le moyen par
+défaut** : un **agent de relecture** (sous-agent, lecture seule, sans accès à cette conversation).
+L'invocation de `cycle-pr` — `/cycle-pr` tapé par l'utilisateur, ou prompt de démarrage d'une
+vague `pr-paralleles` — **vaut demande** pour cet agent : une consigne de session « pas de
+sous-agent sans demande de l'utilisateur » est déjà satisfaite, ne pas re-demander. **Repli** si
+le harness ne permet réellement pas de lancer un sous-agent : rendre la main au relecteur humain
+avec le diff et le prompt de relecture verbatim, et le noter dans la section « Relecture
+indépendante » du body de PR — jamais de saut silencieux. L'agent reçoit **uniquement** :
 
 - le corps de l'issue et son brief d'agent (ou le briefing de l'Étape 1) ;
 - le diff `main..HEAD` et le droit de lire les fichiers touchés ;
