@@ -128,6 +128,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - Pipeline maison (12) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,
   `cycle-pr`, `contradiction`, `repercussions`, `pr-paralleles`, `plan-qa`, `execution-qa`,
   `bug-vers-issue`
+- Audit maison (1) : `audit-spec-ui` — audit mécanique d'une spec d'interface, issu du journal
+  d'observations (obs 1, 3, 5, 14) ; commande homonyme `/audit-spec-ui`
 - Qualité de code (6) : `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`,
   `ponytail-gain`, `ponytail-help` — exigé par cadrage §13.10, `ponytail` activé par `CLAUDE.md`
 - Flutter (5) : `flutter-apply-architecture-best-practices`, `flutter-setup-declarative-routing`,
