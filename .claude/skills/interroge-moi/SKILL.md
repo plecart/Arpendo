@@ -15,6 +15,30 @@ décisions une par une.
 - **Si une question peut être résolue en explorant le code, explore le code** plutôt que de
   demander.
 
+## Réponse « quelles sont les bonnes pratiques ? »
+
+Quand l'utilisateur répond à une question par « fais selon les bonnes pratiques » (ou équivalent),
+il demande le **cadre**, pas une opinion. Répondre en deux temps : (1) l'état de l'art en 3-5
+points nommés ; (2) chaque point confronté aux contraintes écrites du projet (rules, cadrage,
+décisions closes), avec retenu/écarté. Puis :
+
+- **S'il a annoncé en ouverture qu'il délègue** (« choisis selon les bonnes pratiques ») → donner
+  le cadre pour la traçabilité et **verrouiller la recommandation dans le même tour**, sans
+  reposer la question. Consigner la décision comme « déléguée sur reco ».
+- **Sinon** → reposer la question une fois. Si la même réponse revient, verrouiller et le dire.
+  **Jamais de troisième tour** : une réponse identique à une question reposée n'est pas une
+  nouvelle information, c'est le signal que la boucle doit se fermer.
+
+## Une option que l'utilisateur ne peut pas évaluer n'est pas une décision
+
+Avant de poser un arbitrage, vérifier si la décision dépend d'un savoir que l'interlocuteur peut
+ne pas avoir — coût récurrent, terme technique, conséquence différée. Si oui : expliciter dans le
+corps du message ce que chaque terme veut dire **concrètement**, ce que ça coûte, et ce qui se
+passe si on ne fait rien, avant de proposer les options. Bannir les libellés qui supposent le
+vocabulaire du domaine, et ne marquer « (Recommandé) » que si l'utilisateur peut évaluer la
+recommandation — sinon c'est l'agent qui décide sous couvert de consultation, et l'accord obtenu
+n'est qu'un acquiescement à son autorité.
+
 ## Sa place dans la pipeline
 
 Ce skill n'est pas seulement un outil à la demande : c'est le **garde-fou obligatoire** avant tout
@@ -36,6 +60,18 @@ ici sera relu des jours plus tard, par une autre session, sans aucun accès à c
   session part d'une issue ; dans le briefing pré-PR sinon.
 - **Les questions restées ouvertes** → en notes de triage sur l'issue, pour que la prochaine
   session sache ce qui manque encore.
+
+**Chaque décision nomme son propriétaire avant d'être écrite** — le bon endroit est celui que lira
+la session qui *réalisera* le point, pas celle qui l'a discuté :
+
+1. **L'issue interrogée**, si c'est elle qui réalise le point.
+2. **Une autre issue ouverte**, si c'est elle qui le réalisera → amender **son corps**, pas
+   seulement le brief courant.
+3. **Aucune issue n'existe encore** → la story du PRD (ou le document de rang supérieur) reçoit un
+   rappel daté, que `vers-issues` retrouvera.
+
+Dans les deux derniers cas, le brief courant garde une ligne « porté par #N » pour la traçabilité.
+Une décision consignée au mauvais endroit est perdue au même titre qu'une décision non écrite.
 
 Puis, si la session partait d'une issue en `needs-interrogation`, dire à l'utilisateur que l'issue
 peut passer à `ready-for-agent` (ou `ready-for-human`) — la transition elle-même appartient à
