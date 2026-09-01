@@ -44,6 +44,8 @@ Chaque issue **ouverte** triée doit porter exactement un rôle de catégorie et
 
 Ce sont les noms de rôles canoniques ; le mapping vers les vrais labels GitHub est dans `.claude/pipeline.config.md` — sinon lancer `init-projet`.
 
+**Les issues portant un label de nature `prd` sont hors machine à états** : ne pas les lister dans « requiert l'attention », ne jamais leur appliquer rôle d'état ni thème. Ce sont des documents parents que `vers-issues` découpe ; leurs états terminaux n'auraient aucun sens.
+
 ## Thèmes (milestones)
 
 En plus des rôles, chaque issue qui avance dans le triage est rattachée à **exactement un thème** —

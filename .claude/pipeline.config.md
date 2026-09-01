@@ -120,6 +120,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - wontfix → `wontfix`
 - qa-plan → `qa-plan`
 - qa-finding → `qa-finding`
+- prd → `prd`   # label de nature (document parent) — hors machine à états, ni rôle d'état ni thème
 
 ## Skills du projet
 - Pipeline maison (12) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,
