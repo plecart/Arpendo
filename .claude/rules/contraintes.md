@@ -40,7 +40,24 @@ Le code visé est **modulaire, scalable, fractionné** — objectif permanent, p
   d'architecture, de découpage, de format, de dépendance, de comportement : on ne décide pas en
   silence à la place de l'utilisateur. Présenter les options + une reco, puis demander.
 - Exception : si la réponse se trouve dans le code, **explorer le code plutôt que demander**. Pour
-  un grilling approfondi, utiliser `interroge-moi`.
+  un grilling approfondi, utiliser `interroge-moi`. L'exploration ne s'arrête pas au dépôt : pour
+  un comportement d'outil **non documenté**, les logs applicatifs, l'arborescence de données
+  locale et les horodatages sont des sources de premier ordre — la documentation décrit
+  l'intention, les logs enregistrent le comportement. Distinguer explicitement ce qui est
+  **prouvé** (cité, horodaté) de ce qui n'a pas pu être vérifié.
+- **Un « go » autorise l'exécution, il n'éteint pas le cadrage.** En particulier pour
+  l'installation d'un outil : une demande qui nomme un outil précis est une solution déjà choisie,
+  qui masque le problème qui l'a motivée. Faire remonter l'objectif avant d'installer — l'outil
+  demandé peut ne pas le résoudre, ou le besoin peut être déjà couvert sans rien installer.
+- **« Comment faire X » présuppose que X existe.** Avant de répondre par un mode d'emploi, vérifier
+  la prémisse — en source officielle, jamais de mémoire — dès que X touche aux capacités, quotas,
+  identifiants ou facturation d'un service tiers : une prémisse fausse y coûte de l'argent réel.
+- **Jamais d'information dérivée d'un secret.** En guidant une action humaine sur un secret (jeton,
+  clé, mot de passe), ne jamais demander un extrait de sa valeur — préfixe, longueur, derniers
+  caractères, empreinte : une question dont la réponse s'obtient en regardant le secret sera
+  satisfaite en collant le secret. Demander une **assertion binaire** (« commence-t-il par `sk.` ?
+  oui / non »), annoncer l'attendu avant l'action, et précéder toute création de secret d'un
+  « ne colle jamais la valeur ici ».
 
 ## Maintenance continue
 - Tenir à jour, sans qu'on le redemande, les supports d'exécution du projet : fichier de commandes
@@ -56,5 +73,4 @@ Le code visé est **modulaire, scalable, fractionné** — objectif permanent, p
 ## Points d'arrêt humains
 - Commit touchant une **zone sensible** déclarée dans `.claude/pipeline.config.md` (section
   « Périmètre ») → rendre la main pour validation manuelle **avant** de committer.
-- Par défaut, sont sensibles : l'**UI à valider visuellement** et tout changement de **schéma de
-  données / migration**.
+- Par défaut, sont sensibles : l'**UI à valider visuellement** et l'**authentification**.

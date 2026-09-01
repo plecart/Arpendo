@@ -3,7 +3,7 @@ name: vers-prd
 description: Transforme le contexte de la conversation actuelle en PRD et le publie sur le dépôt GitHub du projet. À utiliser lorsque l'utilisateur veut créer un PRD à partir du contexte actuel.
 ---
 
-Ce skill prend le contexte de la conversation actuelle ainsi que la compréhension de la base de code et produit un PRD. N'interroge PAS l'utilisateur — synthétise simplement ce que tu sais déjà.
+Ce skill prend le contexte de la conversation actuelle ainsi que la compréhension de la base de code et produit un PRD. Ne pas interroger l'utilisateur sur le **contenu produit** — c'est une synthèse de ce qui est déjà su. Le **seul** point de validation est celui de l'étape 2 (liste des modules et périmètre de tests), présenté **en une fois**, avec une recommandation par question. Si le contexte est un corpus documentaire clos, les interprétations posées (là où deux documents semblent diverger) font partie de cette validation unique.
 
 Le dépôt GitHub et le mapping de labels doivent être dans `.claude/pipeline.config.md` — sinon lancer le skill `init-projet`.
 
@@ -17,7 +17,9 @@ Un module profond (par opposition à un module superficiel) est un module qui en
 
 Vérifie avec l'utilisateur que ces modules correspondent à ses attentes. Vérifie avec l'utilisateur pour quels modules il souhaite que des tests soient écrits.
 
-3. Rédige le PRD en utilisant le template ci-dessous, puis publie-le sur le dépôt GitHub du projet (via `gh`). Applique le label de triage `needs-triage` pour qu'il entre dans le flux de triage normal.
+3. Rédige le PRD en utilisant le template ci-dessous, puis publie-le sur le dépôt GitHub du projet (via `gh`). Applique le **label de nature `prd`** (mapping dans `.claude/pipeline.config.md`) — **ni rôle d'état, ni thème** : un PRD est un document parent que `vers-issues` découpe sans jamais le modifier ni le fermer ; la machine à états de `triage` est conçue pour des unités de travail (un état, un thème) et ne sait pas le faire avancer. Un PRD étiqueté `needs-triage` resterait indéfiniment dans la file « requiert l'attention ».
+
+**Règle de rédaction — l'état courant seul.** Un PRD est lu par des agents, et un agent n'a pas de mémoire de lecture : tout ce qui figure dans le document est vrai au même titre. Écrire chaque section à la voix affirmative, sans date de révision, sans bloc « Avant / Après », sans mention de ce qui a été envisagé puis abandonné. Quand une révision est intégrée plus tard, réécrire le passage **comme s'il avait toujours été ainsi**, et chercher toutes les occurrences de la valeur révisée avant de clore. Le raisonnement et l'historique vivent dans un fichier d'archive séparé, marqué non normatif. Une justification garde sa place tant qu'elle explique pourquoi la règle actuelle est celle-là ; elle part dès qu'elle explique pourquoi elle a changé.
 
 <prd-template>
 

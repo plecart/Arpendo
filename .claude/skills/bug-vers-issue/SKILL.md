@@ -41,9 +41,13 @@ Utilise `references/collecte-contexte.md` comme liste de contrôle. En résumé 
 - **Commit(s) à l'origine** — `git log --grep="#<issue-impl>" --oneline -20` et `git log -- <chemins pertinents> --oneline -20`. Choisis le ou les coupables les plus probables ; liste-les en SHA court + message.
 - **Langage métier** — lis `UBIQUITOUS_LANGUAGE.md`, `CLAUDE.md`, ou parcours la zone du code pour apprendre les termes du projet. Utilise-les dans le titre et le corps de l'issue. N'utilise pas les noms de modules internes.
 
-### 3. Vérifier les doublons
+### 3. Vérifier les doublons — et le propriétaire du sujet
 
-Avant de rédiger :
+Avant de rédiger, chercher **qui possède déjà ce sujet** : une automatisation déclarée (bot de
+dépendances, workflow planifié, hook), une issue ouverte dont c'est le critère, une PR fermée qui
+le portait. Si un mécanisme existe, la question devient « pourquoi n'a-t-il pas agi ? » — souvent
+parce qu'on l'a fait taire — et c'est *ça* qu'on corrige. Un ticket est la façon de confier un
+problème à un humain ; vérifier d'abord qu'il n'est pas déjà confié à une machine. Puis :
 
 - Si piloté par un plan, parcours le corps du plan QA à la recherche de marqueurs `🔴 BUG #<N>` près de la case qui échoue. Si un tel marqueur existe déjà pour cette case précise, signale-le à l'utilisateur et demande s'il faut consigner une nouvelle issue sœur ou rouvrir / commenter celle qui existe. Ne consigne pas en silence.
 - Cherche dans les issues récentes : `gh issue list --search "<termes clés>" --state all --limit 10`. Montre à l'utilisateur les correspondances proches avant de rédiger.

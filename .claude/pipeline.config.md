@@ -56,7 +56,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - run local    : `just up`
 - reprise worker : `just restart-worker`   # sources montées, mais pas de rechargement à chaud
 - migrate      : `just migrate`               # `alembic upgrade head` sur la base du `.env`
-- migration    : `just migration MSG`         # autogenerate — fichier à relire avant commit (zone sensible)
+- migration    : `just migration MSG`         # autogenerate — fichier à relire avant commit
 
 > **`just test` exige `just up`** : les tests d'`api/` parlent à un vrai PostgreSQL et à un vrai
 > Valkey. Ils lisent leurs coordonnées dans le `.env` de la racine (`set dotenv-load` du
@@ -86,8 +86,9 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   - Territoire : `api/src/arpendo_api/domains/territoire/`, `api/src/arpendo_api/worker/`, `app/lib/data/`
   - Carte & rendu : `app/lib/ui/features/carte/`, `app/lib/ui/core/`
   - Flux & notifications : `api/src/arpendo_api/domains/flux/`, `app/lib/ui/features/flux/`
-- zones sensibles (arrêt humain avant commit) : migrations de schéma · écrans à valider
-  visuellement · `infra/` (déploiement, Caddy, compose) · authentification
+- zones sensibles (arrêt humain avant commit) : écrans à valider visuellement · authentification
+  — l'arrêt sur les migrations de schéma est levé tant qu'aucun environnement ne porte de données
+  réelles ; à réintroduire au premier déploiement
 - hors périmètre : monétisation · analytics produit · iOS (phase 2) · modale « Mes hexagones »
   (post-MVP, cadrage §7.6) · animations de squelette via couches Three.js custom (cadrage §13.1) ·
   exclusion géographique de zones (cadrage §16)
@@ -106,6 +107,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 
 ## Langue
 - skills / issues / PRD / descriptions : français
+- identifiants du code (tables, colonnes, champs, types, fonctions) : anglais — fixés par le cadrage
+- commentaires / docstrings / noms de tests : français
 - préfixe conventional commit : anglais (feat/fix/chore/docs/refactor)
 
 ## Mapping labels (rôle canonique → label GitHub)
@@ -119,11 +122,14 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - wontfix → `wontfix`
 - qa-plan → `qa-plan`
 - qa-finding → `qa-finding`
+- prd → `prd`   # label de nature (document parent) — hors machine à états, ni rôle d'état ni thème
 
 ## Skills du projet
 - Pipeline maison (12) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,
   `cycle-pr`, `contradiction`, `repercussions`, `pr-paralleles`, `plan-qa`, `execution-qa`,
   `bug-vers-issue`
+- Audit maison (1) : `audit-spec-ui` — audit mécanique d'une spec d'interface, issu du journal
+  d'observations (obs 1, 3, 5, 14) ; commande homonyme `/audit-spec-ui`
 - Qualité de code (6) : `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`,
   `ponytail-gain`, `ponytail-help` — exigé par cadrage §13.10, `ponytail` activé par `CLAUDE.md`
 - Flutter (5) : `flutter-apply-architecture-best-practices`, `flutter-setup-declarative-routing`,

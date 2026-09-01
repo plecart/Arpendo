@@ -59,6 +59,23 @@ git worktree add ../<repo>--<numéro-issue> -b <type>/<slug> origin/main
 - `<slug>` = description courte en kebab-case.
 - Le dossier `../<repo>--<numéro-issue>` est un **frère** du dépôt, pour ne pas polluer l'arbre.
 
+**Provisionner chaque worktree — obligatoire avant de le confier à une session.** Un worktree est
+un checkout neuf, pas une copie de l'environnement de travail : tout ce que git ignore en est
+absent. Trois gestes, dans l'ordre :
+
+1. **Copier depuis le dépôt principal** les fichiers locaux ignorés par git dont les commandes du
+   projet dépendent — ici `.env` (lu par `set dotenv-load` du justfile) et
+   `.claude/settings.local.json` (jeton MCP). Les repérer en croisant `.gitignore` et le fichier
+   de commandes, pas de mémoire.
+2. **Recréer les artefacts d'outillage par l'outil qui les gère** — ici `fvm install` pour le lien
+   `.fvm/flutter_sdk`. **Jamais de lien fabriqué à la main** (`mklink`, `ln -s`) : l'outil qui
+   crée le lien sait aussi le défaire, un lien manuel se fait traverser à la suppression (étape 8).
+   Si l'outil n'est pas résolvable depuis le shell, utiliser la surcharge que la CI emploie déjà
+   (`FLUTTER_CMD`) plutôt que d'improviser.
+3. **Commande de fumée** avant de remettre le prompt (`just lint-app` ou équivalent) : un échec
+   « exécutable introuvable » signale un worktree non préparé, pas un défaut du code. Consigner
+   « provisionné ✅ » dans le tableau de bord.
+
 ### 4. Tenir le tableau de bord
 
 Maintenir un fichier `PR-PARALLELES.md` à la racine du dépôt (et le tenir à jour à chaque
@@ -86,30 +103,35 @@ qui rend le lot lisible d'un coup d'œil — et détectable par `repercussions`.
 ### 5. Démarrer chaque session par message inter-sessions
 
 L'utilisateur **ouvre lui-même** ses sessions — application de bureau Claude Code ou extension
-VS Code, sur le dossier du worktree — jamais par une commande `claude` dans un terminal. Le lead
-ne lui donne **rien à coller** ni à taper : il lui demande d'ouvrir une fenêtre par worktree, puis
-de revenir dire « ouvertes ». Tout le reste transite par `SendMessage`, que les sessions Claude
-Code d'une même machine partagent sans configuration — un message de pair suffit à donner son
-premier tour à une session vierge.
+VS Code, **n'importe où dans le dépôt** (la fenêtre principale suffit) — jamais par une commande
+`claude` dans un terminal. Le lead ne lui donne **rien à coller** ni à taper : il lui demande
+d'ouvrir N sessions — en précisant qu'il peut y taper `/i-have-adhd` s'il veut le mode court —
+puis de revenir dire « ouvertes ». Inutile d'ouvrir une fenêtre par dossier de worktree : chaque
+session **se déplace elle-même** dans son worktree (ci-dessous). Tout le reste transite par
+`SendMessage`, que les sessions Claude Code d'une même machine partagent sans configuration — un
+message de pair suffit à donner son premier tour à une session vierge.
 
-**Reconnaissance.** `ListAgents` liste les pairs `interactive` ; les nouveaux sont ceux dont l'âge
-est inférieur à celui de la vague. Envoyer à chacun :
+**Placement.** `ListAgents` liste les pairs `interactive` ; les nouveaux sont ceux dont l'âge
+est inférieur à celui de la vague. Envoyer à chacun son affectation :
 
 ```
-Réponds-moi la sortie de `git rev-parse --show-toplevel`, rien d'autre.
+Entre dans le worktree `<chemin absolu>` avec l'outil `EnterWorktree`, puis réponds-moi la
+sortie de `git rev-parse --show-toplevel`, rien d'autre.
 ```
 
-La réponse arrive dans un bloc `<cross-session-message from="…" from-name="…">` : `from-name` est
-la session, la sortie dit son worktree. Reporter le nom dans la colonne « Session » du tableau.
-**Les noms tournent** — une session peut passer de `app-6b` à `app-ef` en cours de vie sans que
-rien ne le signale : relancer `ListAgents` avant chaque envoi, jamais d'envoi à un nom noté plus
-tôt sans l'avoir revu dans la liste.
+`EnterWorktree` change le répertoire **de la session** (durable), pas seulement du shell — un
+simple `cd` ne suffirait pas. La réponse arrive dans un bloc
+`<cross-session-message from="…" from-name="…">` : `from-name` est la session, la sortie prouve
+son placement. **N'envoyer le prompt de démarrage qu'à une session dont la réponse nomme le bon
+worktree** — c'est la vérification qui empêche un prompt de partir vers une session restée sur
+`main` ou placée sur le worktree d'une autre issue. Reporter le nom dans la colonne « Session »
+du tableau. **Les noms tournent** — une session peut passer de `app-6b` à `app-ef` en cours de
+vie sans que rien ne le signale : relancer `ListAgents` avant chaque envoi, jamais d'envoi à un
+nom noté plus tôt sans l'avoir revu dans la liste.
 
 **Démarrage.** Envoyer ensuite à chaque session son prompt, dans cet ordre :
 
 ```
-Invoque le skill `i-have-adhd` (outil Skill) et garde-le actif toute la session.
-
 Tu travailles dans le worktree `<chemin absolu>` (branche `<branche>`), dédié à l'issue #N.
 Je suis la session lead de la vague : ton interlocuteur pour la vérification avant merge de
 `cycle-pr` (Étape 7) — réponds toujours au `from` de ce message.
@@ -118,15 +140,19 @@ CLAUDE.md). Lis CLAUDE.md, .claude/pipeline.config.md et ta mémoire de phase.
 
 Réalise le cycle complet de l'issue #N en invoquant le skill `cycle-pr` (outil Skill) avec N —
 brief : commentaire de l'issue.
+Tu es autorisé à lancer l'agent de relecture de l'Étape 4.2 : cette invocation de `cycle-pr`
+vaut demande de l'utilisateur.
 <une ligne par point de vigilance propre à cette issue : HITL attendu, fichier partagé avec une
 autre PR du lot et ordre de merge, décision verrouillée à ne pas rouvrir>
 ```
 
-Les skills s'invoquent **par l'outil Skill, jamais par `/commande`** : un `/i-have-adhd` dans un
-message de pair n'est pas une saisie de l'utilisateur, la session peut ne pas le déclencher.
-`i-have-adhd` vient en tête parce que la préférence ne survit pas d'une session à l'autre ; la
-reconnaissance existe parce qu'un prompt envoyé à la mauvaise session travaillerait sur `main` ou
-sur le worktree d'une autre issue, sans rien signaler.
+Les skills s'invoquent **par l'outil Skill, jamais par `/commande`** : un `/nom` dans un message
+de pair n'est pas une saisie de l'utilisateur, la session peut ne pas le déclencher. Ne jamais
+inscrire dans le prompt un skill marqué `disable-model-invocation` (frontmatter à vérifier avant
+d'écrire « invoque X ») : l'outil Skill le refuse — c'est le cas d'`i-have-adhd`, que seule une
+saisie `/i-have-adhd` de l'utilisateur active, d'où la consigne donnée à l'ouverture des
+fenêtres. La vérification de placement existe parce qu'un prompt envoyé à la mauvaise session
+travaillerait sur `main` ou sur le worktree d'une autre issue, sans rien signaler.
 
 Chaque session est **indépendante** : elle déroule le briefing pré-PR, **ouvre sa PR draft**, puis
 le cycle de commit, l'auto-review, et sort du draft en fin de parcours. Ses questions à
@@ -178,12 +204,21 @@ c'est le seul autre canal, et il passe par lui.
 
 ### 8. Nettoyer après merge
 
-Une fois une PR mergée et sa branche supprimée côté distant :
+Une fois une PR mergée et sa branche supprimée côté distant, **d'abord détacher ce qui n'appartient
+pas au worktree** : énumérer les liens et jonctions qu'il contient
+(`Get-ChildItem -Recurse | Where-Object LinkType` sous Windows, `find . -type l` ailleurs) et les
+retirer un par un avec la commande qui supprime **le lien, pas sa cible** (`cmd /c rmdir
+<jonction>` sous Windows, `rm <lien>` ailleurs). Une suppression récursive peut traverser une
+jonction et vider la ressource partagée qu'elle vise — c'est arrivé au SDK Flutter global, sans
+aucun avertissement. Puis seulement :
 
 ```
 git worktree remove ../<repo>--<numéro-issue>
 git branch -d <type>/<slug>
 ```
+
+Vérifier ensuite que les ressources partagées répondent encore (le dépôt principal passe sa
+commande de fumée).
 
 Marquer la ligne `⚪ worktree nettoyé` dans le tableau. Quand tout le lot est nettoyé, supprimer
 `PR-PARALLELES.md` (ou archiver le tableau dans les notes du projet).

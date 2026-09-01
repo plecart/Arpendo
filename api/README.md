@@ -280,7 +280,7 @@ d'`alembic.ini` : l'URL vient de `Settings`, comme pour l'application. Les scrip
 | Faire | Commande |
 |---|---|
 | Écrire une migration | `just migration "ce qu'elle change"` — autogénérée par comparaison des modèles au schéma réel |
-| La relire | **obligatoire avant commit** : l'autogénération ne voit ni les renommages ni les données. Écrire la docstring, retirer les balises « auto generated ». Zone sensible « migrations de schéma » |
+| La relire | **obligatoire avant commit** : l'autogénération ne voit ni les renommages ni les données. Écrire la docstring, retirer les balises « auto generated ». |
 | L'appliquer sur le poste | `just migrate` |
 | L'appliquer dans un conteneur éphémère | `docker compose -f infra/docker-compose.yml --env-file .env run --rm api alembic upgrade head` — c'est ce que la CI de déploiement déclenchera (cadrage §13.9 règle 3) |
 

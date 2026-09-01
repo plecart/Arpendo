@@ -70,6 +70,11 @@ peut-être bougé. Confronter le plan à la réalité **actuelle** du code :
   du travail, déplacé un module, changé un contrat, rendu une hypothèse caduque ?
 - **Vérifier que la suite du dev tient** : ce que cette PR prépare pour les issues suivantes est-il
   toujours cohérent, ou l'ordre / le découpage doit-il être revu ?
+- **Vérifier la faisabilité de l'ordre des commits** : pour chaque commit prévu, ce dont ses tests
+  ont besoin pour tourner en local (services, schéma, compose, fixtures) existe-t-il déjà, ou
+  est-il introduit par un commit ultérieur ? Si « ultérieur » → remonter ce commit. L'ordre de
+  livraison suit les **dépendances d'exécution**, pas la logique de présentation du plan — un
+  découpage peut être juste sur le contenu et infaisable sur l'ordre.
 - **Énoncer à voix haute** sous un titre `## 🔍 Auto-challenge du plan` : ce qui reste valable, ce
   qui a changé, et les ajustements proposés (fichiers en plus/en moins, décision à rouvrir, scope à
   resserrer ou re-découper).
@@ -114,6 +119,11 @@ La PR draft porte **dès sa création** :
 
 - **`Closes #<N>`** dans le body. C'est **la** ligne qui rend l'issue détectable comme en vol.
   Sans elle, `repercussions` la croira dormante et éditera sa spec en cours de développement.
+  **Cas découpé** (taille-pr impose plusieurs PR pour la même issue) : seule la **dernière** PR du
+  lot porte `Closes #<N>` — un `Closes` sur la première fermerait l'issue trop tôt. Chaque autre
+  PR du lot ouvre son body par la ligne **`En vol pour #<N> (lot k/n)`**, que `repercussions` lit
+  au même titre que `Closes` : sans elle, l'issue paraît dormante précisément pendant qu'on
+  travaille dessus.
 - Le **briefing de l'Étape 1** comme corps provisoire — le plan devient lisible par le mainteneur
   et par les autres sessions, avant que le code n'existe.
 - **Assignee**, **labels** et **milestone** (mapping de `.claude/pipeline.config.md`).
@@ -158,6 +168,27 @@ VERT  : écrire le minimum de code pour le faire passer → il passe
 Règles : un test à la fois ; juste assez de code pour passer le test courant ; ne pas anticiper
 les tests futurs ; tester le comportement observable via l'interface publique.
 
+**Le rouge se constate, il ne se suppose pas — un test qui n'a pas été vu rouge n'est pas un
+test.** Quatre cas à traiter explicitement :
+
+- **Le test passe du premier coup, avant tout changement de production** → il mesure autre chose ;
+  ne jamais conclure « le défaut n'existe pas ». Cas fréquent : lire une configuration statique
+  alors que le défaut naît d'une fusion ou d'une résolution à l'exécution. Instrumenter d'abord
+  (sonde jetable qui imprime les valeurs au point où l'utilisateur les subit), corriger le point
+  de mesure, obtenir le rouge, puis écrire le correctif. Supprimer la sonde avant le commit.
+- **Le test dérive d'un critère d'acceptation ou d'un rapport de bug et passe avant le correctif**
+  → la prémisse a pu vieillir sous les dépendances : la vérifier contre les versions **réellement
+  épinglées** (changelog + exécution), re-spécifier le test sur le déclencheur qui échoue
+  vraiment, et signaler l'écart dans l'auto-challenge de l'Étape 1 — le correctif reste souvent
+  bon, c'est le critère qui est faux.
+- **La garde protège une ligne existante** (délégation, `override`, clause de `catch`) → la faire
+  rougir en **supprimant cette ligne**, pas en raisonnant. Si le test reste vert, son montage fait
+  converger le chemin nominal et le chemin fautif vers la même observation : trouver un point où
+  les deux divergent.
+- **Le test est dicté par un tiers** (relecteur, lead de vague, issue) → même règle que pour un
+  test écrit soi-même : mutation avant de le garder. L'autorité de la source ne remplace pas le
+  rouge observé.
+
 - Bons vs mauvais tests : [references/tests.md](references/tests.md)
 - Quand mocker (frontières du système uniquement) : [references/mocking.md](references/mocking.md)
 - Concevoir des interfaces testables : [references/design-interface.md](references/design-interface.md)
@@ -173,7 +204,21 @@ le même commit** — voir `.claude/rules/contraintes.md`. La doc ne se met jama
 
 ### 3.2 Premier passage de tests
 
-Lancer la suite rapide. **Si rouge → pas de commit.** On répare.
+Lancer la suite rapide. **Si rouge → pas de commit.** On répare. Trois contrôles complémentaires :
+
+- **Échec d'outillage ≠ échec de code.** Un échec « exécutable introuvable », « fichier utilisé
+  par un autre processus » ou un compilateur qui sort brutalement après une commande tuée n'est
+  pas un test rouge : vérifier d'abord l'environnement — processus orphelins laissés par un run
+  interrompu (les lister **filtrés sur le chemin du worktree** avant de les tuer), worktree non
+  provisionné — et ne diagnostiquer le code que sur un environnement propre.
+- **Couverture par commit.** Lire le rapport de couverture du delta : une ligne non couverte est
+  d'abord une hypothèse de **code écrit trop tôt**, à déplacer vers le commit de son premier
+  appelant — avant d'être un test manquant. C'est le seul instrument qui rende opposable
+  l'interdiction du scaffold inutilisé.
+- **Atteignabilité.** Une suite verte ne prouve que ce qu'elle compile : un fichier ajouté que ni
+  la production ni les tests n'importent est invisible à toutes les gates à la fois (profil
+  typique d'une PR foundation qui pose jetons ou constantes). Exiger au moins un point d'appel
+  depuis les tests, et l'avoir vu rougir en cassant ce qu'il référence.
 
 ### 3.3 Le « cleanup pass » — relecture distincte du delta
 
@@ -191,6 +236,10 @@ Spécifique à cette étape :
   fractionné / scalable), en plus de KISS, DRY et YAGNI.
 - **PR « foundation »** : YAGNI peut être suspendu ponctuellement (scaffold pour la suite), mais
   le **noter explicitement**. KISS, DRY et la structure restent actifs.
+- **La doc voyage avec le delta — question instrumentée, pas rappel** : « ce delta change-t-il un
+  comportement, une commande, une interface ou l'architecture ? si oui, quel fichier de doc est
+  dans le même `git add` ? ». Répondre en listant l'index (`git diff --cached --name-only`) —
+  une doc rattrapée « en fin de PR » est la violation la plus répétée du cycle.
 
 ### 3.4 Second passage de tests
 
@@ -209,8 +258,8 @@ dans le titre. Puis enchaîner sur le commit suivant (retour 3.1).
 
 ### Point d'arrêt humain
 
-Si le commit touche l'**UI à valider visuellement** ou les **models / migrations**, rendre la
-main pour validation manuelle **avant** de committer.
+Si le commit touche une **zone sensible** déclarée dans `.claude/pipeline.config.md` (section
+« Périmètre »), rendre la main pour validation manuelle **avant** de committer.
 
 ## Étape 4 — Relecture indépendante de fin de PR (avant `git push`)
 
@@ -222,9 +271,18 @@ edge cases / erreurs / race conditions, KISS/DRY/YAGNI à l'échelle de la PR �
 **duplication inter-commits**.
 
 **4.2 Relecture par un contexte vierge — obligatoire.** L'auto-review est faite par la session qui
-a écrit le code, avec les hypothèses qui l'ont produit ; elle ne les met pas à l'épreuve. Lancer
-un **agent de relecture** (sous-agent, lecture seule, sans accès à cette conversation) qui reçoit
-**uniquement** :
+a écrit le code, avec les hypothèses qui l'ont produit ; elle ne les met pas à l'épreuve.
+**L'exigence** : le diff est relu par un lecteur qui n'a pas ces hypothèses. **Le moyen par
+défaut** : un **agent de relecture** (sous-agent sans accès à cette conversation — rôle
+`developpeur` s'il est disponible ; un rôle ajouté dans `.claude/agents/` pendant cette session
+n'existe pas encore pour l'outil Agent → repli `general-purpose` avec le modèle du rôle, jamais
+sauter l'étape).
+L'invocation de `cycle-pr` — `/cycle-pr` tapé par l'utilisateur, ou prompt de démarrage d'une
+vague `pr-paralleles` — **vaut demande** pour cet agent : une consigne de session « pas de
+sous-agent sans demande de l'utilisateur » est déjà satisfaite, ne pas re-demander. **Repli** si
+le harness ne permet réellement pas de lancer un sous-agent : rendre la main au relecteur humain
+avec le diff et le prompt de relecture verbatim, et le noter dans la section « Relecture
+indépendante » du body de PR — jamais de saut silencieux. L'agent reçoit **uniquement** :
 
 - le corps de l'issue et son brief d'agent (ou le briefing de l'Étape 1) ;
 - le diff `main..HEAD` et le droit de lire les fichiers touchés ;
@@ -234,15 +292,38 @@ un **agent de relecture** (sous-agent, lecture seule, sans accès à cette conve
   une frontière — réseau, sérialisation/encodage, secrets, fusion avec un thème ou une config par
   défaut, cycle de vie de ressources — **vérifier le comportement réel** dans la documentation
   (`context7`) ou dans les sources du paquet, jamais de mémoire, et signaler tout écart avec ce que
-  le code suppose.
+  le code suppose ;
+- la consigne **provenance** : chaque constat porte son marqueur — **mesuré** (commande exécutée,
+  sortie citée), **lu** (fichier et ligne ouverts), **supposé** (à vérifier). Un chiffre sans
+  marqueur « mesuré » est interdit ; un résultat attendu d'un sous-agent qui n'est pas arrivé se
+  rapporte « non vérifié », jamais comme un résultat — dans une chaîne de délégation, la preuve ne
+  se transmet pas, elle se produit ;
+- la consigne **mutation des décisions verrouillées** : pour chaque décision verrouillée qui est un
+  invariant de protocole (ordre d'opérations, atomicité, option d'une commande, confirmation avant
+  usage), **retirer ou inverser la décision dans le code** et exiger un test rouge ; une décision
+  dont la mutation passe au vert reçoit un test avant merge — un invariant que seule la lecture
+  garantit n'est pas garanti.
 
 Il rend : chaque critère d'acceptation ✅ / ❌ / ⚠️ avec preuve, puis ses constats classés
-bloquant / important / mineur, chacun avec fichier et raison. **Ne pas discuter un constat depuis
-la mémoire de la session : le vérifier dans le code.**
+bloquant / important / mineur, chacun avec fichier, raison et marqueur de provenance. **Ne pas
+discuter un constat depuis la mémoire de la session : le vérifier dans le code** — et re-mesurer
+tout constat bloquant avant d'éditer sur sa base.
 
-Chaque constat retenu → **un commit de fix dédié** (cycle complet 3.1→3.5). Relancer la relecture
-tant qu'il reste un bloquant ou un important. Les constats écartés sont notés avec leur raison —
-ils iront dans les `Notes` de la PR (Étape 5).
+**La relecture n'est pas en lecture seule au sens strict.** Éprouver un test sérieusement, c'est
+casser la garde qu'il protège et la voir rougir — donc **modifier le code de production**, puis le
+restaurer — et le relecteur partage l'arbre de travail de cette session. Pendant toute la passe :
+**ne rien stager, ne rien committer**, et vérifier `git status` juste avant le premier `git add`
+qui suit. Le relecteur rapporte `git status --porcelain` en fin de passe — c'est le point de
+reprise sûr.
+
+Chaque constat retenu → **un commit de fix dédié** (cycle complet 3.1→3.5). La relance n'est pas
+une répétition de la revue : c'est une **revue des commits de correction**, ciblée par un diff
+explicite (`<sha avant>..<sha après>`) et par la liste de ce que chaque commit prétend régler,
+avec la question obligatoire : « qu'est-ce que ce correctif a cassé, ou fait rougir à tort, que la
+version précédente voyait ? ». Un correctif est du code neuf écrit sous pression de conclure —
+c'est la partie la moins éprouvée de la PR, pas la plus sûre. Boucler tant qu'il reste un bloquant
+ou un important. Les constats écartés sont notés avec leur raison — ils iront dans les `Notes` de
+la PR (Étape 5).
 
 Une fois la relecture propre → `git push`.
 
@@ -268,7 +349,7 @@ body définitif, puis de sortir du draft.
 ## Test plan
 - [x] CI locale verte
 - [x] CI verte
-- [x] <vérifs manuelles si pertinent>
+- [x] <vérifs manuelles si pertinent — chacune porte le SHA sur lequel elle a été prise>
 
 ## Relecture indépendante
 <verdict de l'agent de l'Étape 4.2 : constats corrigés (commit) / écartés (raison)>
@@ -278,6 +359,11 @@ body définitif, puis de sortir du draft.
 ```
 
 Au-delà de **~10 fichiers** ou **~500 lignes** de diff, découper la PR.
+
+**Preuves visuelles exigées par un HITL** : ni l'API GitHub ni `gh` ne savent joindre une image à
+un body ou un commentaire. Le canal est une **branche orpheline `captures/pr-<n>`** poussée par
+plomberie git (zéro fichier dans la PR), référencée par liens `?raw=true` dans le body, supprimée
+à l'Étape 8.
 
 Puis seulement, sortir du draft :
 
@@ -291,10 +377,30 @@ Tant que la PR est en draft, elle n'est **pas** à reviewer : c'est ce marqueur 
 C'est aussi ce `gh pr ready` qui **déclenche le premier run de CI** (événement `ready_for_review`).
 Attendre son résultat avant l'Étape 6 — une PR fraîchement sortie du draft n'a encore aucun run.
 
+**Si aucun run n'apparaît**, deux causes possibles, à départager dans cet ordre : (1) un run
+existe-t-il pour le SHA de tête (`gh api repos/<owner>/<repo>/actions/runs?head_sha=<sha>`) ?
+(2) sinon, consulter `https://www.githubstatus.com/api/v2/components.json` **avant** tout autre
+diagnostic — un événement émis pendant une panne d'Actions n'est **pas rejoué** au
+rétablissement. Le re-déclenchement propre est `gh pr close` puis `gh pr reopen` (`reopened` est
+dans les types du workflow), action visible donc sur accord du mainteneur — jamais de commit vide
+ni de force-push.
+
 ## Étape 6 — Review + CI
 
 - **CI verte** : tous les gates déclarés dans `.claude/pipeline.config.md` (« gates bloquants en
   CI »), dont le seuil de couverture s'il y en a un.
+- **Trier un rouge avant de toucher au code** — un gate rouge a deux familles de causes, et le
+  premier message d'erreur du step les sépare presque toujours :
+  - *Rouge d'infrastructure* : échec de téléchargement (403/5xx/timeout d'un dépôt d'artefacts,
+    « error while downloading ») alors que le diff ne touche aucune dépendance et qu'un run
+    voisin passe le même step → `gh run rerun <id> --failed`, noter la cause et le rerun dans le
+    Test plan. Corriger du code sur un rouge d'infra coûte un cycle complet pour rien.
+  - *CI qui ne démarre pas* : `startup_failure` **immédiat et reproductible au re-run** → le
+    fichier de workflow est en cause ; job resté `queued` sans runner, ou `startup_failure` dont
+    le job n'a aucun step → allocation de runner (quota, incident fournisseur) — ne pas modifier
+    le workflow, surveiller en fond et **rendre la main au mainteneur**. Les runs `skipped`
+    (garde `if:`) se terminent sans runner et ne prouvent rien sur la disponibilité de la CI.
+  - *Rouge de code* : tout le reste → cycle complet 3.1→3.5.
 - **Revue** : revue automatisée (bot) ou self-audit ligne par ligne (sécurité, correctness,
   lisibilité, KISS/DRY/YAGNI, cohérence avec la stack).
 - Chaque commentaire **pertinent** → cycle complet (3.1→3.5) + push + re-trigger de la review.
@@ -322,6 +428,11 @@ signalement sur cette PR. Comparer le corps actuel au briefing : si la spec a ch
 que la PR ne couvre pas, **s'arrêter et le remonter** plutôt que de merger un travail construit sur
 une spec périmée.
 
+**Rejouer les vérifications périmées.** Une preuve produite hors de la chaîne automatisée n'a pas
+d'horloge : comparer le SHA porté par chaque vérification manuelle du body à la tête de branche —
+s'ils diffèrent, la case redevient non cochée et la vérification est à rejouer avant de demander
+le go. Une vérification sans SHA se rejoue d'office.
+
 ### Vérif de fumée — regarder le logiciel tourner
 
 Tout ce qui précède examine du **code** : tests, diffs, specs. Personne n'a encore vu la
@@ -344,8 +455,12 @@ config) :
 - **Aucune issue n'est créée**, aucune checklist n'est publiée. C'est une passe de deux minutes,
   pas une campagne : la campagne, c'est `plan-qa`, au niveau du thème.
 
-Un écart constaté → le traiter comme un finding de l'Étape 7 (corriger, re-tester, push) ou le
-déposer via `bug-vers-issue` s'il sort du périmètre de la PR.
+Un écart constaté → le traiter comme un finding de l'Étape 7 (corriger, re-tester, push). S'il
+sort du périmètre de la PR, chercher d'abord **qui possède déjà le sujet** : une automatisation
+déclarée (bot de dépendances, workflow planifié, hook), une issue ouverte dont c'est le critère,
+une PR fermée qui le portait. Si un mécanisme existe, la question devient « pourquoi n'a-t-il pas
+agi ? » — souvent parce qu'on l'a fait taire — et c'est *ça* qu'on corrige. Le ticket
+(`bug-vers-issue`) est le dernier recours.
 
 ### Vérification par le lead — en vague parallèle seulement
 

@@ -112,6 +112,10 @@ dans le body. Une issue en cours de développement a donc **toujours** une PR ou
 référence — c'est ce qui rend cette détection fiable plutôt qu'approximative. Les drafts comptent
 autant que les autres : c'est même leur seule raison d'exister ici.
 
+**Lire aussi la ligne `En vol pour #<N> (lot k/n)`** en tête de body, au même titre que `Closes` :
+une PR découpée en lots ne porte `Closes` que sur son **dernier** lot, et ce marqueur est ce qui
+signale l'issue en vol pendant les lots précédents.
+
 Lire aussi le tableau de bord **`PR-PARALLELES.md`** s'il existe : toute ligne qui n'est pas
 `⚪ worktree nettoyé` désigne une issue en vol. Il sert de filet si une session a sauté l'Étape 2.
 
@@ -133,6 +137,13 @@ Citation delta : « <le fait exact du delta réel qui la falsifie> »
 **Si l'une des deux manque, il n'y a pas de répercussion — ne pas la formuler.** Une impression
 (« ça pourrait interagir avec… », « il faudra peut-être vérifier… ») n'est pas une citation. C'est
 exactement ce qui noie le rapport et rend indécidable ce qui est vrai.
+
+**Troisième condition — la causalité.** La ligne citée de l'issue doit avoir été **vraie juste
+avant le merge** : relire l'état d'avant (`git show <base>:<fichier>`, corps de la PR) et vérifier
+que c'est bien **ce** delta qui la falsifie. « X est faux » et « ce changement a rendu X faux »
+sont deux affirmations différentes, et seule la seconde est une répercussion. Une tension
+préexistante appartient à la clôture qui l'a introduite, ou à personne — l'attribuer au merge
+courant fait perdre au mainteneur le seul repère qui rend le rapport actionnable.
 
 Deux niveaux, et deux seulement :
 
