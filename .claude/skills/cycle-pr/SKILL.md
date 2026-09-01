@@ -70,6 +70,11 @@ peut-être bougé. Confronter le plan à la réalité **actuelle** du code :
   du travail, déplacé un module, changé un contrat, rendu une hypothèse caduque ?
 - **Vérifier que la suite du dev tient** : ce que cette PR prépare pour les issues suivantes est-il
   toujours cohérent, ou l'ordre / le découpage doit-il être revu ?
+- **Vérifier la faisabilité de l'ordre des commits** : pour chaque commit prévu, ce dont ses tests
+  ont besoin pour tourner en local (services, schéma, compose, fixtures) existe-t-il déjà, ou
+  est-il introduit par un commit ultérieur ? Si « ultérieur » → remonter ce commit. L'ordre de
+  livraison suit les **dépendances d'exécution**, pas la logique de présentation du plan — un
+  découpage peut être juste sur le contenu et infaisable sur l'ordre.
 - **Énoncer à voix haute** sous un titre `## 🔍 Auto-challenge du plan` : ce qui reste valable, ce
   qui a changé, et les ajustements proposés (fichiers en plus/en moins, décision à rouvrir, scope à
   resserrer ou re-découper).
@@ -158,6 +163,27 @@ VERT  : écrire le minimum de code pour le faire passer → il passe
 Règles : un test à la fois ; juste assez de code pour passer le test courant ; ne pas anticiper
 les tests futurs ; tester le comportement observable via l'interface publique.
 
+**Le rouge se constate, il ne se suppose pas — un test qui n'a pas été vu rouge n'est pas un
+test.** Quatre cas à traiter explicitement :
+
+- **Le test passe du premier coup, avant tout changement de production** → il mesure autre chose ;
+  ne jamais conclure « le défaut n'existe pas ». Cas fréquent : lire une configuration statique
+  alors que le défaut naît d'une fusion ou d'une résolution à l'exécution. Instrumenter d'abord
+  (sonde jetable qui imprime les valeurs au point où l'utilisateur les subit), corriger le point
+  de mesure, obtenir le rouge, puis écrire le correctif. Supprimer la sonde avant le commit.
+- **Le test dérive d'un critère d'acceptation ou d'un rapport de bug et passe avant le correctif**
+  → la prémisse a pu vieillir sous les dépendances : la vérifier contre les versions **réellement
+  épinglées** (changelog + exécution), re-spécifier le test sur le déclencheur qui échoue
+  vraiment, et signaler l'écart dans l'auto-challenge de l'Étape 1 — le correctif reste souvent
+  bon, c'est le critère qui est faux.
+- **La garde protège une ligne existante** (délégation, `override`, clause de `catch`) → la faire
+  rougir en **supprimant cette ligne**, pas en raisonnant. Si le test reste vert, son montage fait
+  converger le chemin nominal et le chemin fautif vers la même observation : trouver un point où
+  les deux divergent.
+- **Le test est dicté par un tiers** (relecteur, lead de vague, issue) → même règle que pour un
+  test écrit soi-même : mutation avant de le garder. L'autorité de la source ne remplace pas le
+  rouge observé.
+
 - Bons vs mauvais tests : [references/tests.md](references/tests.md)
 - Quand mocker (frontières du système uniquement) : [references/mocking.md](references/mocking.md)
 - Concevoir des interfaces testables : [references/design-interface.md](references/design-interface.md)
@@ -173,7 +199,21 @@ le même commit** — voir `.claude/rules/contraintes.md`. La doc ne se met jama
 
 ### 3.2 Premier passage de tests
 
-Lancer la suite rapide. **Si rouge → pas de commit.** On répare.
+Lancer la suite rapide. **Si rouge → pas de commit.** On répare. Trois contrôles complémentaires :
+
+- **Échec d'outillage ≠ échec de code.** Un échec « exécutable introuvable », « fichier utilisé
+  par un autre processus » ou un compilateur qui sort brutalement après une commande tuée n'est
+  pas un test rouge : vérifier d'abord l'environnement — processus orphelins laissés par un run
+  interrompu (les lister **filtrés sur le chemin du worktree** avant de les tuer), worktree non
+  provisionné — et ne diagnostiquer le code que sur un environnement propre.
+- **Couverture par commit.** Lire le rapport de couverture du delta : une ligne non couverte est
+  d'abord une hypothèse de **code écrit trop tôt**, à déplacer vers le commit de son premier
+  appelant — avant d'être un test manquant. C'est le seul instrument qui rende opposable
+  l'interdiction du scaffold inutilisé.
+- **Atteignabilité.** Une suite verte ne prouve que ce qu'elle compile : un fichier ajouté que ni
+  la production ni les tests n'importent est invisible à toutes les gates à la fois (profil
+  typique d'une PR foundation qui pose jetons ou constantes). Exiger au moins un point d'appel
+  depuis les tests, et l'avoir vu rougir en cassant ce qu'il référence.
 
 ### 3.3 Le « cleanup pass » — relecture distincte du delta
 
@@ -191,6 +231,10 @@ Spécifique à cette étape :
   fractionné / scalable), en plus de KISS, DRY et YAGNI.
 - **PR « foundation »** : YAGNI peut être suspendu ponctuellement (scaffold pour la suite), mais
   le **noter explicitement**. KISS, DRY et la structure restent actifs.
+- **La doc voyage avec le delta — question instrumentée, pas rappel** : « ce delta change-t-il un
+  comportement, une commande, une interface ou l'architecture ? si oui, quel fichier de doc est
+  dans le même `git add` ? ». Répondre en listant l'index (`git diff --cached --name-only`) —
+  une doc rattrapée « en fin de PR » est la violation la plus répétée du cycle.
 
 ### 3.4 Second passage de tests
 
@@ -297,10 +341,30 @@ Tant que la PR est en draft, elle n'est **pas** à reviewer : c'est ce marqueur 
 C'est aussi ce `gh pr ready` qui **déclenche le premier run de CI** (événement `ready_for_review`).
 Attendre son résultat avant l'Étape 6 — une PR fraîchement sortie du draft n'a encore aucun run.
 
+**Si aucun run n'apparaît**, deux causes possibles, à départager dans cet ordre : (1) un run
+existe-t-il pour le SHA de tête (`gh api repos/<owner>/<repo>/actions/runs?head_sha=<sha>`) ?
+(2) sinon, consulter `https://www.githubstatus.com/api/v2/components.json` **avant** tout autre
+diagnostic — un événement émis pendant une panne d'Actions n'est **pas rejoué** au
+rétablissement. Le re-déclenchement propre est `gh pr close` puis `gh pr reopen` (`reopened` est
+dans les types du workflow), action visible donc sur accord du mainteneur — jamais de commit vide
+ni de force-push.
+
 ## Étape 6 — Review + CI
 
 - **CI verte** : tous les gates déclarés dans `.claude/pipeline.config.md` (« gates bloquants en
   CI »), dont le seuil de couverture s'il y en a un.
+- **Trier un rouge avant de toucher au code** — un gate rouge a deux familles de causes, et le
+  premier message d'erreur du step les sépare presque toujours :
+  - *Rouge d'infrastructure* : échec de téléchargement (403/5xx/timeout d'un dépôt d'artefacts,
+    « error while downloading ») alors que le diff ne touche aucune dépendance et qu'un run
+    voisin passe le même step → `gh run rerun <id> --failed`, noter la cause et le rerun dans le
+    Test plan. Corriger du code sur un rouge d'infra coûte un cycle complet pour rien.
+  - *CI qui ne démarre pas* : `startup_failure` **immédiat et reproductible au re-run** → le
+    fichier de workflow est en cause ; job resté `queued` sans runner, ou `startup_failure` dont
+    le job n'a aucun step → allocation de runner (quota, incident fournisseur) — ne pas modifier
+    le workflow, surveiller en fond et **rendre la main au mainteneur**. Les runs `skipped`
+    (garde `if:`) se terminent sans runner et ne prouvent rien sur la disponibilité de la CI.
+  - *Rouge de code* : tout le reste → cycle complet 3.1→3.5.
 - **Revue** : revue automatisée (bot) ou self-audit ligne par ligne (sécurité, correctness,
   lisibilité, KISS/DRY/YAGNI, cohérence avec la stack).
 - Chaque commentaire **pertinent** → cycle complet (3.1→3.5) + push + re-trigger de la review.
