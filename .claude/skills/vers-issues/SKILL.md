@@ -57,6 +57,8 @@ Pour chaque tranche approuvée, publie une nouvelle issue sur GitHub (via `gh`).
 
 Publie les issues dans l'ordre des dépendances (bloqueurs d'abord) afin de pouvoir référencer les identifiants d'issues réels dans le champ « Bloquée par ».
 
+**Cet ordre ne résout pas les références croisées hors « Bloquée par ».** Les corps se citent aussi entre eux (« le contrat est fixé avec la tranche X », « s'applique aussi à Y »), dans les deux sens : un ordre topologique sur les seuls bloqueurs laisse forcément des références « en avant » sans numéro. Protocole en deux passes : (1) rédiger tous les corps avec des **marqueurs symboliques** (`{{T3}}`) et publier dans l'ordre des bloqueurs en substituant les marqueurs déjà connus ; (2) une fois tous les numéros attribués, **rééditer** les issues qui portaient un marqueur non résolu, puis **vérifier mécaniquement** (recherche de `{{`) qu'aucun marqueur ne subsiste dans aucun corps publié — l'ordre de création seul donne une fausse impression de complétude.
+
 **Critères reposant sur un service tiers.** Quand un critère d'acceptation suppose une capacité d'un fournisseur (restriction d'usage, plafond, quota, révocation, rotation), ne jamais la recopier d'un document du projet sans l'avoir vérifiée : ajouter la ligne « vérifié à la source le <date> : <doc du fournisseur> », ou marquer le critère « ⛔ à vérifier avant engagement ». Une contre-mesure copiée sans vérification survit à tous les rangs de doc et n'éclate qu'au moment le plus coûteux — la console ouverte.
 
 <issue-template>
