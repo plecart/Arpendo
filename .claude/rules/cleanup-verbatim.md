@@ -28,6 +28,11 @@ du code, c'est ce prompt qui s'applique.
   d'un coup d'œil que l'étape n'a pas été sautée.
 - **Même rigueur sur les deltas triviaux.** Si « rien à corriger », l'expliquer ligne par ligne
   plutôt que de l'affirmer.
+- **Un constat qui décrit une classe de défaut se traite en balayant toute la population
+  concernée**, jamais les seules occurrences citées — un constat de relecture est un échantillon,
+  pas un inventaire. Le rapport énonce le dénombrement (« N éléments repassés, k corrigés, N−k
+  vérifiés indemnes »), pas « les 2 constats sont corrigés ». Quand la classe est reconnue,
+  inscrire le critère dans l'artefact lui-même pour qu'il tienne sans relecteur.
 - **Vérifier aussi les 3 axes de conception** de `.claude/rules/contraintes.md` (modulaire /
   fractionné / scalable), en plus de KISS / DRY / YAGNI.
 - **Relancer les tests après le cleanup** : il a pu casser quelque chose.
