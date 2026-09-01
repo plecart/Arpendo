@@ -1289,6 +1289,13 @@ Private Networks sont gratuits.)*
 > **Les prix Scaleway sont hors taxes.** Le compte est au nom d'un **particulier** (tranché le
 > 30 août 2026) : ajouter 20 % de TVA, non récupérable. **Le TTC est le budget de référence.**
 
+**État de la commande (30 août 2026, issue #30).** Seuls les **noms de domaine** sont engagés :
+`arpendo.com` et `arpendo.fr` sont réservés chez Scaleway, soit 1,53 € HT/mois sur les 27,05 du
+tableau. **Aucune ressource de calcul n'est provisionnée** — ni serveur, ni disque, ni IPv4, ni
+base managée : la facturation démarre à la création, et rien de ce que le §13.7 décrit n'est
+utilisable avant le premier déploiement. Le provisionnement se fait donc **quand le déploiement
+l'exige**, pas avant ; le reste du tableau reste un budget, pas une dépense (§18.10).
+
 **Frais hors abonnement, à prévoir séparément :** compte développeur **Google Play — 25 $ une
 seule fois**, avant la première publication ; compte développeur **Apple — 99 $/an**, en phase 2
 uniquement puisque iOS est repoussé (§3).
@@ -1927,6 +1934,25 @@ Raisonnement, comparaison OVH / Hetzner et sources :
 `documents/archive/decision-hebergeur-et-domaines.md`. Répercuté dans le §13.7, le §16, le §19,
 `04-chiffrage.md` §1, §3, « ce qui est à 0 € » et §6, et l'issue #30.
 
+### 18.10 Révision du 1er septembre 2026 — ce qui est commandé, et ce qui ne le sera pas encore
+
+Suite de §18.9, côté exécution (issue #30). La commande a été passée, mais **partiellement et
+volontairement** : les noms de domaine seuls. Le §13.7 était muet sur le *moment* du
+provisionnement — un lecteur pouvait croire son tableau déjà engagé.
+
+| Ancienne décision | Nouvelle décision |
+|---|---|
+| §19, chiffrage §6 n°5 : « disponibilité effective de `arpendo.com` et `arpendo.fr`, à confirmer à la commande » | **Confirmée et engagée.** Les deux domaines sont **réservés chez Scaleway le 30 août 2026**, aux prix relevés en §18.9. Vérification retirée des restantes |
+| §13.7 : muet sur le moment du provisionnement | **Aucune ressource de calcul n'est créée avant que le déploiement l'exige** — serveur, disque, snapshot, IPv4 et base managée. La facturation démarre à la création : payer un socle inutilisé pendant que #45 et #47 ne sont pas triées serait une dépense sans contrepartie. Seuls **1,53 € HT/mois** des 27,05 du tableau sont engagés |
+| §13.10 : « 2FA partout … verrou de transfert du domaine », précaution générale | **Devient une vérification due au §19** : les domaines existent, le verrou et la 2FA du compte registrar se posent maintenant, pas à la publication |
+
+Conséquence à ne pas perdre de vue : **le raccordement de la base au Private Network — l'argument
+qui a fait retenir un fournisseur unique (§13.7) — reste non vérifié**, puisqu'il ne se valide
+qu'à la création de l'instance. C'est la première chose à contrôler au provisionnement.
+
+Raisonnement et relevés : `documents/archive/decision-hebergeur-et-domaines.md`. Répercuté dans le
+§13.7, le §19, `04-chiffrage.md` §6, le README « Ce qui reste ouvert » et l'issue #30.
+
 ---
 
 ## 19. Instruction pour la reprise en session
@@ -1952,6 +1978,7 @@ Raisonnement, comparaison OVH / Hetzner et sources :
 
 **Vérifications manuelles restant à la charge du porteur :**
 
-- Disponibilité du domaine `arpendo.com` / `.fr` chez un registrar
+- **Verrou de transfert et 2FA sur le compte registrar** (§13.10), maintenant que les deux domaines
+  sont réservés
 - Raccordement de l'instance PostgreSQL managée au Private Network, à valider à la création
 - Revérification des tarifs avant tout engagement pluriannuel

@@ -104,8 +104,8 @@ contre-mesures écartées. L'état courant est au cadrage §13.10.
 voisins ne bloquent pas l'exploitation. L'état courant est au cadrage §1 et §16.
 
 **`decision-hebergeur-et-domaines.md`** — les tarifs relevés à la source le 30 août 2026, la
-comparaison OVH / Hetzner, et pourquoi le compte est au nom d'un particulier. L'état courant est
-au cadrage §13.7 et au chiffrage §1.
+comparaison OVH / Hetzner, pourquoi le compte est au nom d'un particulier, et ce qui a été
+commandé ce jour-là — les domaines seuls. L'état courant est au cadrage §13.7 et au chiffrage §1.
 
 ---
 
@@ -149,9 +149,10 @@ UX**.
 | 6 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |
 | 7 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
 | 8 | **`uuid6` génère les UUIDv7 de l'api** — un seul point d'appel, `core/journal.py`. Python 3.14 apporte `uuid.uuid7()` : à la mise à jour de `api/.python-version`, remplacer l'appel et retirer la dépendance | Au passage à Python 3.14 |
+| 9 | **Rien n'est hébergé.** Seuls les domaines `arpendo.com` et `arpendo.fr` sont réservés (Scaleway, 30 août 2026). **Aucune ressource de calcul n'est provisionnée** — serveur, disque, IPv4 et base managée attendent que le déploiement l'exige, la facturation démarrant à la création (cadrage §18.10). Conséquences : le DNS ne pointe nulle part, et le raccordement de la base au Private Network — l'argument du fournisseur unique — n'est pas vérifiable avant | Au premier déploiement |
 
 **Tout le reste est clos.** Cadrage, spécification UX, identité visuelle et retour de maquette ont
-été arbitrés et intégrés. Les journaux §18.1 à §18.5 du cadrage disent ce qui a changé et pourquoi ;
+été arbitrés et intégrés. Les journaux §18.1 à §18.10 du cadrage disent ce qui a changé et pourquoi ;
 ils existent pour éviter qu'une décision close soit rouverte sans élément nouveau.
 
 ---

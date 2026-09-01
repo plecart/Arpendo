@@ -166,10 +166,10 @@ Classées par dégât maximal possible, pas par coût nominal.
 3. **Comportement au dépassement des 5 M requêtes WAF** sur les plans Starter et Professional.
 4. **Taux de change EUR/USD du jour** — Sentry, Google Play et Apple sont facturés en dollars.
    La conversion « 26 $ ≈ 24 € » utilisée ici est un ordre de grandeur.
-5. ~~Recherche « ARPENDO » sur les stores.~~ **Faite le 30 août 2026** : aucune application de ce
-   nom sur Play Store ni App Store. Reste la **disponibilité effective** de `arpendo.com` et
-   `arpendo.fr`, à confirmer à la commande — l'absence d'enregistrement NS au registre est un
-   signal, pas une réservation.
+5. ~~Recherche « ARPENDO » sur les stores, disponibilité des domaines.~~ **Faites le 30 août
+   2026** : aucune application de ce nom sur Play Store ni App Store, et `arpendo.com` comme
+   `arpendo.fr` sont **réservés chez Scaleway** — seul poste de ce chiffrage effectivement engagé
+   (cadrage §18.10).
 6. **Revérifier les tarifs avant tout engagement pluriannuel.** Scaleway a augmenté ses prix au
    1er juin 2026, OVHcloud au 1er avril, Hetzner au 15 juin. Toute liste de prix tierce est
    périmée par construction — c'est ce qui a produit les chiffres erronés de la première version

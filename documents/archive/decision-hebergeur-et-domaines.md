@@ -54,10 +54,14 @@ la TVA. Elle ne tient pas.
 **Retenu : compte Scaleway au nom d'un particulier, domaines en nom propre.** Conséquence à ne pas
 perdre de vue : **le budget de référence devient le TTC**, soit 32,46 €/mois, et non le HT.
 
-## Ce qui reste ouvert
+## Suite donnée, le 30 août 2026
 
-- La **disponibilité effective** de `arpendo.com` et `arpendo.fr` se confirme à la commande.
-  L'absence d'enregistrement NS au registre, constatée le 30 août 2026, est un signal — pas une
-  réservation.
-- Le **serveur et la base ne sont pas provisionnés** : la facturation démarre à la création, et
-  #45 et #47 ne sont pas triées. Décision du porteur, à rouvrir quand le déploiement approche.
+- **Les deux domaines sont réservés chez Scaleway** — `arpendo.com` et `arpendo.fr`, aux prix
+  relevés ci-dessus. La disponibilité pressentie était bonne. C'est le seul poste engagé.
+- **Rien d'autre n'est commandé** : ni serveur, ni disque, ni snapshot, ni IPv4, ni base managée.
+  La facturation démarre à la création, et #45 comme #47 ne sont pas triées — payer un socle que
+  personne n'utilise n'achèterait rien. Le provisionnement attend **le déploiement**.
+- Reste donc à vérifier **au moment de la création**, et pas avant : le raccordement de l'instance
+  PostgreSQL au Private Network sans IP publique — l'argument même qui a fait retenir Scaleway.
+  Et, dès maintenant : verrou de transfert et 2FA sur le compte registrar (cadrage §13.10, §19),
+  ce qui est le sujet de l'issue #36.
