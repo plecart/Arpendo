@@ -31,7 +31,7 @@
 | Nom | **Arpendo** |
 | Accroche | **« prends du terrain »** |
 | Identifiant de package | **`com.arpendo.game`** — définitif sur Google Play, jamais modifiable après la première publication |
-| Vérification marque | TMview / INPI / EUIPO : seul « Carpendo » existe. Signe non identique, non bloquant. À réévaluer avant tout dépôt réel |
+| Vérification marque | TMview, 30 août 2026 : **aucune marque « Arpendo » n'existe.** Six enregistrements voisins, dont **trois vivants sous deux noms** — « Carpendo » (Sellbee GmbH, EUIPO + Royaume-Uni, **classe 35 seule**) et « Harpendore » (UK00003105925, **classes 9 et 41 comprises**). Aucun n'est identique ; seul « Harpendore » couvre nos classes, et seulement au Royaume-Uni. Non bloquant. À réévaluer avant tout dépôt réel |
 | Dépôt de marque | Non fait, non urgent (~190 € INPI 1 classe, ~850 € EUIPO). Classes pertinentes : 9 (logiciels) et 41 (jeux) |
 | **Identité visuelle** | **Direction « Relevé », retenue le 13 août 2026.** Accent `#123D1E` (vert forêt), typographie Roboto (0 octet d'APK), signe = courbes de niveau refermées sur un hexagone. Produite dans `03-identite-visuelle.md`, intégrée dans `02-specification-ux.md` §1.2, §1.5, §1.6, §3.4.1 et §4 |
 | **Cible Android** | **Android 8.0 (API 26) minimum** — `minSdk = 26` dans `app/android/app/build.gradle.kts`. Décidé le 26 août 2026 (#50) : un seul adaptive icon vectoriel, aucun `mipmap` PNG ; aucune dépendance n'exige davantage |
@@ -1277,16 +1277,24 @@ Private Networks sont gratuits.)*
 | Serveur applicatif | **DEV1-S** — 2 vCPU, 2 Go | 6,56 |
 | Disque du serveur | Block Storage 5K, 20 Go | 1,99 |
 | Sauvegarde image du serveur | Snapshot 20 Go | 0,64 |
-| IPv4 flexible | | 2,92 |
+| IPv4 flexible | 0,005 €/h | 3,65 |
 | **PostgreSQL managé** | **DB-DEV-S** — 2 vCPU, 2 Go | 11,39 |
 | Stockage + sauvegarde de la base | 10 Go + 10 Go | 1,29 |
-| Nom de domaine `.com` | 12,34 €/an | 1,03 |
+| Noms de domaine `.com` + `.fr` | 12,34 + 5,98 €/an | 1,53 |
 | Réseau privé · DNS · TLS · pare-feu | | 0,00 |
 | Mapbox · Sentry · Tracelet | | 0,00 |
-| **TOTAL** | | **25,82 € HT** |
-| | | **30,98 € TTC** |
+| **TOTAL** | | **27,05 € HT** |
+| | | **32,46 € TTC** |
 
-> **Les prix Scaleway sont hors taxes.** Facturé à un particulier, ajouter 20 % de TVA.
+> **Les prix Scaleway sont hors taxes.** Le compte est au nom d'un **particulier** (tranché le
+> 30 août 2026) : ajouter 20 % de TVA, non récupérable. **Le TTC est le budget de référence.**
+
+**État de la commande (30 août 2026, issue #30).** Seuls les **noms de domaine** sont engagés :
+`arpendo.com` et `arpendo.fr` sont réservés chez Scaleway, soit 1,53 € HT/mois sur les 27,05 du
+tableau. **Aucune ressource de calcul n'est provisionnée** — ni serveur, ni disque, ni IPv4, ni
+base managée : la facturation démarre à la création, et rien de ce que le §13.7 décrit n'est
+utilisable avant le premier déploiement. Le provisionnement se fait donc **quand le déploiement
+l'exige**, pas avant ; le reste du tableau reste un budget, pas une dépense (§18.10).
 
 **Frais hors abonnement, à prévoir séparément :** compte développeur **Google Play — 25 $ une
 seule fois**, avant la première publication ; compte développeur **Apple — 99 $/an**, en phase 2
@@ -1486,15 +1494,18 @@ facture non bornée. Le palier gratuit est de **25 000 MAU/mois** ; au-delà, 4 
 Dispositif retenu :
 
 - **Aucun jeton Mapbox permanent dans l'APK.** L'app demande à l'api un **jeton temporaire**
-  (`tk.`, Tokens API, durée maximale d'une heure, portées publiques seules) à l'entrée sur la
-  carte et le renouvelle avant expiration. La route est authentifiée — seule une session valide
-  obtient un jeton — et couverte par le rate limiting par compte de §12.4. Un seul jeton
+  (`tk.`, Tokens API, durée maximale d'une heure, les quatre portées de lecture nommées ci-dessous
+  et rien d'autre) à l'entrée sur la carte, et le renouvelle avant expiration. La route est
+  authentifiée — seule une session valide obtient un jeton — et couverte par le rate limiting par
+  compte de §12.4. Un seul jeton
   temporaire est partagé par tous les clients, mis en cache dans Valkey (§13.8) : une émission
   par heure, quel que soit le nombre d'instances.
 - **Un seul secret Mapbox, côté serveur** : un jeton secret (`sk.`) aux portées `tokens:write`
-  plus les quatre portées publiques, et rien d'autre — s'il fuit, il ne sait émettre que des
-  jetons de lecture. Il vit dans le `.env` du serveur (règles ci-dessus), jamais dans l'image ni
-  dans l'APK.
+  plus **`styles:tiles`, `styles:read`, `fonts:read` et `datasets:read`** — nommées une à une, et
+  rien d'autre. Mapbox ne publie aucune liste figée des portées publiques : il les définit par la
+  propriété `public` de `GET /scopes/v1/{username}`, et la console en coche davantage à la création
+  (`vision:read` au 30 août 2026). S'il fuit, ce secret ne sait émettre que des jetons de lecture.
+  Il vit dans le `.env` du serveur (règles ci-dessus), jamais dans l'image ni dans l'APK.
 - **Coupure en un geste, sans release** : supprimer ce `sk.` dans la console Mapbox éteint tous
   les jetons temporaires en une heure au plus ; la carte passe dans son état « Erreur » (spec UX
   §7), et le compte fautif se bannit par son statut (§12.6).
@@ -1686,9 +1697,8 @@ Le brief impose **le moins de pages possible**.
 | **Zones sensibles** (écoles, hôpitaux, autoroutes, voies ferrées) | **Aucune exclusion géographique.** Impossible de distinguer un élève légitimement dans son école d'un intrus ; une exclusion punirait les joueurs légitimes et pourrait aggraver la responsabilité en laissant croire à une protection inexistante. À la place : avertissement de sécurité à l'onboarding + clause CGU. **Atténuation structurelle : la mécanique ne crée aucune incitation à entrer dans une zone précise** — les hexagones sont partout, uniformes, sans bonus (contrairement aux jeux à points d'intérêt fixes). À réexaminer si le jeu grandit |
 | **Fiabilité de la capture app fermée** | ~90 % réaliste sur Android. Surcouches constructeur |
 | **Revue Google Play** pour la localisation en arrière-plan | Formulaire + vidéo. Source classique de retard |
-| **Marque « Carpendo »** | Non bloquant, à réévaluer avant dépôt |
+| **Marques voisines** | **Non bloquant pour l'exploitation.** Le risque ne se matérialiserait qu'à un **dépôt de marque**, UE comme Royaume-Uni. Inventaire et motif en §1 ; relevé complet dans `documents/archive/decision-marque-signes-voisins.md` |
 | **Diffusion des zones capturées** | **Mention explicite dans les CGU et la politique de confidentialité** (§13.12) : « les autres joueurs verront les zones que tu captures, **et quand tu les as capturées** ». La granularité est la tuile H3 res. 10, soit **~130 m** — une zone approximative, jamais une coordonnée GPS (arbitrage §7.5). ⚠️ **Révisé le 13 août 2026 :** cette mention était affichée **à l'entrée en partie**, dans une modale dédiée ; elle en a été retirée sur décision du porteur, au motif qu'elle figure déjà dans les documents juridiques. **Elle devient donc une obligation portée par eux seuls, et cesse d'être facultative dans leur rédaction.** Le lien « Lire les conditions d'utilisation » de la modale de sécurité (spec UX §6) devient le seul chemin d'information dans le parcours. Le code n'est partagé qu'à des personnes de confiance ; en cas de fuite ou de perte de confiance, le départ définitif (§4.4) neutralise les tuiles et efface l'historique visible — c'est le mécanisme de sortie, et il suppose que le joueur sache ce qui est visible |
-
 | **Charge de neutralisation** | Dizaines de milliers de lignes sur une partie longue. Traitement asynchrone obligatoire |
 | **Délai MVP** | 6-9 mois à <8 h/semaine. Variante réduite (~3 mois) à proposer |
 | **Tracelet — bus factor de 1** | Mainteneur unique, projet jeune, fiabilité 24 h non vérifiée sur Xiaomi/Samsung. **Parade : interface `LocationProvider`** (§13.2) |
@@ -1696,7 +1706,7 @@ Le brief impose **le moins de pages possible**.
 | **Serveur unique = point de défaillance unique** | **Assumé au MVP.** Une panne de la VM rend le service totalement indisponible. Atténuation : serveur jetable et reconstructible par script (§13.11), moniteur d'uptime branché dès le jour 1, snapshot régulier. La donnée, elle, est protégée par le PITR du PostgreSQL managé |
 | **IP d'origine exposée** (pas de WAF de bordure pendant la bêta) | **Assumé.** Exposition au DDoS volumétrique, acceptable sur une piste de test interne à ≤100 testeurs. Déclencheur de réactivation écrit en §13.7 |
 | **Correctifs OS et Docker à la charge du porteur** | ~15 min/mois avec `unattended-upgrades` et reconstruction d'image par la CI. Contrepartie assumée de l'auto-hébergement |
-| **Marche tarifaire d'hébergement** | ~26 €/mois au MVP. Le budget de 150 € HT est franchi vers **200 à 350 joueurs** ; en TTC, vers **100 à 200**. Escalier progressif, pas de falaise (§13.7) |
+| **Marche tarifaire d'hébergement** | ~27 € HT / ~32 € TTC par mois au MVP. Le budget de 150 € HT est franchi vers **200 à 350 joueurs** ; en TTC, vers **100 à 200**. Escalier progressif, pas de falaise (§13.7) |
 | **Tarifs à revérifier avant engagement** | Les tarifs de §13.7 ont été relevés à la source le 10/08/2026, après les hausses Scaleway du 1er juin 2026. **À revérifier avant tout engagement pluriannuel** — les listes de prix tierces sont systématiquement périmées |
 ## 17. Ce qui reste à produire
 
@@ -1879,13 +1889,70 @@ non bornée, irrévocable sans release.
 
 | Ancienne décision | Nouvelle décision |
 |---|---|
-| §13.10, §16 : jeton public `pk.` dans l'APK, « portée minimale, restrictions d'usage, rotation, alerte de budget » | **Aucun jeton Mapbox dans l'APK.** L'api émet un jeton temporaire d'une heure aux sessions authentifiées, partagé et mis en cache dans Valkey (§13.8) ; un seul secret serveur (`tokens:write` + portées publiques) ; coupure par suppression de ce secret ; l'alerte et le ratio MAU/joueurs restent, comme détection |
+| §13.10, §16 : jeton public `pk.` dans l'APK, « portée minimale, restrictions d'usage, rotation, alerte de budget » | **Aucun jeton Mapbox dans l'APK.** L'api émet un jeton temporaire d'une heure aux sessions authentifiées, partagé et mis en cache dans Valkey (§13.8) ; un seul secret serveur (`tokens:write` + les quatre portées de lecture, §13.10) ; coupure par suppression de ce secret ; l'alerte et le ratio MAU/joueurs restent, comme détection |
 | §13.7 : quatre reports conditionnés | Cinquième : attestation Play Integrity à la connexion, déclenchée par une divergence du ratio MAU/joueurs ou la publication publique |
 | §13.0 : « Mapbox — ⚠️ jeton extractible de l'APK » | « Mapbox — jeton temporaire d'1 h émis par l'api, aucun jeton dans l'APK » |
 
 Raisonnement et options écartées : `documents/archive/decision-jeton-mapbox.md`. Répercuté dans
 `04-chiffrage.md` §4 et §5, le README « Ce qui reste ouvert », `documents/setup/mapbox.md`
 (procédure), et les issues #4, #30, #37 plus une issue neuve pour la route d'émission.
+
+### 18.8 Révision du 30 août 2026, après la vérification de marque
+
+Au moment de solder les vérifications manuelles du §19 (issue #30), recherche TMview sur
+« Arpendo », opérateur *contient* : six signes remontent, pas un. La conclusion « non bloquant »
+tient, mais elle reposait sur un inventaire incomplet — et le signe le plus proche de nos classes
+n'était pas celui que le document nommait.
+
+| Ancienne décision | Nouvelle décision |
+|---|---|
+| §1 : « TMview / INPI / EUIPO : seul « Carpendo » existe » | **Faux, corrigé.** Six signes : « Carpendo » ×2 (vivantes, Sellbee GmbH, classe 35), « Harpendore » ×2 (une vivante, UK00003105925, classes 9/16/25/28/35/41/45), « ARPENDOR » (classe 33) et « ARPENDOBBIN », toutes deux expirées. **Aucune marque « Arpendo »** |
+| §16 : « Marque « Carpendo » — non bloquant, à réévaluer avant dépôt » | **Conclusion inchangée, motif corrigé.** Carpendo ne partage aucune de nos classes ; le seul signe couvrant les classes 9 et 41 est « Harpendore », britannique et distinct. Le risque est un risque de **dépôt de marque**, dans l'UE comme au Royaume-Uni, pas d'exploitation |
+| §13.10, `CLAUDE.md` : « les quatre portées publiques », « les portées publiques par défaut » | **Raccourci supprimé.** Les quatre portées de lecture sont nommées une à une. Mapbox ne publie aucune liste figée de portées publiques — il les définit par la propriété `public` de `GET /scopes/v1/{username}` : vérifié dans la doc officielle via `context7` le 30 août 2026. Que la console en coche davantage (`vision:read`) est une observation d'interface du même jour, constatée en console (issue #30), qu'aucune documentation ne couvre |
+| §19 : « Recherche « ARPENDO » sur le Play Store et l'App Store » | **Faite le 30 août 2026** : aucune application de ce nom sur l'un ni l'autre. Retirée des vérifications restantes |
+
+Raisonnement et relevé complet : `documents/archive/decision-marque-signes-voisins.md`.
+Répercuté dans le §1, le §16, le §19, le §13.10, `CLAUDE.md`, le README et les issues #4, #30
+et #80.
+
+### 18.9 Révision du 30 août 2026, après vérification des tarifs à la commande
+
+Avant d'ouvrir le compte Scaleway (issue #30), relevé à la source des trois postes que la commande
+allait engager. `DEV1-S` et `DB-DEV-S` sont toujours commandables en région Paris aux prix de
+§13.7 ; l'IPv4 ne l'est pas, et la justification du registrar reposait sur une lecture fausse de la
+ligne DNS du chiffrage.
+
+| Ancienne décision | Nouvelle décision |
+|---|---|
+| §13.7, chiffrage §1 et §3 : IPv4 flexible à 2,92 €/mois | **Faux, corrigé.** 0,005 €/h, soit **3,65 €/mois**. Répercuté sur les quatre colonnes de la trajectoire (chiffrage §3) |
+| §13.7, chiffrage §1 : un seul `.com` budgété | **`.com` et `.fr`**, tous deux chez Scaleway. `.fr` à 5,98 € HT/an, création au prix du renouvellement. Total domaines 1,53 €/mois |
+| §13.7 : « TOTAL 25,82 € HT / 30,98 € TTC » | **27,05 € HT / 32,46 € TTC** |
+| Chiffrage §1, §6 : « particulier +20 %, ou structure avec n° intracommunautaire, autoliquidation » | **Compte au nom d'un particulier, +20 %, TVA non récupérable — le TTC est le budget de référence.** La branche « autoliquidation » était inexacte : Scaleway SAS est français et facture la TVA française en domestique. Seul l'assujettissement au réel la rendrait récupérable, hors de portée d'une auto-entreprise en franchise en base |
+| Chiffrage, « ce qui est à 0 € » : « un domaine externe coûterait 5,11 €/mois » | **Reformulé.** Ce tarif ne vise que la zone DNS d'un domaine externe *hébergée chez Scaleway* ; un registrar tiers fournit la sienne gratuitement. Scaleway est retenu comme registrar pour son prix au **renouvellement**, pas pour le DNS |
+
+Raisonnement, comparaison OVH / Hetzner et sources :
+`documents/archive/decision-hebergeur-et-domaines.md`. Répercuté dans le §13.7, le §16, le §19,
+`04-chiffrage.md` §1, §3, « ce qui est à 0 € » et §6, et l'issue #30.
+
+### 18.10 Révision du 1er septembre 2026 — ce qui est commandé, et ce qui ne le sera pas encore
+
+Suite de §18.9, côté exécution (issue #30). La commande a été passée, mais **partiellement et
+volontairement** : les noms de domaine seuls. Le §13.7 était muet sur le *moment* du
+provisionnement — un lecteur pouvait croire son tableau déjà engagé.
+
+| Ancienne décision | Nouvelle décision |
+|---|---|
+| §19, chiffrage §6 n°5 : « disponibilité effective de `arpendo.com` et `arpendo.fr`, à confirmer à la commande » | **Confirmée et engagée.** Les deux domaines sont **réservés chez Scaleway le 30 août 2026**, aux prix relevés en §18.9. Vérification retirée des restantes |
+| §13.7 : muet sur le moment du provisionnement | **Aucune ressource de calcul n'est créée avant que le déploiement l'exige** — serveur, disque, snapshot, IPv4 et base managée. La facturation démarre à la création : payer un socle inutilisé pendant que #45 et #47 ne sont pas triées serait une dépense sans contrepartie. Seuls **1,53 € HT/mois** des 27,05 du tableau sont engagés. Le provisionnement devient le premier critère de **#47**, qui crée donc la machine qu'elle déploie et cesse d'être bloquée par #30 |
+| §13.10 : « 2FA partout … verrou de transfert du domaine », précaution générale | **Devient une vérification due au §19** : les domaines existent, le verrou et la 2FA du compte registrar se posent maintenant, pas à la publication |
+
+Conséquence à ne pas perdre de vue : **le raccordement de la base au Private Network — l'argument
+qui a fait retenir un fournisseur unique (§13.7) — reste non vérifié**, puisqu'il ne se valide
+qu'à la création de l'instance. C'est la première chose à contrôler au provisionnement.
+
+Raisonnement et relevés : `documents/archive/decision-hebergeur-et-domaines.md`. Répercuté dans le
+§13.7, le §19, `04-chiffrage.md` §6, le README « Ce qui reste ouvert » et les issues #30, #45
+et #47.
 
 ---
 
@@ -1912,9 +1979,7 @@ Raisonnement et options écartées : `documents/archive/decision-jeton-mapbox.md
 
 **Vérifications manuelles restant à la charge du porteur :**
 
-- Disponibilité du domaine `arpendo.com` / `.fr` chez un registrar
-- Recherche « ARPENDO » sur le Play Store et l'App Store
+- **Verrou de transfert et 2FA sur le compte registrar** (§13.10), maintenant que les deux domaines
+  sont réservés
 - Raccordement de l'instance PostgreSQL managée au Private Network, à valider à la création
-- Régime de TVA applicable (particulier +20 %, ou structure avec numéro intracommunautaire) —
-  cette seule question déplace le point de rupture budgétaire d'environ 50 joueurs
 - Revérification des tarifs avant tout engagement pluriannuel

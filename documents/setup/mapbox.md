@@ -19,6 +19,17 @@ anonyme et irrévocable sans nouvelle release. L'app demande donc à l'api un **
 préfixe obtenu est donc un contrôle : un jeton qui n'a pas le préfixe attendu a une portée de
 trop ou de moins — le recréer.
 
+**Ne jamais employer « les portées publiques » comme raccourci.** Mapbox n'en publie aucune liste
+figée : il les définit par la propriété `public` de `GET /scopes/v1/{username}`, et l'ensemble peut
+bouger. Le projet en veut **quatre**, nommées une à une : `styles:tiles`, `styles:read`,
+`fonts:read`, `datasets:read`. La console en coche davantage — `vision:read` au 30 août 2026,
+constaté en console (issue #30) — et le Vision SDK n'est nulle part dans la stack : la décocher
+partout.
+
+Le contrôle du préfixe se fait par **oui ou non** — « commence-t-il bien par `sk.` ? ». Ne jamais
+demander d'en citer une partie : la réponse la plus simple à une telle question est de coller le
+jeton entier.
+
 ---
 
 ## 1. Les trois jetons
@@ -28,9 +39,9 @@ son usage, jamais réutilisé d'un usage à l'autre.
 
 | Nom | Portées | Préfixe attendu | Où il vit | À quoi il sert |
 |---|---|---|---|---|
-| `arpendo-api-tokens` | `tokens:write` **+** `styles:tiles`, `styles:read`, `fonts:read`, `datasets:read` — **rien d'autre** | `sk.` | `.env` du serveur (`MAPBOX_TOKENS_SECRET`) et `.env` du poste ; **jamais** en secret CI, jamais dans l'image | Émet les jetons temporaires servis à l'app. Ses portées sont le plafond de ce qu'un jeton temporaire peut recevoir : s'il fuit, il ne sait émettre que des jetons de lecture |
+| `arpendo-api-tokens` | `tokens:write` **+** `styles:tiles`, `styles:read`, `fonts:read`, `datasets:read` — **rien d'autre**. La console pré-coche `vision:read` : la décocher avant d'enregistrer | `sk.` | `.env` du serveur (`MAPBOX_TOKENS_SECRET`) et `.env` du poste ; **jamais** en secret CI, jamais dans l'image | Émet les jetons temporaires servis à l'app. Ses portées sont le plafond de ce qu'un jeton temporaire peut recevoir : s'il fuit, il ne sait émettre que des jetons de lecture |
 | `arpendo-ci-downloads` | `downloads:read` seule | `sk.` | Secret GitHub Actions `MAPBOX_DOWNLOADS_TOKEN` et `.env` du poste | Télécharge le SDK Android au build. Ne quitte jamais la machine de build |
-| `arpendo-devkit` | les quatre portées publiques par défaut | `pk.` | `MAPBOX_DEVKIT_TOKEN` de `.claude/settings.local.json` (hors dépôt) | Laisse démarrer le serveur MCP DevKit (`CLAUDE.md`) ; ses outils de validation sont locaux |
+| `arpendo-devkit` | `styles:tiles`, `styles:read`, `fonts:read`, `datasets:read` ; `vision:read` décochée elle aussi | `pk.` | `MAPBOX_DEVKIT_TOKEN` de `.claude/settings.local.json` (hors dépôt) | Laisse démarrer le serveur MCP DevKit (`CLAUDE.md`) ; ses outils de validation sont locaux |
 
 Le nom d'utilisateur Mapbox du compte va aussi dans le `.env` (`MAPBOX_USERNAME`) : la Tokens API
 l'exige dans son chemin. Les deux variables arrivent dans `.env.example` avec l'issue qui les lit,
@@ -46,7 +57,8 @@ jamais avant.
 Pour que la procédure et le code disent la même chose :
 
 - `POST https://api.mapbox.com/tokens/v2/{MAPBOX_USERNAME}?access_token={MAPBOX_TOKENS_SECRET}`
-  avec `{"expires": <ISO 8601, ≤ 1 h>, "scopes": [les quatre portées publiques]}` rend un `tk.`.
+  avec `{"expires": <ISO 8601, ≤ 1 h>, "scopes": ["styles:tiles", "styles:read", "fonts:read",
+  "datasets:read"]}` rend un `tk.`. Ces quatre-là et pas `vision:read`.
 - Un **seul** `tk.` est partagé par tous les clients, mis en cache dans Valkey avec une durée de
   vie inférieure à son expiration, pour que l'app reçoive toujours un jeton qui a encore quelques
   minutes devant lui. Une émission par heure, quel que soit le nombre d'instances d'api.

@@ -83,8 +83,9 @@ la console du fournisseur change.
 | Fichier | À faire avant |
 |---|---|
 | `google-oauth.md` | Le domaine *Compte & identité* (spec UX §4) |
+| `mapbox.md` | La première dépendance `mapbox_maps_flutter`, et la route qui émet les jetons temporaires |
 
-### `documents/archive/` — deux pièces, conservées comme justificatifs
+### `documents/archive/` — cinq pièces, conservées comme justificatifs
 
 **`brief-identite-visuelle.md`** — le questionnaire d'identité rempli le 13 août 2026. C'est la **seule
 trace des préférences réelles du porteur**, et la pièce justificative si une décision d'identité est
@@ -95,6 +96,16 @@ conclusions.
 **retirés de `02-specification-ux.md`**. La spécification ne porte que l'état courant : un
 développeur qui la lit ne doit pas avoir à démêler une décision en vigueur d'une décision annulée.
 Ce journal recueille ce qui a été retiré, pour que rien ne soit perdu. **Non normatif.**
+
+**`decision-jeton-mapbox.md`** — pourquoi aucun jeton Mapbox ne part dans l'APK, et les
+contre-mesures écartées. L'état courant est au cadrage §13.10.
+
+**`decision-marque-signes-voisins.md`** — le relevé TMview du 30 août 2026 et pourquoi les signes
+voisins ne bloquent pas l'exploitation. L'état courant est au cadrage §1 et §16.
+
+**`decision-hebergeur-et-domaines.md`** — les tarifs relevés à la source le 30 août 2026, la
+comparaison OVH / Hetzner, pourquoi le compte est au nom d'un particulier, et ce qui a été
+commandé ce jour-là — les domaines seuls. L'état courant est au cadrage §13.7 et au chiffrage §1.
 
 ---
 
@@ -133,14 +144,15 @@ UX**.
 | 1 | **Les CGU et la politique de confidentialité doivent couvrir la visibilité des zones.** La modale qui portait cette information a été retirée de l'interface ; l'obligation est passée aux documents juridiques, et la clause exacte est écrite au **§13.12 du cadrage** | Avant la publication |
 | 2 | **La page web de suppression de compte n'existe pas.** Le cadrage §12.2 la donne comme **obligatoire pour Google Play** — « chemin dans l'app **et** URL web ». L'app a son chemin ; la page reste due | Avant la publication |
 | 3 | **La modale « Mes hexagones »** — spécifiée au §7.6 du cadrage, **reportée post-MVP**. Ne bloque rien | Post-MVP |
-| 4 | **Aucun jeton Mapbox.** Deux sont nécessaires, à ne pas confondre : le jeton **secret d'émission** (`sk.*`, portées `tokens:write` + les quatre portées publiques) vit dans le `.env` du serveur et sert à l'api pour émettre les jetons temporaires d'une heure que l'app demande à chaque entrée sur la carte — **aucun jeton Mapbox ne part dans l'APK** (cadrage §13.10, procédure dans `documents/setup/mapbox.md`) ; le jeton de **téléchargement** (`sk.*`, portée `DOWNLOADS:READ`) ne sert qu'à récupérer le SDK Android au moment du build. Ce dernier devra **aussi** exister en secret GitHub Actions (`MAPBOX_DOWNLOADS_TOKEN`) : le step Build de la CI en aura besoin dès que `mapbox_maps_flutter` sera une dépendance | Avant la première dépendance `mapbox_maps_flutter` |
+| 4 | **Les jetons Mapbox existent, la route d'émission non.** Les trois jetons sont créés (procédure et rôles dans `documents/setup/mapbox.md` §1) : le **secret d'émission** `sk.` est destiné au `.env` du serveur — qui n'existe pas encore ; le jeton de **téléchargement** est posé en secret GitHub Actions `MAPBOX_DOWNLOADS_TOKEN` pour le step Build ; un `pk.` sert au serveur MCP DevKit. Reste à construire la route qui émet les jetons temporaires d'une heure servis à l'app — **aucun jeton Mapbox ne part dans l'APK** (cadrage §13.10). `MAPBOX_TOKENS_SECRET` et `MAPBOX_USERNAME` arriveront dans `.env.example` avec l'issue qui construit cette route, pas avant | Avant la première dépendance `mapbox_maps_flutter` |
 | 5 | **Le sous-ensemble Phosphor n'est pas embarqué.** Le paquet `phosphor_icons` déclare **six graisses** ; le §1.8 n'en emploie qu'une, et les cinq autres pèsent **2,58 Mo** dans l'AAB — mesurés. Un sous-ensemble embarqué — police ou SVG — les supprimerait et rendrait l'inventaire indépendant du paquet | Post-MVP |
 | 6 | **Le skill `dataviz` n'est pas épinglé** dans `skills-lock.json` : il est fourni par le runtime. C'est lui qui porte `validate_palette.py`, le validateur normatif de la palette | Avant de revalider la palette sur le style Mapbox réel |
 | 7 | **`main` n'est protégé par aucune règle côté GitHub** — indisponible sur un dépôt privé hors plan GitHub Pro. « Jamais de force-push », « jamais d'auto-merge » et « CI verte avant merge » ne tiennent que par `.claude/rules/contraintes.md` | Avant la première PR |
 | 8 | **`uuid6` génère les UUIDv7 de l'api** — un seul point d'appel, `core/journal.py`. Python 3.14 apporte `uuid.uuid7()` : à la mise à jour de `api/.python-version`, remplacer l'appel et retirer la dépendance | Au passage à Python 3.14 |
+| 9 | **Rien n'est hébergé.** Seuls les domaines `arpendo.com` et `arpendo.fr` sont réservés (Scaleway, 30 août 2026). **Aucune ressource de calcul n'est provisionnée** — serveur, disque, IPv4 et base managée attendent que le déploiement l'exige, la facturation démarrant à la création (cadrage §18.10). Conséquences : le DNS ne pointe nulle part, et le raccordement de la base au Private Network — l'argument du fournisseur unique — n'est pas vérifiable avant | Au premier déploiement |
 
 **Tout le reste est clos.** Cadrage, spécification UX, identité visuelle et retour de maquette ont
-été arbitrés et intégrés. Les journaux §18.1 à §18.5 du cadrage disent ce qui a changé et pourquoi ;
+été arbitrés et intégrés. Les journaux §18.1 à §18.10 du cadrage disent ce qui a changé et pourquoi ;
 ils existent pour éviter qu'une décision close soit rouverte sans élément nouveau.
 
 ---

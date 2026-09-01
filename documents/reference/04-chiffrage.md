@@ -22,16 +22,19 @@ Architecture : un serveur unique Scaleway en région Paris exécutant quatre con
 | Serveur applicatif | DEV1-S — 2 vCPU, 2 Go | 6,56 |
 | Disque du serveur | Block Storage 5K, 20 Go | 1,99 |
 | Snapshot du serveur | 20 Go | 0,64 |
-| IPv4 flexible | | 2,92 |
+| IPv4 flexible | 0,005 €/h | 3,65 |
 | **PostgreSQL managé** | DB-DEV-S — 2 vCPU, 2 Go | 11,39 |
 | Stockage + sauvegarde de la base | 10 Go + 10 Go | 1,29 |
-| Nom de domaine `.com` | 12,34 €/an | 1,03 |
-| **TOTAL** | | **25,82 € HT** |
-| | | **30,98 € TTC** |
+| Noms de domaine `.com` + `.fr` | 12,34 + 5,98 €/an | 1,53 |
+| **TOTAL** | | **27,05 € HT** |
+| | | **32,46 € TTC** |
 
-> **TVA :** les tarifs Scaleway sont hors taxes. Facturé à un particulier, +20 %. Facturé à une
-> structure disposant d'un numéro de TVA intracommunautaire, autoliquidation. ⛔ Régime applicable
-> à confirmer — il déplace le seuil de rupture budgétaire d'environ 50 joueurs.
+> **TVA — tranché le 30 août 2026 : compte Scaleway au nom d'un particulier, +20 %.** Le **TTC est
+> donc le budget de référence**, pas le HT. L'ancienne branche « structure avec numéro de TVA
+> intracommunautaire, autoliquidation » était inexacte : Scaleway SAS est français et facture la
+> TVA française à une entreprise française comme à un particulier. Le seul régime qui rendrait la
+> TVA récupérable est l'assujettissement au réel — hors de portée d'une auto-entreprise en
+> franchise en base, d'où le choix du compte personnel.
 
 ### Ce qui est à 0 € et le restera
 
@@ -41,7 +44,7 @@ Architecture : un serveur unique Scaleway en région Paris exécutant quatre con
 | **Licence de géolocalisation** | Tracelet, Apache 2.0 (§13.2) |
 | **Sentry** | Plan Developer : 1 utilisateur, 5 000 erreurs/mois, 5 Go de logs, 5 M spans, rétention 30 jours, **1 moniteur d'uptime** |
 | **TLS** | Caddy + Let's Encrypt, automatique |
-| **DNS** | Gratuit tant que le domaine est enregistré chez l'hébergeur. Un domaine externe coûterait 0,007 €/h, soit **5,11 €/mois** — 61 €/an d'écart pour rien |
+| **DNS** | Gratuit : la zone d'un domaine enregistré chez Scaleway ne se facture pas. Le tarif de 0,007 €/h (**5,11 €/mois**) ne vise que la zone d'un domaine **externe** hébergée chez Scaleway — un registrar tiers fournit sa propre zone gratuitement, et un enregistrement A vers l'IPv4 suffirait. Ce n'est donc pas ce qui a fait choisir Scaleway comme registrar : c'est le prix au **renouvellement** (`.com` 12,34 contre 13,49 chez OVH ; `.fr` 5,98 contre 7,79, HT/an) |
 | **Réseau privé** | Private Networks Scaleway : gratuits |
 | **Pare-feu** | Groupes de sécurité inclus |
 | **Préproduction** | Seconde base sur la même instance managée + second projet `docker compose` sur le même serveur (§13.7) |
@@ -80,17 +83,17 @@ une donnée vérifiée** — à recalibrer par le test de charge prévu en §13.
 |---|---|---|---|---|
 | Serveur | DEV1-S 6,56 | BASIC2-A2C-4G 16,79 | BASIC2-A2C-8G 25,19 | 2 × PRO2-XXS 81,90 |
 | Disque + snapshot | 2,63 | 2,63 | 5,25 | 10,51 |
-| IPv4 | 2,92 | 2,92 | 2,92 | 5,84 |
+| IPv4 | 3,65 | 3,65 | 3,65 | 7,30 |
 | Load Balancer | — | — | — | 16,79 |
 | Redis managé | — | — | — | 35,04 |
 | PostgreSQL | DEV-S 11,39 | DEV-S 11,39 | DEV-M 27,89 | PRO2-XXS 80,30 |
 | Stockage base | 1,29 | 1,29 | 6,46 | 25,86 |
 | Edge + WAF | — | 4,99 | 4,99 | 20,79 |
 | Sentry | — | — | 24,00 | 24,00 |
-| Domaine | 1,03 | 1,03 | 1,03 | 1,03 |
+| Domaines `.com` + `.fr` | 1,53 | 1,53 | 1,53 | 1,53 |
 | Mapbox | 0,00 | 0,00 | 0,00 | 0,00 |
-| **TOTAL HT** | **25,82 €** | **41,04 €** | **97,73 €** | **302,06 €** |
-| **TOTAL TTC** | **30,98 €** | **49,25 €** | **117,28 €** | **362,47 €** |
+| **TOTAL HT** | **27,05 €** | **42,27 €** | **98,96 €** | **304,02 €** |
+| **TOTAL TTC** | **32,46 €** | **50,72 €** | **118,75 €** | **364,82 €** |
 
 **Le budget de 150 €/mois tient jusqu'à environ 500 joueurs** en HT comme en TTC, et se rompt
 entre 500 et 5 000. À ce stade le jeu doit être monétisé — ce qui était prévu dès §3
@@ -159,12 +162,14 @@ Classées par dégât maximal possible, pas par coût nominal.
 1. **Raccordement de l'instance PostgreSQL managée au Private Network.** Toute l'architecture
    repose dessus : c'est ce qui permet à la base de n'avoir aucune IP publique, et c'est
    l'argument qui a fait retenir le même fournisseur pour le serveur et la base.
-2. **Régime de TVA applicable** — particulier (+20 %) ou structure avec numéro intracommunautaire.
+2. ~~Régime de TVA applicable.~~ **Tranché le 30 août 2026** : compte particulier, +20 %, budget de référence en TTC.
 3. **Comportement au dépassement des 5 M requêtes WAF** sur les plans Starter et Professional.
 4. **Taux de change EUR/USD du jour** — Sentry, Google Play et Apple sont facturés en dollars.
    La conversion « 26 $ ≈ 24 € » utilisée ici est un ordre de grandeur.
-5. **Disponibilité de `arpendo.com` / `.fr`** chez un registrar, et recherche « ARPENDO » sur les
-   stores.
+5. ~~Recherche « ARPENDO » sur les stores, disponibilité des domaines.~~ **Faites le 30 août
+   2026** : aucune application de ce nom sur Play Store ni App Store, et `arpendo.com` comme
+   `arpendo.fr` sont **réservés chez Scaleway** — seul poste de ce chiffrage effectivement engagé
+   (cadrage §18.10).
 6. **Revérifier les tarifs avant tout engagement pluriannuel.** Scaleway a augmenté ses prix au
    1er juin 2026, OVHcloud au 1er avril, Hetzner au 15 juin. Toute liste de prix tierce est
    périmée par construction — c'est ce qui a produit les chiffres erronés de la première version
