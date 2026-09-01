@@ -119,6 +119,11 @@ La PR draft porte **dès sa création** :
 
 - **`Closes #<N>`** dans le body. C'est **la** ligne qui rend l'issue détectable comme en vol.
   Sans elle, `repercussions` la croira dormante et éditera sa spec en cours de développement.
+  **Cas découpé** (taille-pr impose plusieurs PR pour la même issue) : seule la **dernière** PR du
+  lot porte `Closes #<N>` — un `Closes` sur la première fermerait l'issue trop tôt. Chaque autre
+  PR du lot ouvre son body par la ligne **`En vol pour #<N> (lot k/n)`**, que `repercussions` lit
+  au même titre que `Closes` : sans elle, l'issue paraît dormante précisément pendant qu'on
+  travaille dessus.
 - Le **briefing de l'Étape 1** comme corps provisoire — le plan devient lisible par le mainteneur
   et par les autres sessions, avant que le code n'existe.
 - **Assignee**, **labels** et **milestone** (mapping de `.claude/pipeline.config.md`).
@@ -344,7 +349,7 @@ body définitif, puis de sortir du draft.
 ## Test plan
 - [x] CI locale verte
 - [x] CI verte
-- [x] <vérifs manuelles si pertinent>
+- [x] <vérifs manuelles si pertinent — chacune porte le SHA sur lequel elle a été prise>
 
 ## Relecture indépendante
 <verdict de l'agent de l'Étape 4.2 : constats corrigés (commit) / écartés (raison)>
@@ -354,6 +359,11 @@ body définitif, puis de sortir du draft.
 ```
 
 Au-delà de **~10 fichiers** ou **~500 lignes** de diff, découper la PR.
+
+**Preuves visuelles exigées par un HITL** : ni l'API GitHub ni `gh` ne savent joindre une image à
+un body ou un commentaire. Le canal est une **branche orpheline `captures/pr-<n>`** poussée par
+plomberie git (zéro fichier dans la PR), référencée par liens `?raw=true` dans le body, supprimée
+à l'Étape 8.
 
 Puis seulement, sortir du draft :
 
@@ -418,6 +428,11 @@ signalement sur cette PR. Comparer le corps actuel au briefing : si la spec a ch
 que la PR ne couvre pas, **s'arrêter et le remonter** plutôt que de merger un travail construit sur
 une spec périmée.
 
+**Rejouer les vérifications périmées.** Une preuve produite hors de la chaîne automatisée n'a pas
+d'horloge : comparer le SHA porté par chaque vérification manuelle du body à la tête de branche —
+s'ils diffèrent, la case redevient non cochée et la vérification est à rejouer avant de demander
+le go. Une vérification sans SHA se rejoue d'office.
+
 ### Vérif de fumée — regarder le logiciel tourner
 
 Tout ce qui précède examine du **code** : tests, diffs, specs. Personne n'a encore vu la
@@ -440,8 +455,12 @@ config) :
 - **Aucune issue n'est créée**, aucune checklist n'est publiée. C'est une passe de deux minutes,
   pas une campagne : la campagne, c'est `plan-qa`, au niveau du thème.
 
-Un écart constaté → le traiter comme un finding de l'Étape 7 (corriger, re-tester, push) ou le
-déposer via `bug-vers-issue` s'il sort du périmètre de la PR.
+Un écart constaté → le traiter comme un finding de l'Étape 7 (corriger, re-tester, push). S'il
+sort du périmètre de la PR, chercher d'abord **qui possède déjà le sujet** : une automatisation
+déclarée (bot de dépendances, workflow planifié, hook), une issue ouverte dont c'est le critère,
+une PR fermée qui le portait. Si un mécanisme existe, la question devient « pourquoi n'a-t-il pas
+agi ? » — souvent parce qu'on l'a fait taire — et c'est *ça* qu'on corrige. Le ticket
+(`bug-vers-issue`) est le dernier recours.
 
 ### Vérification par le lead — en vague parallèle seulement
 
