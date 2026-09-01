@@ -107,6 +107,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 
 ## Langue
 - skills / issues / PRD / descriptions : français
+- identifiants du code (tables, colonnes, champs, types, fonctions) : anglais — fixés par le cadrage
+- commentaires / docstrings / noms de tests : français
 - préfixe conventional commit : anglais (feat/fix/chore/docs/refactor)
 
 ## Mapping labels (rôle canonique → label GitHub)

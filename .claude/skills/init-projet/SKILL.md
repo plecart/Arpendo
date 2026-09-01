@@ -17,6 +17,14 @@ lancer, quels labels utiliser et quels sont les domaines du projet.
 > de paquets. Tout ce qui est spécifique au projet est **demandé puis persisté**, jamais codé en
 > dur.
 
+> **Un document généré n'affirme que ce que le générateur a constaté.** Toute phrase de la forme
+> « X est installé / configuré » posée par un template est une assertion non testée qui deviendra
+> fausse en silence. Écrire à la place un pointeur vérifiable (« déclaré dans <fichier>, vérifier
+> avec <commande> »), et ne poser la ligne qu'après avoir constaté l'artefact attendu (entrée dans
+> `.mcp.json`, label créé, commande qui répond). De même, **toute référence croisée vers un
+> document utilise un identifiant structurel stable** (numéro de section, ancre de titre) — jamais
+> un numéro de ligne, qui périme à la première édition.
+
 ## Deux modes
 
 - **Amorçage** — `.claude/pipeline.config.md` absent : dérouler tout le process.
@@ -146,6 +154,8 @@ Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape abs
 
 ## Langue
 - skills / issues / PRD / descriptions : français
+- identifiants du code : <ex. anglais — observer le code existant à l'initialisation>
+- commentaires / docstrings / noms de tests : <ex. français>
 - préfixe conventional commit : anglais (feat/fix/chore/docs/refactor)
 
 ## Mapping labels (rôle canonique → label GitHub)
@@ -196,6 +206,27 @@ est un modèle à trous :
   soit une CI qui ne tourne jamais, soit une CI qui tourne sur tous les commits de développement.
 
 Montrer le `ci.yml` généré avant de l'écrire.
+
+**Runtime épinglé — une version, des fournisseurs.** Si le profil déclare un gestionnaire de
+version (FVM, pyenv, nvm, asdf, mise…), séparer *quelle version* de *qui la fournit* :
+
+- La version a **une source unique** (fichier d'épinglage) lue par tous les environnements.
+- Le fichier de commandes route le runtime **à travers le gestionnaire par défaut** — un épinglage
+  que les commandes n'empruntent pas est décoratif, pire qu'aucun — mais via une **variable
+  surchargeable** (`flutter := env('FLUTTER_CMD', 'fvm flutter')`) : la valeur par défaut est le
+  chemin qui a besoin d'isolation (le poste de dev).
+- La CI **surcharge la variable** et provisionne le runtime avec l'action qui lit le **même**
+  fichier d'épinglage — jamais un canal indépendant (`channel: stable` flottant) : deux mécanismes
+  de provisionnement pour la même version divergent silencieusement.
+- À la génération, vérifier qu'aucune recette n'invoque le binaire nu d'un runtime épinglé, et
+  simuler la résolution des deux environnements.
+
+**`.gitignore` — généré depuis le profil, puis testé.** Générer le fichier à partir des **chemins
+déclarés** (une section par langage présent, motifs indépendants de la profondeur `**/` dès qu'un
+paquet vit hors racine), jamais d'un gabarit mono-paquet dont les motifs sont ancrés à la racine.
+Puis **tester mécaniquement** avec `git check-ignore` sur une liste de chemins fabriqués depuis le
+profil : ceux qui doivent être exclus, et les lockfiles/sources qui doivent rester suivis. Un
+fichier de motifs ne se relit pas, il se teste.
 
 ### 8. Déployer les skills MAISON et leurs commandes
 
@@ -288,9 +319,24 @@ Avant de committer, lancer réellement les commandes `lint`, `typecheck` et `tes
 Une commande déclarée mais fausse est pire qu'absente : elle casse `cycle-pr` et la CI au premier
 usage. Corriger la config si l'une échoue pour cause d'erreur de saisie.
 
+Deux pièges de diagnostic à cette étape :
+
+- **Un binaire installé dans cette session peut être introuvable** : le shell hérite du PATH figé
+  au démarrage, antérieur à l'installation. Avant de conclure à un échec d'installation, augmenter
+  explicitement le PATH avec les répertoires d'installation connus, ou vérifier l'existence du
+  binaire sur disque.
+- **Un contrôle « doctor » en échec accuse ce qu'il contrôle autant que lui-même.** Avant de
+  mettre à jour l'outil de contrôle (l'action la plus facile, pas la plus probable), établir ce
+  que le contrôle exécute réellement et si cette cible a changé récemment — lire le message
+  d'erreur de la cible, pas seulement le verdict du contrôleur.
+
 ### 12. Commit d'amorçage
 
+D'abord vérifier qu'aucun fichier suivi ne viole les règles d'ignore — `.gitignore` n'agit pas
+rétroactivement sur des fichiers déjà stagés :
+
 ```
+git ls-files -i -c --exclude-standard   # doit sortir vide ; sinon git rm --cached les fichiers listés
 git add -A && git commit -m "chore: amorçage pipeline de dev"
 ```
 
