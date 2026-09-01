@@ -63,6 +63,11 @@ Quatre règles de rédaction, chacune née d'un brief qui a fait dérailler une 
   (1) … ; (2) … », répondre pour chaque lot : « avec quoi ses tests tournent-ils ? ».
   L'infrastructure qui fait tourner les tests (schéma, compose, fixtures) va dans le premier lot
   ou dans un lot antérieur à ses consommateurs.
+- **Un critère qui exige une preuve nomme son canal.** Pour des preuves visuelles (« captures en
+  PR ») : ni l'API GitHub ni `gh` ne savent joindre une image — prescrire la branche orpheline
+  `captures/pr-<n>` (liens `?raw=true`, supprimée après merge) **et les moyens d'obtention** (quel
+  lanceur, quel réglage produit chaque rendu demandé), sinon chaque PR improvise un canal
+  différent.
 - **Une capacité d'un fournisseur tiers se vérifie à la source.** Tout critère d'acceptation qui
   repose sur un mécanisme d'un service tiers (restriction, plafond, quota, révocation) porte une
   ligne « vérifié à la source le <date> : <doc du fournisseur> » — ou, à défaut, le marqueur
