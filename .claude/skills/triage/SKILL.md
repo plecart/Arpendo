@@ -116,7 +116,7 @@ Affiche les décomptes et un résumé d'une ligne par issue, en indiquant le th�
 
    - `needs-interrogation` — applique le rôle et publie les notes de triage de ce qui est déjà établi. L'issue attend sa session `/interroge-moi` ; ne rédige pas encore de brief d'agent.
    - `ready-for-agent` — publie un commentaire de brief d'agent ([brief-agent.md](brief-agent.md)), en y reportant les décisions tranchées pendant l'interrogatoire.
-   - `ready-for-human` — même structure qu'un brief d'agent, mais précise pourquoi cela ne peut pas être délégué (jugements à porter, accès externe, décisions de conception, tests manuels).
+   - `ready-for-human` — même structure qu'un brief d'agent, mais précise pourquoi cela ne peut pas être délégué (jugements à porter, accès externe, décisions de conception, tests manuels). Pour une issue « comptes et services tiers » : lister les capacités du fournisseur que les critères supposent, et **vérifier chacune à la source** avant de rendre la main (voir [brief-agent.md](brief-agent.md), « décisions verrouillées »).
    - `needs-info` — publie des notes de triage (modèle ci-dessous).
    - `wontfix` (bug) — explication polie, puis ferme.
    - `wontfix` (enhancement) — écris dans `.out-of-scope/`, fais-y référence depuis un commentaire, puis ferme ([hors-scope.md](hors-scope.md)).

@@ -43,7 +43,31 @@ qui importe et instancie un symbole du paquet, compilé — pas un simple `pub a
 `uv add --dry-run`, qui ne prouve que la résolution des versions). Inscrire dans le brief l'âge du
 paquet, le successeur éventuel, et **un critère « un test atteint le module qui importe le
 paquet »** : une table de constantes qui n'est référencée nulle part n'est pas compilée, et les
-gates du projet restent verts avec une dépendance cassée.
+gates du projet restent verts avec une dépendance cassée. Même exigence pour toute **propriété
+affirmée** du paquet (taille, optimisation, performance) : la **mesurer**, pas la citer — rédiger
+la décision avec sa preuve (« compile et mesuré à X »), jamais « se résout ».
+
+### Rédiger les décisions verrouillées
+
+Quatre règles de rédaction, chacune née d'un brief qui a fait dérailler une session :
+
+- **Une décision négative nomme ce qui survit au rejet.** Quand l'option rejetée est une
+  *combinaison*, « écarté : X seul » est ambigu — écrire « écarté : X **sans** Y ; X reste
+  nécessaire ». Lu vite, « écarté » se comprend comme « ne pas le mettre », et l'implémentation
+  part sur une configuration qui ne peut pas fonctionner.
+- **Une exception verrouillée est une liste, et une liste se produit par recherche.** Toute règle
+  de la forme « les X qui viennent de Y ne bougent pas » est accompagnée de la liste exhaustive
+  de ces X, obtenue en cherchant dans Y **au moment du triage** — jamais reprise d'une liste
+  écrite dans un document tiers, jamais de mémoire.
+- **Un découpage en lots se valide par ses tests.** Avant d'écrire « si > N fichiers, découper :
+  (1) … ; (2) … », répondre pour chaque lot : « avec quoi ses tests tournent-ils ? ».
+  L'infrastructure qui fait tourner les tests (schéma, compose, fixtures) va dans le premier lot
+  ou dans un lot antérieur à ses consommateurs.
+- **Une capacité d'un fournisseur tiers se vérifie à la source.** Tout critère d'acceptation qui
+  repose sur un mécanisme d'un service tiers (restriction, plafond, quota, révocation) porte une
+  ligne « vérifié à la source le <date> : <doc du fournisseur> » — ou, à défaut, le marqueur
+  « ⛔ à vérifier avant engagement ». Une contre-mesure recopiée sans vérification monte de rang
+  à chaque copie et éclate au moment le plus coûteux, la console ouverte.
 
 ## Modèle
 
