@@ -181,7 +181,9 @@ déléguer coûte plus qu'un `git status` ou un `flutter test` isolé. La délé
 un **bloc de travail** : une tranche d'issue, une suite à faire passer au vert, une cartographie.
 
 Limites connues : une équipe par session, pas d'équipes imbriquées, `/resume` ne restaure pas les
-équipiers, mode `in-process` seulement sous Windows / VS Code.
+équipiers, mode `in-process` seulement sous Windows / VS Code, et **un rôle ajouté ou modifié dans
+`.claude/agents/` n'est visible qu'à la session suivante** (la liste des types est figée au
+démarrage — repli : `general-purpose` avec le modèle du rôle).
 
 ## Skills de la pipeline
 

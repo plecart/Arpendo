@@ -268,7 +268,10 @@ edge cases / erreurs / race conditions, KISS/DRY/YAGNI à l'échelle de la PR �
 **4.2 Relecture par un contexte vierge — obligatoire.** L'auto-review est faite par la session qui
 a écrit le code, avec les hypothèses qui l'ont produit ; elle ne les met pas à l'épreuve.
 **L'exigence** : le diff est relu par un lecteur qui n'a pas ces hypothèses. **Le moyen par
-défaut** : un **agent de relecture** (sous-agent, lecture seule, sans accès à cette conversation).
+défaut** : un **agent de relecture** (sous-agent sans accès à cette conversation — rôle
+`developpeur` s'il est disponible ; un rôle ajouté dans `.claude/agents/` pendant cette session
+n'existe pas encore pour l'outil Agent → repli `general-purpose` avec le modèle du rôle, jamais
+sauter l'étape).
 L'invocation de `cycle-pr` — `/cycle-pr` tapé par l'utilisateur, ou prompt de démarrage d'une
 vague `pr-paralleles` — **vaut demande** pour cet agent : une consigne de session « pas de
 sous-agent sans demande de l'utilisateur » est déjà satisfaite, ne pas re-demander. **Repli** si
@@ -284,15 +287,38 @@ indépendante » du body de PR — jamais de saut silencieux. L'agent reçoit **
   une frontière — réseau, sérialisation/encodage, secrets, fusion avec un thème ou une config par
   défaut, cycle de vie de ressources — **vérifier le comportement réel** dans la documentation
   (`context7`) ou dans les sources du paquet, jamais de mémoire, et signaler tout écart avec ce que
-  le code suppose.
+  le code suppose ;
+- la consigne **provenance** : chaque constat porte son marqueur — **mesuré** (commande exécutée,
+  sortie citée), **lu** (fichier et ligne ouverts), **supposé** (à vérifier). Un chiffre sans
+  marqueur « mesuré » est interdit ; un résultat attendu d'un sous-agent qui n'est pas arrivé se
+  rapporte « non vérifié », jamais comme un résultat — dans une chaîne de délégation, la preuve ne
+  se transmet pas, elle se produit ;
+- la consigne **mutation des décisions verrouillées** : pour chaque décision verrouillée qui est un
+  invariant de protocole (ordre d'opérations, atomicité, option d'une commande, confirmation avant
+  usage), **retirer ou inverser la décision dans le code** et exiger un test rouge ; une décision
+  dont la mutation passe au vert reçoit un test avant merge — un invariant que seule la lecture
+  garantit n'est pas garanti.
 
 Il rend : chaque critère d'acceptation ✅ / ❌ / ⚠️ avec preuve, puis ses constats classés
-bloquant / important / mineur, chacun avec fichier et raison. **Ne pas discuter un constat depuis
-la mémoire de la session : le vérifier dans le code.**
+bloquant / important / mineur, chacun avec fichier, raison et marqueur de provenance. **Ne pas
+discuter un constat depuis la mémoire de la session : le vérifier dans le code** — et re-mesurer
+tout constat bloquant avant d'éditer sur sa base.
 
-Chaque constat retenu → **un commit de fix dédié** (cycle complet 3.1→3.5). Relancer la relecture
-tant qu'il reste un bloquant ou un important. Les constats écartés sont notés avec leur raison —
-ils iront dans les `Notes` de la PR (Étape 5).
+**La relecture n'est pas en lecture seule au sens strict.** Éprouver un test sérieusement, c'est
+casser la garde qu'il protège et la voir rougir — donc **modifier le code de production**, puis le
+restaurer — et le relecteur partage l'arbre de travail de cette session. Pendant toute la passe :
+**ne rien stager, ne rien committer**, et vérifier `git status` juste avant le premier `git add`
+qui suit. Le relecteur rapporte `git status --porcelain` en fin de passe — c'est le point de
+reprise sûr.
+
+Chaque constat retenu → **un commit de fix dédié** (cycle complet 3.1→3.5). La relance n'est pas
+une répétition de la revue : c'est une **revue des commits de correction**, ciblée par un diff
+explicite (`<sha avant>..<sha après>`) et par la liste de ce que chaque commit prétend régler,
+avec la question obligatoire : « qu'est-ce que ce correctif a cassé, ou fait rougir à tort, que la
+version précédente voyait ? ». Un correctif est du code neuf écrit sous pression de conclure —
+c'est la partie la moins éprouvée de la PR, pas la plus sûre. Boucler tant qu'il reste un bloquant
+ou un important. Les constats écartés sont notés avec leur raison — ils iront dans les `Notes` de
+la PR (Étape 5).
 
 Une fois la relecture propre → `git push`.
 
