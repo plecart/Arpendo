@@ -200,6 +200,15 @@ act of memory.
    If it fires, increment past all existing numbers and re-check (and log a
    meta-observation — it signals a parallel-session collision).
 
+   *Keep the number bound to its source until the write:* compute it into a
+   variable and emit the header line through that variable — never retype the
+   number into the literal content block. A number copied into fixed content
+   is a snapshot that goes stale between the read and the write (a parallel
+   session can append in that window), and the pre-check then proves nothing
+   about what actually gets written. If the content must be a literal block,
+   write the header line separately from the body, or substitute a marker
+   immediately before writing.
+
 3. *Post-write verification:* after appending, count occurrences of the
    number; if >1, a parallel writer collided between check and write —
    renumber YOUR entry to max+1. Identify your entry from your own append
