@@ -56,7 +56,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - run local    : `just up`
 - reprise worker : `just restart-worker`   # sources montées, mais pas de rechargement à chaud
 - migrate      : `just migrate`               # `alembic upgrade head` sur la base du `.env`
-- migration    : `just migration MSG`         # autogenerate — fichier à relire avant commit (zone sensible)
+- migration    : `just migration MSG`         # autogenerate — fichier à relire avant commit
 
 > **`just test` exige `just up`** : les tests d'`api/` parlent à un vrai PostgreSQL et à un vrai
 > Valkey. Ils lisent leurs coordonnées dans le `.env` de la racine (`set dotenv-load` du
@@ -86,8 +86,9 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   - Territoire : `api/src/arpendo_api/domains/territoire/`, `api/src/arpendo_api/worker/`, `app/lib/data/`
   - Carte & rendu : `app/lib/ui/features/carte/`, `app/lib/ui/core/`
   - Flux & notifications : `api/src/arpendo_api/domains/flux/`, `app/lib/ui/features/flux/`
-- zones sensibles (arrêt humain avant commit) : migrations de schéma · écrans à valider
-  visuellement · `infra/` (déploiement, Caddy, compose) · authentification
+- zones sensibles (arrêt humain avant commit) : écrans à valider visuellement · authentification
+  — l'arrêt sur les migrations de schéma est levé tant qu'aucun environnement ne porte de données
+  réelles ; à réintroduire au premier déploiement
 - hors périmètre : monétisation · analytics produit · iOS (phase 2) · modale « Mes hexagones »
   (post-MVP, cadrage §7.6) · animations de squelette via couches Three.js custom (cadrage §13.1) ·
   exclusion géographique de zones (cadrage §16)

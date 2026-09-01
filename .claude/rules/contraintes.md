@@ -56,5 +56,4 @@ Le code visé est **modulaire, scalable, fractionné** — objectif permanent, p
 ## Points d'arrêt humains
 - Commit touchant une **zone sensible** déclarée dans `.claude/pipeline.config.md` (section
   « Périmètre ») → rendre la main pour validation manuelle **avant** de committer.
-- Par défaut, sont sensibles : l'**UI à valider visuellement** et tout changement de **schéma de
-  données / migration**.
+- Par défaut, sont sensibles : l'**UI à valider visuellement** et l'**authentification**.

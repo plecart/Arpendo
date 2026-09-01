@@ -209,8 +209,8 @@ dans le titre. Puis enchaîner sur le commit suivant (retour 3.1).
 
 ### Point d'arrêt humain
 
-Si le commit touche l'**UI à valider visuellement** ou les **models / migrations**, rendre la
-main pour validation manuelle **avant** de committer.
+Si le commit touche une **zone sensible** déclarée dans `.claude/pipeline.config.md` (section
+« Périmètre »), rendre la main pour validation manuelle **avant** de committer.
 
 ## Étape 4 — Relecture indépendante de fin de PR (avant `git push`)
 
