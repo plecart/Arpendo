@@ -9,6 +9,10 @@ TDD, avant merge) qu'une **demande directe et informelle** de l'utilisateur — 
 Il n'y a pas de relecture « informelle » qui échapperait à ce prompt : s'il s'agit de repasser sur
 du code, c'est ce prompt qui s'applique.
 
+**Relire un document normatif** (spec UX/UI, cadrage, PRD) n'est **pas** ce prompt : c'est le
+skill `audit-spec-ui` — passes mécaniques (jetons, tables, arithmétique, contraste, cohérence)
+avant tout jugement, chaque finding cité par §.
+
 > Veuillez examiner l'ensemble du code ajouté et des modifications apportées aux fichiers
 > existants. Réorganisez, structurez, optimisez et nettoyez ces modifications pour produire un
 > code clair, cohérent et facilement maintenable. Éliminez tout code dupliqué, inutile ou

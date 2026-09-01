@@ -116,6 +116,10 @@ Quatre skills design sont installés et se chevauchent. Un seul par situation :
 Sur une demande vague (« améliore cet écran »), **ne pas tirer un skill au hasard** : lire la
 section correspondante de la spec, puis choisir dans la table.
 
+**Relire ou auditer une spec d'interface** (« relis la description de l'interface », « qu'est-ce
+qui cloche dans cette spec ») → skill `audit-spec-ui`, jamais un skill de design : on audite le
+document, on ne produit pas d'interface.
+
 ## Carte (Mapbox) et navigation — skills gardés pour plus tard
 
 Trois skills sont installés **pour une phase future** ; tant qu'elle n'a pas commencé, ils ne
