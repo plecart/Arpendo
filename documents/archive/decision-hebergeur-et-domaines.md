@@ -60,7 +60,8 @@ perdre de vue : **le budget de référence devient le TTC**, soit 32,46 €/mois
   relevés ci-dessus. La disponibilité pressentie était bonne. C'est le seul poste engagé.
 - **Rien d'autre n'est commandé** : ni serveur, ni disque, ni snapshot, ni IPv4, ni base managée.
   La facturation démarre à la création, et #45 comme #47 ne sont pas triées — payer un socle que
-  personne n'utilise n'achèterait rien. Le provisionnement attend **le déploiement**.
+  personne n'utilise n'achèterait rien. Le provisionnement attend **le déploiement** : il est
+  devenu le premier critère de l'issue #47.
 - Reste donc à vérifier **au moment de la création**, et pas avant : le raccordement de l'instance
   PostgreSQL au Private Network sans IP publique — l'argument même qui a fait retenir Scaleway.
   Et, dès maintenant : verrou de transfert et 2FA sur le compte registrar (cadrage §13.10, §19),

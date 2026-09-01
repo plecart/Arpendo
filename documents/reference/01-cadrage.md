@@ -1943,7 +1943,7 @@ provisionnement — un lecteur pouvait croire son tableau déjà engagé.
 | Ancienne décision | Nouvelle décision |
 |---|---|
 | §19, chiffrage §6 n°5 : « disponibilité effective de `arpendo.com` et `arpendo.fr`, à confirmer à la commande » | **Confirmée et engagée.** Les deux domaines sont **réservés chez Scaleway le 30 août 2026**, aux prix relevés en §18.9. Vérification retirée des restantes |
-| §13.7 : muet sur le moment du provisionnement | **Aucune ressource de calcul n'est créée avant que le déploiement l'exige** — serveur, disque, snapshot, IPv4 et base managée. La facturation démarre à la création : payer un socle inutilisé pendant que #45 et #47 ne sont pas triées serait une dépense sans contrepartie. Seuls **1,53 € HT/mois** des 27,05 du tableau sont engagés |
+| §13.7 : muet sur le moment du provisionnement | **Aucune ressource de calcul n'est créée avant que le déploiement l'exige** — serveur, disque, snapshot, IPv4 et base managée. La facturation démarre à la création : payer un socle inutilisé pendant que #45 et #47 ne sont pas triées serait une dépense sans contrepartie. Seuls **1,53 € HT/mois** des 27,05 du tableau sont engagés. Le provisionnement devient le premier critère de **#47**, qui crée donc la machine qu'elle déploie et cesse d'être bloquée par #30 |
 | §13.10 : « 2FA partout … verrou de transfert du domaine », précaution générale | **Devient une vérification due au §19** : les domaines existent, le verrou et la 2FA du compte registrar se posent maintenant, pas à la publication |
 
 Conséquence à ne pas perdre de vue : **le raccordement de la base au Private Network — l'argument
@@ -1951,7 +1951,8 @@ qui a fait retenir un fournisseur unique (§13.7) — reste non vérifié**, pui
 qu'à la création de l'instance. C'est la première chose à contrôler au provisionnement.
 
 Raisonnement et relevés : `documents/archive/decision-hebergeur-et-domaines.md`. Répercuté dans le
-§13.7, le §19, `04-chiffrage.md` §6, le README « Ce qui reste ouvert » et l'issue #30.
+§13.7, le §19, `04-chiffrage.md` §6, le README « Ce qui reste ouvert » et les issues #30, #45
+et #47.
 
 ---
 
