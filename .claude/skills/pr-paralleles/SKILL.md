@@ -87,8 +87,9 @@ qui rend le lot lisible d'un coup d'œil — et détectable par `repercussions`.
 
 L'utilisateur **ouvre lui-même** ses sessions — application de bureau Claude Code ou extension
 VS Code, sur le dossier du worktree — jamais par une commande `claude` dans un terminal. Le lead
-ne lui donne **rien à coller** ni à taper : il lui demande d'ouvrir une fenêtre par worktree, puis
-de revenir dire « ouvertes ». Tout le reste transite par `SendMessage`, que les sessions Claude
+ne lui donne **rien à coller** ni à taper : il lui demande d'ouvrir une fenêtre par worktree —
+en précisant qu'il peut y taper `/i-have-adhd` s'il veut le mode court — puis de revenir dire
+« ouvertes ». Tout le reste transite par `SendMessage`, que les sessions Claude
 Code d'une même machine partagent sans configuration — un message de pair suffit à donner son
 premier tour à une session vierge.
 
@@ -108,8 +109,6 @@ tôt sans l'avoir revu dans la liste.
 **Démarrage.** Envoyer ensuite à chaque session son prompt, dans cet ordre :
 
 ```
-Invoque le skill `i-have-adhd` (outil Skill) et garde-le actif toute la session.
-
 Tu travailles dans le worktree `<chemin absolu>` (branche `<branche>`), dédié à l'issue #N.
 Je suis la session lead de la vague : ton interlocuteur pour la vérification avant merge de
 `cycle-pr` (Étape 7) — réponds toujours au `from` de ce message.
@@ -122,11 +121,13 @@ brief : commentaire de l'issue.
 autre PR du lot et ordre de merge, décision verrouillée à ne pas rouvrir>
 ```
 
-Les skills s'invoquent **par l'outil Skill, jamais par `/commande`** : un `/i-have-adhd` dans un
-message de pair n'est pas une saisie de l'utilisateur, la session peut ne pas le déclencher.
-`i-have-adhd` vient en tête parce que la préférence ne survit pas d'une session à l'autre ; la
-reconnaissance existe parce qu'un prompt envoyé à la mauvaise session travaillerait sur `main` ou
-sur le worktree d'une autre issue, sans rien signaler.
+Les skills s'invoquent **par l'outil Skill, jamais par `/commande`** : un `/nom` dans un message
+de pair n'est pas une saisie de l'utilisateur, la session peut ne pas le déclencher. Ne jamais
+inscrire dans le prompt un skill marqué `disable-model-invocation` (frontmatter à vérifier avant
+d'écrire « invoque X ») : l'outil Skill le refuse — c'est le cas d'`i-have-adhd`, que seule une
+saisie `/i-have-adhd` de l'utilisateur active, d'où la consigne donnée à l'ouverture des
+fenêtres. La reconnaissance existe parce qu'un prompt envoyé à la mauvaise session travaillerait
+sur `main` ou sur le worktree d'une autre issue, sans rien signaler.
 
 Chaque session est **indépendante** : elle déroule le briefing pré-PR, **ouvre sa PR draft**, puis
 le cycle de commit, l'auto-review, et sort du draft en fin de parcours. Ses questions à
