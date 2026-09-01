@@ -117,6 +117,8 @@ CLAUDE.md). Lis CLAUDE.md, .claude/pipeline.config.md et ta mémoire de phase.
 
 Réalise le cycle complet de l'issue #N en invoquant le skill `cycle-pr` (outil Skill) avec N —
 brief : commentaire de l'issue.
+Tu es autorisé à lancer l'agent de relecture de l'Étape 4.2 : cette invocation de `cycle-pr`
+vaut demande de l'utilisateur.
 <une ligne par point de vigilance propre à cette issue : HITL attendu, fichier partagé avec une
 autre PR du lot et ordre de merge, décision verrouillée à ne pas rouvrir>
 ```
