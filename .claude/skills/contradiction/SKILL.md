@@ -43,10 +43,22 @@ spécifie produit deux documents divergents — soit une contradiction de plus.
 
 ### 2. Mesurer la cascade
 
-Chercher les §§ qui **dépendent** de celui qu'on amende : `grep` sur les termes d'ancre de la
-décision dans tous les fichiers de rang égal ou inférieur, plus les renvois explicites
-(« voir §x », « cadrage §x »). Établir la liste **avant** de proposer quoi que ce soit — une
-cascade découverte à mi-parcours transforme un amendement validé en chantier non validé.
+Chercher les §§ qui **dépendent** de celui qu'on amende, par **deux recherches distinctes** :
+
+1. **Par ancre lexicale** — noms de symboles, routes, champs, valeurs : `grep` dans tous les
+   fichiers de rang égal ou inférieur, plus les renvois explicites (« voir §x », « cadrage §x »).
+   Fonctionne parce que ces chaînes sont stables.
+2. **Par affirmation** — pour toute phrase de **prose** amendée : énoncer *ce qu'elle affirme* en
+   une proposition vérifiable, puis chercher les §§ qui portent la **même affirmation sous
+   d'autres mots**, en partant de la carte des documents (miroirs déclarés, renvois) plutôt que du
+   texte. Un `grep` sur les mots du passage édité ne trouve que les copies, jamais les
+   paraphrases — c'est structurel.
+
+Établir la liste **avant** de proposer quoi que ce soit — une cascade découverte à mi-parcours
+transforme un amendement validé en chantier non validé. **Une cascade mesurée à zéro sur un
+amendement de prose doit nommer les documents parcourus**, pas seulement les termes cherchés : une
+cascade nulle non justifiée est le mode d'échec le plus coûteux de ce skill, parce qu'il est
+silencieux.
 
 Cas particulier, **rang 3** : toute valeur d'identité a un § miroir dans la spec UX (§1.2, §1.5,
 §1.6, §3.4.1, §4). Les deux bougent ensemble, ou aucun ne bouge.
@@ -81,7 +93,8 @@ quand la cascade est large. Une section close ne se rouvre pas parce que c'étai
 Dans l'ordre, sans en sauter :
 
 1. **Amender chaque §** exactement comme présenté. Ne jamais profiter de l'édition pour reformuler
-   autre chose.
+   autre chose. Dans les §§ alignés, **écrire la même formulation partout** : deux énoncés
+   identiques se retrouvent au grep suivant, deux paraphrases divergent à nouveau en silence.
 2. **Rang 1 uniquement — journaliser** : une ligne dans le journal des changements du cadrage
    (§18), au format du tableau existant `| Ancienne décision | Nouvelle décision |`.
 3. **Archiver le raisonnement** dans `documents/archive/` : la contradiction, les options, ce qui a
