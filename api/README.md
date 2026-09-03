@@ -78,11 +78,21 @@ n'y a ni fichier, ni rotation, ni second flux à déclarer ailleurs.
 ```
 
 Les clés sont **stables** : `timestamp` (ISO, UTC, suffixé `Z`), `level`, `logger`, `event`, plus
-ce que l'appelant a lié. Les valeurs sont échappées en ASCII — `partie créée` sort
-`partie créée` —, défaut de `json.dumps` que le rendu conserve : sans conséquence pour
-un agrégateur, moins lisible pour un œil humain devant `docker logs`. Elles le sont parce qu'une seule liste de processeurs sert aux deux
+ce que l'appelant a lié. Elles le sont parce qu'une **seule liste de processeurs** sert aux deux
 origines — la chaîne structlog et la `foreign_pre_chain` du formateur. Deux listes divergeraient au
 premier ajout, et la divergence ne se verrait que dans l'agrégateur.
+
+Un seul processeur échappe à cette liste, et c'est instructif : **le rendu de la pile**.
+`stack_info=True` doit produire la clé `stack` des deux côtés, mais `StackInfoRenderer` ne
+transporte pas la pile — il la **recalcule depuis sa propre frame**. Juste au moment de l'appel,
+faux au moment du formatage, où il capturerait la plomberie du handler à la place du point d'appel.
+La stdlib garde donc la sienne, qu'on renomme (`_rename_stack_info`) plutôt que de la recalculer.
+Un test couvre les deux origines.
+
+Les valeurs sont **échappées en ASCII**, défaut de `json.dumps` que le rendu conserve : tout
+caractère non ASCII part sous sa forme `\uXXXX`, donc l'événement « partie créée » sort avec ses
+deux `é` remplacés chacun par une séquence de six caractères. Sans conséquence pour un agrégateur,
+moins lisible pour un œil humain devant `docker logs`.
 
 **`configure_logging()` est appelée par les trois points d'entrée** : `create_app`, le worker et
 `env.py`. Deux propriétés en découlent, toutes deux éprouvées par `tests/test_logs.py` :
@@ -110,6 +120,14 @@ ligne. Rien à changer dans `core/logs.py`.
 
 Aucun `--log-config` n'est passé à uvicorn : ce serait une troisième déclaration à tenir à jour
 dans le Dockerfile, dans le compose et sur le poste.
+
+**Une exception, et une seule : le refus de démarrage.** Les trois points d'entrée lisent leur
+configuration **avant** d'ouvrir les journaux, donc une `ConfigurationError` sort en traceback
+Python sur stderr, pas en objet JSON sur stdout. L'ordre est délibéré : à ce moment-là la chaîne de
+rendu n'existe pas, et c'est ce qui garantit que la valeur fautive ne la traverse pas — ni elle, ni
+Sentry, qui s'y branchera. Le traceback ne porte que le nom du champ et la nature du défaut, jamais
+la valeur (`from None`, voir « Structure »). Un agrégateur qui n'indexe que du JSON ne verra donc
+pas cette ligne-là : c'est dans `docker logs` qu'on lit pourquoi un conteneur a refusé de démarrer.
 
 ### L'identifiant de requête
 

@@ -371,11 +371,19 @@ async def test_le_point_d_entree_lit_les_reglages_puis_ouvre_les_journaux_puis_d
     au vert (mesuré) : le worker partirait sans journaux JSON, alors que c'est précisément le
     processus dont cette issue existe pour formater les échecs de tâche.
 
-    Les trois symboles sont substitués dans l'espace de noms du **point d'entrée**, où ils ont été
+    **Les quatre** symboles sont substitués dans l'espace de noms du point d'entrée, où ils ont été
     importés : c'est le câblage qu'on éprouve, pas ce que chacun fait — chacun a ses propres tests.
+    Les trois arguments de `run` sont vérifiés, `stop_on_sigterm` compris : mesuré, sans son
+    assertion, un point d'entrée qui passerait un `asyncio.Event()` nu — donc un worker qui ne
+    s'arrêterait **jamais** sur `docker compose stop` — laissait ce test au vert.
+
+    Substituer `stop_on_sigterm` sert aussi à ne rien poser sur le processus : le vrai appelle
+    `signal.signal`, dont l'effet est global et n'est pas défait à la fin du test. Les tests d'arrêt
+    plus haut dans ce fichier prennent la même précaution, pour la même raison.
     """
     appels: list[str] = []
     recus: dict[str, object] = {}
+    arret_attendu = asyncio.Event()
 
     def reglages_espion() -> Settings:
         appels.append("réglages")
@@ -383,14 +391,17 @@ async def test_le_point_d_entree_lit_les_reglages_puis_ouvre_les_journaux_puis_d
 
     async def run_espion(taches: object, arret: object, reglages: object) -> None:
         appels.append("run")
-        recus["taches"], recus["reglages"] = taches, reglages
+        recus["taches"], recus["arret"], recus["reglages"] = taches, arret, reglages
 
     monkeypatch.setattr(point_d_entree, "load_settings", reglages_espion)
     monkeypatch.setattr(point_d_entree, "configure_logging", lambda: appels.append("journaux"))
+    monkeypatch.setattr(point_d_entree, "stop_on_sigterm", lambda: arret_attendu)
     monkeypatch.setattr(point_d_entree, "run", run_espion)
 
     await point_d_entree._main()
 
     assert appels == ["réglages", "journaux", "run"]
     assert recus["taches"] is TASKS
+    assert recus["arret"] is arret_attendu
     assert recus["reglages"] is settings
+    assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL

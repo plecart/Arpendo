@@ -7,6 +7,7 @@ ni second flux à déclarer quelque part.
 
 import logging
 import sys
+from collections.abc import MutableMapping
 
 import structlog
 from structlog.typing import Processor
@@ -36,7 +37,30 @@ listes divergeraient au premier ajout, et la divergence ne se verrait que dans l
 ``merge_contextvars`` en tête : c'est lui qui verse dans la ligne le contexte lié à la requête en
 cours — l'identifiant de requête, et demain la partie ou le compte. Un contexte de plus s'ajoute
 par un ``bind_contextvars`` dans le domaine qui le connaît, sans toucher à cette liste.
+
+Le rendu de la pile, lui, **ne peut pas** être partagé : voir ``_rename_stack_info``.
 """
+
+
+def _rename_stack_info(
+    _: object, __: str, event: MutableMapping[str, object]
+) -> MutableMapping[str, object]:
+    """Range sous ``stack`` la pile qu'une ligne de la stdlib porte sous ``stack_info``.
+
+    C'est le seul endroit où les deux origines ne peuvent pas partager le même processeur, et la
+    raison mérite d'être écrite. ``StackInfoRenderer`` de structlog ne *transporte* pas la pile :
+    il la **recalcule depuis sa propre frame** (vérifié dans ``structlog/processors.py``). Sur la
+    chaîne structlog il s'exécute au moment de l'appel, donc la pile est celle de l'appelant, la
+    bonne. Dans la ``foreign_pre_chain`` il s'exécuterait au moment du *formatage*, dans la pile du
+    handler : il jetterait la pile exacte que ``ProcessorFormatter`` vient de recopier depuis
+    l'enregistrement, pour la remplacer par une pile fausse.
+
+    D'où ce renommage à la place : la stdlib garde sa pile — celle du point d'appel réel — et les
+    deux origines rendent la même clé, ce que la promesse de clés stables exige.
+    """
+    if (pile := event.pop("stack_info", None)) is not None:
+        event["stack"] = pile
+    return event
 
 
 class JsonHandler(logging.StreamHandler):  # type: ignore[type-arg]
@@ -90,7 +114,11 @@ def configure_logging() -> None:
         return
 
     structlog.configure(
-        processors=[*SHARED_PROCESSORS, structlog.stdlib.ProcessorFormatter.wrap_for_formatter],
+        processors=[
+            *SHARED_PROCESSORS,
+            structlog.processors.StackInfoRenderer(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
     )
@@ -98,7 +126,7 @@ def configure_logging() -> None:
     handler = JsonHandler(sys.stdout)
     handler.setFormatter(
         structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=SHARED_PROCESSORS,
+            foreign_pre_chain=[*SHARED_PROCESSORS, _rename_stack_info],
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                 structlog.processors.JSONRenderer(),

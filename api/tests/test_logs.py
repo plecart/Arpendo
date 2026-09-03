@@ -65,6 +65,35 @@ def test_la_configuration_reprend_les_loggers_que_uvicorn_a_deja_poses(lignes: L
     assert ligne["logger"] == "uvicorn.access"
 
 
+def test_une_pile_demandee_est_rendue_sous_la_meme_cle_quelle_que_soit_l_origine(
+    lignes: Lignes,
+) -> None:
+    """`stack_info=True` doit rendre une **pile**, et la même clé des deux côtés.
+
+    C'est le seul endroit où les deux origines ne peuvent pas partager le même processeur :
+    `StackInfoRenderer` recalcule la pile depuis sa propre frame, ce qui est juste au moment de
+    l'appel et faux au moment du formatage. Sans ce test, deux régressions passent inaperçues —
+    le retirer de la chaîne structlog rend `"stack_info": true` au lieu de la pile (mesuré), et
+    le poser dans la `foreign_pre_chain` remplace la pile exacte de la stdlib par celle du
+    handler.
+    """
+    configure_logging()
+
+    structlog.get_logger("arpendo_api.essai").info("côté structlog", stack_info=True)
+    logging.getLogger("arpendo_api.essai").info("côté stdlib", stack_info=True)
+
+    piles = {ligne["event"]: ligne for ligne in lignes()}
+    for evenement in ("côté structlog", "côté stdlib"):
+        ligne = piles[evenement]
+        assert "stack_info" not in ligne, f"{evenement} : la clé n'a pas été unifiée"
+        frames = [f for f in str(ligne.get("stack", "")).splitlines() if f.startswith("  File ")]
+        assert frames, f"{evenement} : aucune pile rendue"
+        assert "test_logs.py" in frames[-1], (
+            f"{evenement} : la pile ne s'arrête pas au point d'appel mais à « {frames[-1]} » — "
+            "elle a été capturée au formatage, donc dans la plomberie du handler"
+        )
+
+
 def test_configurer_deux_fois_n_ajoute_pas_un_second_handler(lignes: Lignes) -> None:
     """Trois points d'entrée appellent cette fonction, et rien ne garantit qu'un seul le fera.
 
