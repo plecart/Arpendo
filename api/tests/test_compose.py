@@ -6,15 +6,11 @@ conteneurs `api` et `worker`, si bien qu'un bloc `environment` amputé laisse la
 verte et fait partir le conteneur en boucle de redémarrage. Mesuré.
 """
 
-from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
-from conftest import variables_requises
-
-COMPOSE = Path(__file__).resolve().parent.parent.parent / "infra" / "docker-compose.yml"
-"""Le compose local, en chemin absolu : la suite peut être lancée d'ailleurs que d'`api/`."""
+from conftest import COMPOSE, variables_requises
 
 IMAGE_DU_PAQUET = "arpendo-api:dev"
 """L'image que partagent les points d'entrée du paquet (cadrage §13.0 : un paquet, deux entrées).

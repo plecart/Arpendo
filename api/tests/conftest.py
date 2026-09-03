@@ -43,6 +43,16 @@ def ddl(element: CreateTable | CreateIndex) -> str:
     return str(element.compile(dialect=postgresql.dialect()))
 
 
+COMPOSE = Path(__file__).resolve().parent.parent.parent / "infra" / "docker-compose.yml"
+"""Le compose **local**, en chemin absolu — la suite peut être lancée d'ailleurs que d'`api/`.
+
+Celui-là et pas un autre : les deux invariants qui le lisent portent sur l'application qui tourne
+**sur le poste, pendant la suite** — la partition de sa configuration entre points d'entrée, et la
+séparation de sa base Valkey d'avec celle des tests. Un compose de production (#45) décrira une
+pile que personne ne lève ici.
+"""
+
+
 def variables_requises() -> set[str]:
     """Les variables d'environnement sans lesquelles `Settings` refuse de se construire.
 

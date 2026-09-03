@@ -6,18 +6,11 @@ configuration, où rien ne le protège.
 """
 
 import re
-from pathlib import Path
 from urllib.parse import urlsplit
 
+from conftest import COMPOSE
+
 from arpendo_api.core.settings import Settings
-
-COMPOSE = Path(__file__).resolve().parent.parent.parent / "infra" / "docker-compose.yml"
-"""Le compose **local**, en chemin absolu — la suite peut être lancée d'ailleurs que d'`api/`.
-
-Celui-là et pas un autre : l'invariant porte sur l'application qui tourne **sur le poste, pendant
-la suite**. Un compose de production (#45) décrira une pile que personne ne lève ici, et n'aura
-donc rien à dire sur cette séparation.
-"""
 
 VALKEY_URL_DU_COMPOSE = re.compile(r"VALKEY_URL:\s*(\S+)")
 """Chaque `VALKEY_URL` que le compose donne à un service.
