@@ -50,6 +50,20 @@ existe pour garantir. Ils lisent leurs coordonnées dans le `.env` de la racine,
 charge dans l'environnement des recettes. En CI, ce sont les conteneurs `services:` du workflow
 et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 
+> **La suite tourne sur la base Valkey 1, l'application sur la 0.** Ce n'est pas un détail de
+> confort : puisque `just test` exige `just up`, l'application tourne *toujours* pendant la suite,
+> et celle-ci efface toutes les clés `ratelimit:*` avant et après chaque test. Sur une base
+> partagée, elle effaçait les compteurs de l'application et lisait les siens — le healthcheck du
+> conteneur `api`, qui interroge `/health` toutes les dix secondes, suffisait à faire échouer un
+> test de fenêtre, rarement et de façon illisible. Deux bases logiques rendent le recouvrement
+> **impossible** plutôt qu'improbable : aucune commande Valkey ne les traverse.
+> `tests/test_isolation.py` garde la séparation, qui ne vit sinon que dans `.env` et `ci.yml`.
+>
+> Ce que cela **ne** couvre pas : deux suites lancées en parallèle depuis deux worktrees visent la
+> même base 1 et continuent de s'effacer mutuellement leurs compteurs — comme elles se suppriment
+> mutuellement leurs lignes de journal dans PostgreSQL. L'isolation entre suites concurrentes est
+> un chantier distinct de celui-ci.
+
 | Commande | Rôle |
 |---|---|
 | `just test-api` | suite complète avec couverture, seuil 85 % |
@@ -163,13 +177,6 @@ Chaque requête est comptée dans Valkey, par **dimension** et par clé, en fen�
 quota, l'api répond **429** avec un `Retry-After` valant ce qu'il reste de la fenêtre. Aucune route
 n'est exemptée : `/health` compte comme les autres, ses quelques sondes par minute étant
 négligeables devant le quota — et c'est ce qui en fait l'endpoint réel des tests.
-
-> **Les clients de test ne se présentent pas sous `127.0.0.1`.** Cette adresse a un vrai locataire
-> sur le poste : le healthcheck du conteneur `api` interroge `/health` toutes les dix secondes
-> depuis l'intérieur du conteneur, donc sous le même `ratelimit:ip:127.0.0.1`, dans le Valkey que
-> `just test` utilise — `just up` étant précisément requis pour lancer `just test`. La suite prend
-> donc une adresse de `192.0.2.0/24` (TEST-NET-1), dont le dernier octet vient du pid pour que deux
-> suites parallèles ne se marchent pas dessus non plus. Voir `PAIR_DE_TEST` dans `tests/conftest.py`.
 
 **Ajouter un axe de limitation, c'est ajouter une entrée à `DIMENSIONS`** (`core/rate_limit.py`),
 sur le modèle de `PROBES` : un nom, une fonction qui tire la clé de la requête, et deux fonctions

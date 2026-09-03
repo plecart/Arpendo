@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
-from conftest import PAIR_DE_TEST, VALKEY_SUR_UN_PORT_FERME, reglages_surcharges
+from conftest import VALKEY_SUR_UN_PORT_FERME, reglages_surcharges
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
@@ -28,8 +28,8 @@ PROXY = "10.0.0.9"
 EN_TETE_FACTICE = "x-cle-factice"
 """L'en-tête où la dimension inventée par les tests va chercher sa clé."""
 
-COMPTEUR_DU_CLIENT_DE_TEST = f"ratelimit:ip:{PAIR_DE_TEST[0]}"
-"""Le compteur de l'adresse sous laquelle la fixture `client` se présente."""
+COMPTEUR_LOCAL = "ratelimit:ip:127.0.0.1"
+"""Le compteur de l'adresse qu'`ASGITransport` donne à ses clients par défaut."""
 
 
 async def cles_de_limitation(valkey: Redis) -> list[str]:
@@ -47,10 +47,9 @@ async def _purger(valkey: Redis) -> None:
 async def valkey() -> AsyncIterator[Redis]:
     """Un Valkey vidé de ses compteurs avant et après CHAQUE test du module.
 
-    Tous les clients de la suite se présentent sous [PAIR_DE_TEST] : sans cette purge, elle
-    incrémenterait un même compteur d'une durée de vie d'une minute, et un test à petit quota
-    échouerait selon ce qui a tourné avant lui. La purge isole les tests **entre eux** ; l'adresse,
-    elle, isole la suite de tout autre client du même Valkey — les deux sont nécessaires.
+    `ASGITransport` donne `127.0.0.1` à tous ses clients par défaut : sans cette purge, toute la
+    suite incrémenterait un même `ratelimit:ip:127.0.0.1` d'une durée de vie d'une minute, et un
+    test à petit quota échouerait selon ce qui a tourné avant lui.
 
     Le client est construit sur l'environnement réel et non sur la fixture `settings` : un test
     qui décrit un Valkey injoignable doit quand même voir ses clés purgées.
@@ -104,30 +103,6 @@ async def test_la_fenetre_expire_et_le_quota_repart(client: AsyncClient) -> None
     assert (await client.get("/health")).status_code == 200
 
 
-async def test_le_client_de_test_ne_compte_pas_sous_l_adresse_d_un_vrai_client(
-    client: AsyncClient, valkey: Redis
-) -> None:
-    """La suite ne partage son compteur avec personne — surtout pas avec la boucle locale.
-
-    `ASGITransport` donne `127.0.0.1` par défaut. Or cette adresse a un vrai locataire dans
-    l'environnement de développement : le **healthcheck du conteneur `api`**, qui interroge
-    `/health` toutes les dix secondes depuis l'intérieur du conteneur, donc sous
-    `ratelimit:ip:127.0.0.1`, dans le Valkey que la suite utilise. Mesuré : avec le conteneur
-    levé, `test_la_fenetre_expire_et_le_quota_repart` échouait deux fois sur quatre ; sans lui,
-    zéro fois sur six.
-
-    Le défaut de mesure était invisible en CI, où aucun conteneur `api` n'existe — donc de ceux
-    qui usent la confiance dans la suite plutôt que de la faire échouer là où on regarde.
-
-    Ce test est le garde de la partition. Il rougit si quelqu'un rend son adresse au client de
-    test, et il ne dépend d'aucun temps qui passe.
-    """
-    await client.get("/health")
-
-    assert await cles_de_limitation(valkey) == [COMPTEUR_DU_CLIENT_DE_TEST]
-    assert COMPTEUR_DU_CLIENT_DE_TEST != "ratelimit:ip:127.0.0.1"
-
-
 async def test_la_fenetre_ne_se_decale_pas_a_chaque_requete(
     client: AsyncClient, valkey: Redis
 ) -> None:
@@ -139,14 +114,14 @@ async def test_la_fenetre_ne_se_decale_pas_a_chaque_requete(
     dans les deux cas ; il ne se voit qu'en regardant l'échéance elle-même ne pas bouger.
     """
     await client.get("/health")
-    echeance = await valkey.pttl(COMPTEUR_DU_CLIENT_DE_TEST)
+    echeance = await valkey.pttl(COMPTEUR_LOCAL)
 
     assert echeance > 0, "un compteur sans échéance ne se réinitialiserait jamais"
 
     await asyncio.sleep(0.05)
     await client.get("/health")
 
-    assert await valkey.pttl(COMPTEUR_DU_CLIENT_DE_TEST) < echeance
+    assert await valkey.pttl(COMPTEUR_LOCAL) < echeance
 
 
 @pytest.mark.parametrize("settings", [UNE_REQUETE_PAR_SECONDE], indirect=True)
@@ -227,7 +202,7 @@ async def test_une_cle_absente_ne_compte_sur_aucun_axe(
     for _ in range(3):
         assert (await client.get("/health")).status_code == 200
 
-    assert await cles_de_limitation(valkey) == [COMPTEUR_DU_CLIENT_DE_TEST]
+    assert await cles_de_limitation(valkey) == [COMPTEUR_LOCAL]
 
 
 @pytest.mark.parametrize("settings", [VALKEY_SUR_UN_PORT_FERME], indirect=True)
@@ -282,7 +257,7 @@ async def test_aucun_compteur_ne_survit_au_test_precedent(
 
     await client.get("/health")
 
-    assert await cles_de_limitation(valkey) == [COMPTEUR_DU_CLIENT_DE_TEST]
+    assert await cles_de_limitation(valkey) == [COMPTEUR_LOCAL]
 
 
 async def test_le_cycle_de_vie_traverse_le_limiteur_sans_etre_compte(

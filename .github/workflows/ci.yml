@@ -130,7 +130,11 @@ jobs:
         # dans les trois environnements, et aucune dépendance à l'ordre du résolveur.
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres
-          VALKEY_URL: redis://127.0.0.1:6379/0
+          # Base logique 1, comme sur le poste : une seule histoire dans les trois
+          # environnements. Ici le service `valkey` du job est jetable et n'a aucun autre
+          # client, mais faire diverger la CI du poste ferait du garde de
+          # `tests/test_isolation.py` une règle qui ne vaut que quelque part.
+          VALKEY_URL: redis://127.0.0.1:6379/1
           VALKEY_PASSWORD: valkey-de-ci
           RATE_LIMIT_IP_REQUESTS: "600"
           RATE_LIMIT_IP_WINDOW_SECONDS: "60"
