@@ -1,6 +1,6 @@
 ---
 name: repercussions
-description: À la clôture d'une issue (PR mergée), corrige la planification des autres issues ouvertes que cette clôture a rendues fausses — hypothèses caduques, contrats déplacés, périmètres déjà couverts, ordres de dépendance. Le livrable est une édition du corps des issues impactées, jamais un commentaire. À utiliser juste après un merge qui ferme une issue, ou « vérifie l'impact de cette issue sur les autres ».
+description: À la clôture d'une issue (PR mergée), corrige la planification des autres issues ouvertes que cette clôture a rendues fausses — hypothèses caduques, contrats déplacés, périmètres déjà couverts, ordres de dépendance. Le livrable est une édition de la spec des issues impactées — corps et brief d'agent — jamais un commentaire. À utiliser juste après un merge qui ferme une issue, ou « vérifie l'impact de cette issue sur les autres ».
 ---
 
 # Répercussions
@@ -16,9 +16,14 @@ skill est de les **corriger**, pour que leur description et leur découpage rede
 
 C'est la règle qui structure tout le reste.
 
-- **Le corps de l'issue est la spec.** S'il est devenu faux, on le **réécrit**. Un commentaire ne
-  remplace pas le texte faux — il s'assoit à côté, et l'issue continue d'affirmer une chose fausse
-  pendant qu'un commentaire plus bas la contredit.
+- **Le corps de l'issue est la spec ; le brief d'agent en est la copie exécutable** — c'est le
+  brief que `cycle-pr` lit comme contrat à son briefing. Si l'un ou l'autre est devenu faux, on le
+  **réécrit**. Un commentaire ne remplace pas le texte faux — il s'assoit à côté, et l'issue
+  continue d'affirmer une chose fausse pendant qu'un commentaire plus bas la contredit. Corriger le
+  corps en laissant le brief intact a le même effet : le contrat qu'on exécute reste faux. (Mesuré
+  le 3 septembre 2026 : quatre réconciliations successives consignées au corps d'une issue, dont
+  une disant « pas celui cité dans le brief », sans qu'aucune n'atteigne le brief — repasse manuelle
+  complète requise avant de pouvoir développer.)
 - **Ce skill ne commente jamais une issue.** La trace du *pourquoi* tient en une ligne dans le
   « Journal de spec » du corps ; l'historique d'édition GitHub garde le détail ; le récapitulatif
   complet reste dans la conversation, pour le mainteneur.
@@ -125,12 +130,15 @@ Classer chaque issue impactée **dormante** ou **en vol**. Le traitement diffèr
 
 ### 3. Confronter — deux citations obligatoires
 
-Pour chaque issue examinée, lire corps + brief d'agent, et chercher ce qui est devenu **faux**.
+Pour chaque issue examinée, lire corps + brief d'agent, et chercher ce qui est devenu **faux**. La
+confrontation porte sur les **deux supports** : une ligne fausse du brief est une répercussion au
+même titre qu'une ligne fausse du corps — et la même affirmation fausse vit souvent dans les deux.
 
-Une répercussion n'est retenue que si l'on peut produire **les deux citations** :
+Une répercussion n'est retenue que si l'on peut produire **les deux citations**, la première
+nommant son support :
 
 ```
-Citation issue : « <la ligne exacte du corps qui est devenue fausse> »
+Citation issue : « <la ligne exacte devenue fausse> » (corps | brief | les deux)
 Citation delta : « <le fait exact du delta réel qui la falsifie> »
 ```
 
@@ -173,7 +181,8 @@ Sous `## 🔭 Répercussions`, **uniquement les issues impactées**, groupées p
 ```
 
 Toujours afficher le marqueur **[dormante]** ou **[EN VOL → PR #n]** : c'est lui qui dit au
-mainteneur si une session est en train de partir dans le mur.
+mainteneur si une session est en train de partir dans le mur. Chaque bloc de correction nomme son
+support — « dans le corps », « dans le brief », ou les deux blocs l'un sous l'autre.
 
 Montrer les **lignes** avant/après, pas une prose qui décrit le changement : un diff se juge en
 deux secondes, un paragraphe demande de raisonner.
@@ -185,20 +194,31 @@ rend fausse la planification d'aucune issue examinée. » — et s'arrêter là.
 
 Après le « go » (global, ou issue par issue si le mainteneur préfère trier).
 
-#### Issues dormantes → éditer le corps
+#### Issues dormantes → éditer la spec, sur ses deux supports
 
 **Éditer le corps** de chaque issue retenue, en appliquant exactement le diff présenté. Ne jamais
 profiter de l'édition pour reformuler autre chose.
 
-**Relire le corps juste avant d'écrire.** S'il a changé depuis la présentation du diff — une autre
-passe de répercussions a pu passer entre-temps, ou le mainteneur a édité — ne pas écrire par-dessus :
-re-présenter le diff recalculé. Deux merges rapprochés font tourner deux passes qui peuvent viser
-la même issue.
+**Amender le brief d'agent dans le même geste** quand la ligne fausse y figure aussi : édition en
+place du commentaire de brief (`gh api -X PATCH repos/<owner>/<repo>/issues/comments/<id> -F
+body=@fichier` — l'id vient de `gh api repos/<owner>/<repo>/issues/<n>/comments`), jamais un second
+commentaire qui laisserait deux briefs concurrents. Le journal de spec vit dans le corps, mais le
+contrat que `cycle-pr` exécute est le brief : un correctif appliqué au seul corps laisse le contrat
+faux.
+
+**Vérification avant de clore la passe** sur une issue portant un brief : re-télécharger le brief
+republié et y chercher chaque « citation issue » marquée `brief` — **zéro occurrence attendue**.
+Une citation encore présente signale un support oublié, pas une passe terminée.
+
+**Relire le corps — et le brief — juste avant d'écrire.** S'ils ont changé depuis la présentation
+du diff — une autre passe de répercussions a pu passer entre-temps, ou le mainteneur a édité — ne
+pas écrire par-dessus : re-présenter le diff recalculé. Deux merges rapprochés font tourner deux
+passes qui peuvent viser la même issue.
 
 #### Issues en vol → signaler sur la PR, ne rien éditer
 
-Pour une issue en vol, **le corps reste intact** et **aucun label ne change**. La session qui la
-développe a déjà lu ce corps ; le modifier ne l'atteindrait pas, et la repasser en
+Pour une issue en vol, **le corps et le brief restent intacts** et **aucun label ne change**. La
+session qui la développe les a déjà lus ; les modifier ne l'atteindrait pas, et la repasser en
 `needs-interrogation` alors qu'une PR est ouverte n'a pas de sens.
 
 Le signalement va **en commentaire sur la PR ouverte** — c'est la seule sortie GitHub commentée de
@@ -295,8 +315,9 @@ apprend à ignorer — c'est précisément ce qu'on cherche à éviter en ne la 
 
 ## Les 5 idées à retenir
 
-1. **Le livrable est un corps d'issue corrigé.** Aucun commentaire d'issue — un commentaire laisse
-   le texte faux en place.
+1. **Le livrable est une spec corrigée — corps et brief d'agent.** Aucun commentaire d'issue — un
+   commentaire laisse le texte faux en place, et un corps corrigé sans son brief aussi : c'est le
+   brief que `cycle-pr` exécute.
 2. **Deux citations ou rien.** La ligne devenue fausse et le fait qui la falsifie. Sans les deux,
    la répercussion n'existe pas.
 3. **Dormante ou en vol.** On réécrit la spec d'une issue que personne ne développe ; on **prévient

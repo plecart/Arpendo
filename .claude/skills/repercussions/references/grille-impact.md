@@ -1,13 +1,14 @@
 # Grille d'impact
 
 Les cinq types de répercussion qu'une issue fermée peut avoir sur la **planification** d'une issue
-ouverte. Pour chacun : le **signal** qui le révèle et la **correction type** à apporter au corps de
-l'issue. Une même issue peut en cumuler plusieurs.
+ouverte. Pour chacun : le **signal** qui le révèle et la **correction type** à apporter à la spec
+de l'issue — son corps, et son brief d'agent quand la ligne fausse y figure aussi. Une même issue
+peut en cumuler plusieurs.
 
-Chaque type ci-dessous se conclut par une **édition du corps**. C'est la définition d'une
+Chaque type ci-dessous se conclut par une **édition de la spec**. C'est la définition d'une
 répercussion : si aucune édition n'est formulable, il n'y a rien à signaler.
 
-| Type | Signal (dans le delta réel) | Correction type dans le corps |
+| Type | Signal (dans le delta réel) | Correction type dans la spec |
 |---|---|---|
 | **Hypothèse caduque** | L'issue décrit un état du code (module, flux, donnée) que la PR a changé. | Réécrire le passage pour décrire l'état actuel. Si l'hypothèse était structurante → retour en `needs-interrogation`. |
 | **Contrat déplacé** | Une signature, un format de payload, un nom public ou une route que l'issue référence a bougé. | Remplacer les références par le nouveau contrat, avec le renvoi vers l'issue fermée. |

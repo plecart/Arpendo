@@ -14,6 +14,15 @@ L'issue peut rester en `ready-for-agent` pendant des jours ou des semaines. Le c
 - **À éviter** : faire référence à des numéros de ligne
 - **À éviter** : supposer que la structure d'implémentation actuelle restera la même
 
+### Un brief n'est jamais contredit en silence
+
+Le brief est le contrat que `cycle-pr` exécute — le corps de l'issue et sa discussion ne sont que
+le contexte. Quand une réconciliation post-merge (`repercussions`), un amendement de spec ou une
+décision falsifie une ligne du brief, le brief est **amendé dans le même geste** : édition en place
+du commentaire existant, jamais un second brief concurrent, jamais un correctif qui ne toucherait
+que le corps de l'issue. Une entrée de journal qui dit « pas celui cité dans le brief » sans que le
+brief change laisse deux specs en contradiction — et c'est la fausse qu'on exécute.
+
 ### Comportemental, pas procédural
 
 Décris **ce que** le système doit faire, pas **comment** l'implémenter. L'agent explorera le code à neuf et prendra ses propres décisions d'implémentation.

@@ -68,6 +68,11 @@ peut-être bougé. Confronter le plan à la réalité **actuelle** du code :
 - **Pour chaque décision verrouillée et chaque fichier listé**, vérifier qu'elle tient toujours :
   l'interface existe-t-elle encore sous cette forme ? une PR récente a-t-elle déjà fait une partie
   du travail, déplacé un module, changé un contrat, rendu une hypothèse caduque ?
+- **Confronter le brief au « Journal de spec » du corps de l'issue** : toute entrée du journal
+  postérieure à la **dernière édition** du brief (date de modification du commentaire, pas sa date
+  de création) se lit comme un erratum potentiel — une réconciliation a pu ne pas atteindre le
+  brief. En cas d'écart entre les deux, le journal (adossé aux sources de vérité) l'emporte, et
+  l'écart se signale dans le briefing.
 - **Vérifier que la suite du dev tient** : ce que cette PR prépare pour les issues suivantes est-il
   toujours cohérent, ou l'ordre / le découpage doit-il être revu ?
 - **Vérifier la faisabilité de l'ordre des commits** : pour chaque commit prévu, ce dont ses tests
@@ -502,8 +507,10 @@ Le label de catégorie (`bug` / `enhancement`) et le thème restent.
 Puis **cocher les critères d'acceptation soldés**, dans le **corps** de l'issue *et* dans le
 commentaire de **brief** (`- [ ]` → `- [x]`) : ils ont été vérifiés à l'Étape 7, il ne reste qu'à
 l'enregistrer là où un lecteur le cherche. Un critère atteint sous une forme **amendée** se coche
-quand même — l'amendement est tracé au journal de spec du corps. Un brief est un artefact daté :
-on coche ses cases, on ne réécrit pas son texte.
+quand même — l'amendement est tracé au journal de spec du corps. Le brief d'une issue **close** est
+un artefact daté : on coche ses cases, on ne réécrit pas son texte. (Tant que l'issue était
+ouverte, c'était l'inverse : une réconciliation `repercussions` qui falsifiait une de ses lignes
+l'amendait — la clôture est ce qui fige le brief.)
 
 Si la PR a porté des **preuves visuelles**, supprimer enfin la branche orpheline promise à
 l'Étape 5 : `git push origin --delete captures/pr-<n>`.
