@@ -417,8 +417,16 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
 **Les réglages sensibles sont des `Secret`** — le mot de passe Valkey et l'URL de base, qui porte
 celui de PostgreSQL. Les afficher, les journaliser ou les sérialiser rend `SecretStr('**********')`
 et rien d'autre ; la valeur ne sort que par un `.get_secret_value()` explicite, dans la seule
-fabrique qui la consomme. Un futur secret — clé de session, DSN Sentry, jeton FCM — se déclare
-avec le même alias.
+fabrique qui la consomme. Un futur secret — clé de session, jeton FCM — se déclare avec le même
+alias.
+
+**Le DSN Sentry est la seule exception, et elle est instructive** : il se déclare `OptionalSecret`,
+pas `Secret`. `Secret` refuse le blanc, parce que partout ailleurs une variable posée mais vide est
+une configuration trouée qu'il vaut mieux découvrir au démarrage. Pour le DSN, « vide » est au
+contraire une **décision de l'exploitant** — Sentry désactivé — et le poste comme la CI tournent
+ainsi. `OptionalSecret` ramène donc le blanc à `None` par un validateur `before`, sans jamais
+rejeter. Sans lui, `SENTRY_DSN=` donnerait `SecretStr('')` : une valeur présente et fausse, et une
+branche « désactivé » qui ne se déclencherait jamais.
 
 **Les trois hôtes du paquet lisent leur configuration par `load_settings()`**, jamais par
 `Settings()` — l'api, le worker et l'environnement des migrations. La différence n'est visible que
