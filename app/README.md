@@ -277,6 +277,17 @@ contrôleur qu'on rembobine applique un **second** miroir temporel, ce qui inver
   que le rembourrage y a déjà été appliqué *et* retiré du `MediaQuery`. Une feuille s'affiche par
   le `Navigator`, donc hors de la pile, et reçoit bien les deux.
 
+### Le bloc de marque
+
+`ui/core/marque/bloc_de_marque.dart` — signe, logotype, accroche (§4), la même composition pour
+les trois écrans sans carte : attente (§2.1), Connexion (§4), Accueil (§5). Le signe est
+`assets/signe-arpendo.svg` (copié depuis `documents/assets/`, source unique), teinté
+`ColorFilter.mode(primary, srcIn)` — les opacités des courbes survivent, le mode sombre est
+gratuit. Le logotype est du **texte Roboto w500** (§1.2, amendé le 3 septembre 2026) : son corps
+se dérive de la hauteur de capitale de 24 dp du §4 par le ratio lu dans la fonte
+(`sCapHeight/unitsPerEm` = 1456/2048), il ne se pose pas. Le nom vit dans l'ARB (`marqueNom`,
+intraduisible) parce que le garde `fr-XA` exige que tout texte rendu en vienne.
+
 ### Le bouton pleine largeur
 
 `ui/core/boutons/bouton_pleine_largeur.dart` est le bouton principal des écrans sans carte

@@ -2,6 +2,7 @@ import 'package:arpendo/domain/bandeau/lignes.dart';
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/bandeau/bandeau.dart';
 import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
+import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -25,7 +26,9 @@ Widget accroche(BuildContext context) =>
 /// conteneur trop petit — est énuméré dans `app/README.md`, section « Ce que
 /// prouve le test `fr-XA` », qui en est la source unique.
 final composants = <String, WidgetBuilder>{
-  "l'accroche de la marque": accroche,
+  // Le bloc entier — signe, logotype, accroche — plutôt que l'accroche seule
+  // qu'il remplace ici : c'est en composition que la largeur contraint.
+  'le bloc de marque': (_) => const BlocDeMarque(),
   // Les deux lignes que #43 livre, et les deux formes du bandeau : sans action,
   // puis avec ses deux boutons — c'est la seconde qui est contrainte, puisque
   // les libellés s'allongent de 30 % eux aussi.
