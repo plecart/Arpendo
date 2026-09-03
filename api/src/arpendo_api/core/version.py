@@ -41,9 +41,8 @@ async def version(request: Request) -> VersionThresholds:
     elle ne peut pas en exiger une. Un client obsolète doit apprendre qu'il l'est **sans jamais
     taper une api qu'il ne comprend plus**.
 
-    À la racine et non sous ``/v1``, pour la même raison que ``/health`` : un client qui doit
-    apprendre qu'il est trop vieux pour parler à ``/v1`` ne peut pas être obligé de connaître
-    ``/v1`` pour le demander.
+    À la racine et non sous ``/v1`` — le pourquoi est dans ``create_app``, avec la carte des
+    routeurs.
 
     Les seuils sortent des réglages, validés une fois au démarrage — ``min <= recommended`` y est
     déjà garanti, cette route n'a donc rien à revérifier. Aucun cache, aucun sondage : l'app

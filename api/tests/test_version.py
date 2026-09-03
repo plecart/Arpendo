@@ -57,4 +57,8 @@ async def test_version_ne_lit_pas_l_en_tete_de_version_du_client(
     obsolete = await client.get("/version", headers={"X-Client-Version": "0.0.1+1"})
     recente = await client.get("/version", headers={"X-Client-Version": "9.9.9+999"})
 
-    assert sans_en_tete.json() == obsolete.json() == recente.json()
+    # Les seuils attendus, et pas seulement l'égalité des trois réponses : trois erreurs
+    # identiques — trois 404 si la route disparaissait — satisferaient une simple égalité, et ce
+    # test resterait vert en ne mesurant plus rien.
+    attendu = {"min_build": 12, "recommended_build": 34}
+    assert [sans_en_tete.json(), obsolete.json(), recente.json()] == [attendu] * 3
