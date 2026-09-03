@@ -27,7 +27,9 @@ class BoutonPleineLargeur extends StatefulWidget {
   /// (garde `fr-XA`).
   final String libelle;
 
-  /// L'action du tap ; `null` désactive le bouton, rendu par le thème.
+  /// L'action du tap ; `null` désactive le bouton, dont l'apparence vient
+  /// alors des défauts Material (`onSurface` à 12 %), que le thème laisse
+  /// passer exprès.
   final VoidCallback? onPressed;
 
   @override

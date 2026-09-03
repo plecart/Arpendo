@@ -69,14 +69,27 @@ ThemeData _construire(_Palette palette) {
       style: ButtonStyle(
         // L'appui est le jeton `accent-pressed`, dont l'inversion clair/sombre
         // est déjà encodée (§1.5) — pas un voile Material par-dessus.
-        backgroundColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.pressed)
+        //
+        // La fusion `widget ?? thème ?? défaut` se joue sur la **valeur
+        // résolue**, état par état (`button_style_button.dart`) : chaque
+        // résolveur ne répond que pour les états qu'il décide, et rend `null`
+        // partout ailleurs pour laisser vivre le défaut Material — dont le
+        // fond `onSurface` à 12 % du bouton désactivé, sans lequel un bouton
+        // inactif resterait visuellement actif.
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) return null;
+          return states.contains(WidgetState.pressed)
               ? palette.accentPressed
-              : palette.accent,
+              : palette.accent;
+        }),
+        // Seule la surbrillance d'appui est remplacée par `accent-pressed` ;
+        // un transparent sur tous les états éteindrait aussi le focus et le
+        // hover (`filled_button.dart` : « pressed/focused/hovered highlights
+        // are effectively defeated »).
+        overlayColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.pressed) ? Colors.transparent : null,
         ),
-        // Sans quoi le state layer Material assombrirait par-dessus
-        // `accent-pressed` : le jeton EST déjà l'état pressé.
-        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
         // 56 dp de haut — la hauteur du bouton principal, partout où il
         // apparaît (§4, §11.2). La largeur garde le plancher Material : c'est
         // la mise en page qui décide d'une pleine largeur, pas le thème.

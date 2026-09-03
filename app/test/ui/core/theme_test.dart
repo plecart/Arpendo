@@ -141,7 +141,71 @@ void main() {
           );
         },
       );
+
+      testWidgets(
+        'FilledButton désactivé : le thème s\'efface devant Material — $brightness',
+        (tester) async {
+          final theme = themeArpendo(brightness);
+          final style = theme.filledButtonTheme.style!;
+
+          expect(
+            style.backgroundColor!.resolve({WidgetState.disabled}),
+            isNull,
+            reason:
+                'la fusion widget ?? thème ?? défaut se fait sur la VALEUR '
+                'RÉSOLUE (button_style_button.dart) : une couleur répondue ici '
+                'masquerait le défaut Material, et un bouton désactivé '
+                'resterait visuellement actif',
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: theme,
+              home: const Scaffold(
+                body: Center(
+                  child: FilledButton(onPressed: null, child: Text('Go')),
+                ),
+              ),
+            ),
+          );
+          final materiau = tester.widget<Material>(
+            find
+                .descendant(
+                  of: find.byType(FilledButton),
+                  matching: find.byType(Material),
+                )
+                .first,
+          );
+          // Le défaut est demandé au bouton lui-même plutôt que recopié : le
+          // test prouve « le défaut s'applique », pas une valeur interne.
+          final bouton = tester.widget<FilledButton>(find.byType(FilledButton));
+          final contexte = tester.element(find.byType(FilledButton));
+          expect(
+            materiau.color,
+            bouton.defaultStyleOf(contexte).backgroundColor!.resolve({
+              WidgetState.disabled,
+            }),
+            reason: 'le défaut Material 3 d\'un bouton rempli désactivé',
+          );
+        },
+      );
     }
+
+    test('FilledButton : le focus et le hover gardent leur state layer', () {
+      final style = themeArpendo(Brightness.light).filledButtonTheme.style!;
+
+      for (final etat in [WidgetState.focused, WidgetState.hovered]) {
+        expect(
+          style.overlayColor!.resolve({etat}),
+          isNull,
+          reason:
+              'un overlay transparent sur TOUS les états éteindrait aussi '
+              'l\'anneau de focus (filled_button.dart : « pressed/focused/'
+              'hovered highlights are effectively defeated ») — seule la '
+              'surbrillance d\'appui est remplacée par `accent-pressed`',
+        );
+      }
+    });
 
     test('FilledButton : hauteur 56 dp et rayon md déclarés par le thème', () {
       final style = themeArpendo(Brightness.light).filledButtonTheme.style!;
