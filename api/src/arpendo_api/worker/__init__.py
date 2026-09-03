@@ -18,9 +18,10 @@ from arpendo_api.core.settings import Settings, load_settings
 _journal = logging.getLogger(__name__)
 """Le journal du worker.
 
-Aucun handler n'est configuré — c'est le sujet de #42 — mais la stdlib en pose un de dernier
-recours qui écrit sur ``stderr`` à partir de ``WARNING``. Un échec de tâche est donc visible dans
-``docker compose logs worker`` dès aujourd'hui, et #42 le formatera sans qu'une ligne change ici.
+Un ``logging.Logger`` de la stdlib, et non un logger structlog : c'est ``configure_logging`` qui,
+depuis le point d'entrée, branche la racine sur le rendu JSON — un échec de tâche en ressort donc
+formaté comme le reste, sans qu'une ligne change ici. Le nom du module devient la clé ``logger``
+de la ligne.
 """
 
 Task = Callable[[Resources], Awaitable[None]]

@@ -66,6 +66,49 @@ silence. Un test qui veut un environnement dégradé surcharge `settings` par pa
 indirecte et hérite du reste de la chaîne, comme le fait le test « Valkey injoignable ».
 Les tests asynchrones n'ont besoin d'aucun marqueur (`asyncio_mode = "auto"`).
 
+## Journaux
+
+**Un objet JSON par ligne, sur la sortie standard, pour tous les loggers du processus** — le nôtre,
+celui d'uvicorn, celui d'Alembic, ceux des bibliothèques. Docker collecte la sortie standard : il
+n'y a ni fichier, ni rotation, ni second flux à déclarer ailleurs.
+
+```json
+{"event": "Running upgrade -> ada3c4690df8", "logger": "alembic.runtime.migration",
+ "level": "info", "timestamp": "2026-09-03T08:41:35.751365Z"}
+```
+
+Les clés sont **stables** : `timestamp` (ISO, UTC, suffixé `Z`), `level`, `logger`, `event`, plus
+ce que l'appelant a lié. Elles le sont parce qu'une seule liste de processeurs sert aux deux
+origines — la chaîne structlog et la `foreign_pre_chain` du formateur. Deux listes divergeraient au
+premier ajout, et la divergence ne se verrait que dans l'agrégateur.
+
+**`configure_logging()` est appelée par les trois points d'entrée** : `create_app`, le worker et
+`env.py`. Deux propriétés en découlent, toutes deux éprouvées par `tests/test_logs.py` :
+
+- **idempotente** — le second appel ne fait rien. Sans quoi chaque ligne serait doublée, ce qui ne
+  casse rien de visible et se paie en volume d'agrégation ;
+- **elle n'enlève le handler de personne** — un `basicConfig(force=True)` vide le handler de
+  capture de pytest (mesuré). Elle ajoute le sien, elle ne fait pas le ménage. Les loggers
+  d'uvicorn font seule exception : lui les configure **avant** d'appeler la fabrique, et les
+  laisser en place mettrait deux formats sur la même sortie.
+
+**Journaliser depuis le code du paquet** — un logger de la stdlib suffit, il passe par le même
+rendu :
+
+```python
+import structlog
+
+_journal = structlog.get_logger(__name__)
+_journal.info("partie créée", hexagones=3)
+```
+
+**Ajouter un contexte à toutes les lignes d'une unité de travail** — un `bind_contextvars` dans le
+domaine qui le connaît ; `merge_contextvars` est en tête de la chaîne et le verse dans chaque
+ligne. Rien à changer dans `core/logs.py`.
+
+Aucun `--log-config` n'est passé à uvicorn : ce serait une troisième déclaration à tenir à jour
+dans le Dockerfile, dans le compose et sur le poste.
+
 ## Sessions
 
 Une route qui a besoin de la base annote son paramètre — l'injection fait le reste :
@@ -180,8 +223,9 @@ pas. Une clé `None` veut dire « cet axe ne s'applique pas à cette requête »
 de Valkey est indolore par conception, et des compteurs remis à zéro sont sans conséquence). Sont
 attrapées `ConnectionError` et `TimeoutError` de redis-py — sœurs, l'une n'hérite pas de l'autre,
 il faut donc nommer les deux — **et tout ce qui hérite de la première**, dont
-`AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. Aucune trace dans les
-journaux jusqu'à #42, mais `/health` le dit en répondant 503. Assumé : rejeter chaque requête sur
+`AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. La branche est muette
+par construction — aucune trace, pas même en JSON — mais `/health` le dit en répondant 503. Assumé :
+rejeter chaque requête sur
 une erreur de configuration ferait une panne totale là où l'on a un service dégradé et signalé.
 Attraper `Exception`, en revanche, désarmerait la limitation au premier bug du limiteur au lieu de
 le faire sortir en 500.
@@ -238,7 +282,7 @@ un chemin POSIX absolu (`/tmp/…`). C'est voulu — ce chemin est le seul qui r
 quand #45 posera un système de fichiers en lecture seule.
 
 **Un tour de tâche qui échoue ne fait pas tomber le worker** : le tour est perdu, l'erreur part sur
-le journal de la stdlib (que #42 configurera) en nommant la tâche fautive, et le tour suivant
+le journal de la stdlib — donc en JSON, comme le reste — en nommant la tâche fautive, et le suivant
 repart. Plusieurs joueurs dépendent de ce processus — l'échec d'une purge sur un hoquet de la base
 est un incident local, pas une raison de priver tout le monde des autres tâches.
 
@@ -284,10 +328,11 @@ d'`alembic.ini` : l'URL vient de `Settings`, comme pour l'application. Les scrip
 | L'appliquer sur le poste | `just migrate` |
 | L'appliquer dans un conteneur éphémère | `docker compose -f infra/docker-compose.yml --env-file .env run --rm api alembic upgrade head` — c'est ce que la CI de déploiement déclenchera (cadrage §13.9 règle 3) |
 
-**`just migrate` ne dit rien quand il travaille** : les messages « Running upgrade … » passent par
-le logger d'Alembic, qu'aucun handler ne configure — le logging est le sujet de #42, et un
-`alembic.ini` n'existe pas ici. **Le code de retour est le signal** ; pour voir l'état,
-`just migrate && cd api && uv run alembic current`.
+**`just migrate` dit ce qu'il fait** : `env.py` appelle `configure_logging()` comme les deux autres
+points d'entrée, donc les messages « Running upgrade … » du logger d'Alembic sortent en JSON, sur la
+même sortie et avec les mêmes clés que le reste. C'est la raison pour laquelle le troisième appel
+existe — sans lui, la commande resterait muette et seul son code de retour parlerait. Pour l'état
+courant sans rien appliquer : `cd api && uv run alembic current`.
 
 **Jamais au démarrage** : rien dans `main.py` n'appelle Alembic. Une migration se joue une fois,
 hors du cycle de vie des conteneurs.

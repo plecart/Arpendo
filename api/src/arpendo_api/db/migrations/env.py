@@ -23,6 +23,7 @@ from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from arpendo_api.core import journal  # noqa: F401 — enregistre `domain_event` dans Base.metadata
+from arpendo_api.core.logs import configure_logging
 from arpendo_api.core.settings import load_settings
 from arpendo_api.db.base import Base
 from arpendo_api.db.engine import create_engine
@@ -58,4 +59,6 @@ async def _run_async(engine: AsyncEngine) -> None:
         await engine.dispose()
 
 
-asyncio.run(_run_async(create_engine(load_settings())))
+settings = load_settings()
+configure_logging()
+asyncio.run(_run_async(create_engine(settings)))

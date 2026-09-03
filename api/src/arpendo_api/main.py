@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from arpendo_api.core import health
+from arpendo_api.core.logs import configure_logging
 from arpendo_api.core.rate_limit import RateLimitMiddleware
 from arpendo_api.core.resources import open_resources
 from arpendo_api.core.settings import Settings, load_settings
@@ -40,6 +41,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ses propres connexions, ce qui donne aux tests un état vierge.
     Point d'entrée ASGI : ``uvicorn arpendo_api.main:create_app --factory``.
 
+    C'est aussi le seul endroit où les journaux de l'hôte HTTP peuvent être configurés : uvicorn
+    pose les siens **avant** d'appeler cette fabrique, et ``configure_logging`` les reprend. Elle
+    est idempotente, donc la construire plusieurs fois — ce que font les tests — n'installe qu'un
+    handler.
+
     Les routeurs des domaines métier s'ajoutent ici sous le préfixe ``/v1`` ; ``/health`` reste
     à la racine parce qu'il s'adresse aux sondes (reverse proxy, moniteur d'uptime), pas aux
     clients.
@@ -60,6 +66,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """
     app = FastAPI(title="Arpendo", lifespan=_lifespan)
     app.state.settings = settings if settings is not None else load_settings()
+    configure_logging()
     app.add_middleware(RateLimitMiddleware)
     app.include_router(health.router)
     return app

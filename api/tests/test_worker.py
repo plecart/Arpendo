@@ -114,8 +114,9 @@ async def test_une_tache_qui_leve_ne_fait_tomber_ni_sa_boucle_ni_les_autres(
     incident local, pas une raison d'arrêter le worker. La tâche fautive reprend au tour
     suivant, les autres n'en savent rien.
 
-    L'erreur n'est pas pour autant avalée — elle part sur le journal de la stdlib, que #42
-    configurera. Ce point est **assuré par une assertion** et non par une intention : la garde
+    L'erreur n'est pas pour autant avalée — elle part sur le journal de la stdlib, que
+    `configure_logging` rend en JSON depuis le point d'entrée du worker. Ce point est **assuré par
+    une assertion** et non par une intention : la garde
     supprime l'échec du plan de contrôle, donc cette trace est la seule chose qui reste. Mesuré —
     un `except Exception: pass` laisserait tout le reste de ce test au vert, et une tâche
     définitivement cassée boucherait alors dans le vide en silence. La trace **nomme la tâche** :
