@@ -10,6 +10,7 @@ dependencies = [
     "pydantic-settings>=2",
     "redis>=8.1.0",
     "sqlalchemy[asyncio]>=2.0.52",
+    "structlog>=26.1.0",
     "uuid6>=2025.0.1",
     "uvicorn>=0.52.4",
 ]
@@ -55,7 +56,8 @@ dev = [
 
 [tool.alembic]
 # Sans `alembic.ini` : l'URL de la base vient de `Settings` (cadrage §13.9 règle 5) et le logging
-# est le sujet de #42 — l'ini n'aurait rien porté. `%(here)s` est le dossier de ce fichier :
+# est configuré par `configure_logging()`, appelée depuis `env.py` — l'ini n'aurait rien porté que
+# le paquet ne pose déjà, et l'aurait posé deux fois. `%(here)s` est le dossier de ce fichier :
 # `api/` sur le poste, `/app` dans le conteneur, où les scripts entrent par le `COPY src` du
 # Dockerfile. Même commande partout : `alembic upgrade head`.
 script_location = "%(here)s/src/arpendo_api/db/migrations"

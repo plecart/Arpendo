@@ -18,6 +18,7 @@ from arpendo_api.core.bus import subscribe
 from arpendo_api.core.resources import Resources
 from arpendo_api.core.settings import Settings
 from arpendo_api.worker import TASKS, run, stop_on_sigterm
+from arpendo_api.worker import __main__ as point_d_entree
 
 RESSOURCES_INUTILISEES = cast(Resources, None)
 """Ce que reçoit une tâche qui n'a besoin de rien.
@@ -114,9 +115,10 @@ async def test_une_tache_qui_leve_ne_fait_tomber_ni_sa_boucle_ni_les_autres(
     incident local, pas une raison d'arrêter le worker. La tâche fautive reprend au tour
     suivant, les autres n'en savent rien.
 
-    L'erreur n'est pas pour autant avalée — elle part sur le journal de la stdlib, que #42
-    configurera. Ce point est **assuré par une assertion** et non par une intention : la garde
-    supprime l'échec du plan de contrôle, donc cette trace est la seule chose qui reste. Mesuré —
+    L'erreur n'est pas pour autant avalée — elle part sur le journal de la stdlib, que
+    `configure_logging` rend en JSON depuis le point d'entrée du worker. Ce point est **assuré par
+    une assertion** et non par une intention : la garde supprime l'échec du plan de contrôle, donc
+    cette trace est la seule chose qui reste. Mesuré —
     un `except Exception: pass` laisserait tout le reste de ce test au vert, et une tâche
     définitivement cassée boucherait alors dans le vide en silence. La trace **nomme la tâche** :
     avec trois tâches réelles, un message identique pour toutes obligerait à lire la pile.
@@ -356,3 +358,50 @@ async def test_run_ouvre_les_reglages_qu_on_lui_donne(settings: Settings) -> Non
     """
     with pytest.raises(ValueError):
         await run({}, asyncio.Event(), settings)
+
+
+async def test_le_point_d_entree_lit_les_reglages_puis_ouvre_les_journaux_puis_deroule(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Le conteneur worker fait trois choses avant sa première tâche, et l'ordre porte un sens.
+
+    Les réglages d'abord — tout en dépend, et un démarrage refusé doit échouer avant que quoi que
+    ce soit d'autre n'existe. Les journaux ensuite, pour que le premier tour ait déjà où écrire.
+    Sans ce test, retirer purement `configure_logging()` du point d'entrée laisse la suite entière
+    au vert (mesuré) : le worker partirait sans journaux JSON, alors que c'est précisément le
+    processus dont cette issue existe pour formater les échecs de tâche.
+
+    **Les quatre** symboles sont substitués dans l'espace de noms du point d'entrée, où ils ont été
+    importés : c'est le câblage qu'on éprouve, pas ce que chacun fait — chacun a ses propres tests.
+    Les trois arguments de `run` sont vérifiés, `stop_on_sigterm` compris : mesuré, sans son
+    assertion, un point d'entrée qui passerait un `asyncio.Event()` nu — donc un worker qui ne
+    s'arrêterait **jamais** sur `docker compose stop` — laissait ce test au vert.
+
+    Substituer `stop_on_sigterm` sert aussi à ne rien poser sur le processus : le vrai appelle
+    `signal.signal`, dont l'effet est global et n'est pas défait à la fin du test. Les tests d'arrêt
+    plus haut dans ce fichier prennent la même précaution, pour la même raison.
+    """
+    appels: list[str] = []
+    recus: dict[str, object] = {}
+    arret_attendu = asyncio.Event()
+
+    def reglages_espion() -> Settings:
+        appels.append("réglages")
+        return settings
+
+    async def run_espion(taches: object, arret: object, reglages: object) -> None:
+        appels.append("run")
+        recus["taches"], recus["arret"], recus["reglages"] = taches, arret, reglages
+
+    monkeypatch.setattr(point_d_entree, "load_settings", reglages_espion)
+    monkeypatch.setattr(point_d_entree, "configure_logging", lambda: appels.append("journaux"))
+    monkeypatch.setattr(point_d_entree, "stop_on_sigterm", lambda: arret_attendu)
+    monkeypatch.setattr(point_d_entree, "run", run_espion)
+
+    await point_d_entree._main()
+
+    assert appels == ["réglages", "journaux", "run"]
+    assert recus["taches"] is TASKS
+    assert recus["arret"] is arret_attendu
+    assert recus["reglages"] is settings
+    assert signal.getsignal(signal.SIGTERM) is signal.SIG_DFL

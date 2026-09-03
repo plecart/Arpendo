@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from collections.abc import AsyncIterator
 
 import pytest
@@ -12,6 +13,7 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from arpendo_api.core import rate_limit
 from arpendo_api.core.rate_limit import Dimension
+from arpendo_api.core.request_id import HEADER
 from arpendo_api.core.settings import Settings
 from arpendo_api.core.valkey import create_valkey
 from arpendo_api.main import create_app
@@ -86,6 +88,22 @@ async def test_au_dela_du_quota_l_api_refuse_avec_429_et_retry_after(client: Asy
     assert refus.status_code == 429
     assert int(refus.headers["Retry-After"]) >= 1
     assert "detail" in refus.json()
+
+
+@pytest.mark.parametrize("settings", [UNE_REQUETE_PAR_SECONDE], indirect=True)
+async def test_une_requete_refusee_porte_quand_meme_son_identifiant(client: AsyncClient) -> None:
+    """L'ordre d'empilement des deux middlewares, éprouvé plutôt que supposé.
+
+    Un 429 est produit par le limiteur **sans que la requête atteigne l'application** : si
+    l'identifiant était lié plus bas dans la pile, exactement les réponses qu'on cherche à
+    diagnostiquer — les refus — seraient les seules à en être privées.
+    """
+    assert (await client.get("/health")).status_code == 200
+
+    refus = await client.get("/health")
+
+    assert refus.status_code == 429
+    assert uuid.UUID(refus.headers[HEADER]).version == 4
 
 
 @pytest.mark.parametrize("settings", [UNE_REQUETE_PAR_SECONDE], indirect=True)
