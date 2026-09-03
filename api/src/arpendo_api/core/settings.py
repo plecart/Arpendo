@@ -1,8 +1,8 @@
 """Réglages de l'application, lus dans l'environnement et nulle part ailleurs."""
 
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import AfterValidator, Field, SecretStr
+from pydantic import AfterValidator, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -59,12 +59,15 @@ cet alias existe pour assainir.
 
 
 Threshold = Annotated[int, Field(ge=1)]
-"""Un réglage entier dont zéro n'est pas une valeur — le type de toute borne de limitation.
+"""Un réglage entier dont zéro n'est pas une valeur.
 
-Un quota de zéro requête, ou une fenêtre de zéro seconde, ne limite pas : il ferme. C'est une
+Le type de toute borne de limitation : un quota de zéro requête, ou une fenêtre de zéro seconde,
+ne limite pas, il ferme. Et celui de tout **numéro de build** : la numérotation commence à 1, si
+bien qu'un seuil de zéro ne désigne aucune version publiable. Dans les deux cas c'est une
 configuration qu'on ne peut avoir voulue, et la refuser au démarrage évite de la découvrir en
-production, une requête rejetée à la fois. La borne est ici et non dans le limiteur : un réglage
-impossible ne doit pas exister, plutôt que d'être rattrapé à chaque usage.
+production — une requête rejetée à la fois, ou une flotte entière renvoyée au magasin. La borne
+est ici et non au point d'usage : un réglage impossible ne doit pas exister, plutôt que d'être
+rattrapé à chaque lecture.
 """
 
 
@@ -96,12 +99,18 @@ class Settings(BaseSettings):
         valkey_password: mot de passe Valkey, fourni séparément de l'URL. Sensible.
         rate_limit_ip_requests: requêtes autorisées par adresse IP et par fenêtre.
         rate_limit_ip_window_seconds: durée de cette fenêtre, en secondes.
+        client_build_min: numéro de build en deçà duquel l'application mobile est refusée —
+            elle affiche un écran bloquant vers le magasin (cadrage §14.1, spec UX §11.2).
+        client_build_recommended: numéro de build en deçà duquel une mise à jour est
+            *suggérée*, par un bandeau que le joueur peut fermer. Jamais inférieur à
+            ``client_build_min`` — voir :meth:`_recommande_au_moins_le_minimum`.
 
     Exemple :
         >>> Settings()  # doctest: +SKIP
         Settings(database_url=SecretStr('**********'), valkey_url='redis://…',
                  valkey_password=SecretStr('**********'), rate_limit_ip_requests=600,
-                 rate_limit_ip_window_seconds=60)
+                 rate_limit_ip_window_seconds=60, client_build_min=1,
+                 client_build_recommended=1)
     """
 
     database_url: Secret
@@ -109,3 +118,34 @@ class Settings(BaseSettings):
     valkey_password: Secret
     rate_limit_ip_requests: Threshold
     rate_limit_ip_window_seconds: Threshold
+    client_build_min: Threshold
+    client_build_recommended: Threshold
+
+    @model_validator(mode="after")
+    def _recommande_au_moins_le_minimum(self) -> Self:
+        """Refuse un plancher de version au-dessus de la version recommandée.
+
+        Chacun des deux seuils est valide pris seul ; c'est leur **ordre** qui ne l'est pas, d'où
+        un validateur de modèle et non de champ. La configuration fautive renverrait au magasin
+        une flotte entière pour une mise à jour que le serveur ne présente que comme suggérée —
+        un incident qui ne se voit pas côté serveur, puisque la route répond 200.
+
+        Les deux seuils **égaux** passent : c'est l'état nominal, où la version publiée est à la
+        fois le plancher et la cible.
+
+        Le message ne cite que les noms des variables d'environnement, jamais leur valeur : cette
+        classe porte des secrets, et pydantic recopie son entrée dans la ``ValidationError``.
+
+        Returns:
+            Les réglages inchangés — un validateur ``after`` rend le modèle, il ne le remplace pas.
+
+        Raises:
+            ValueError: si ``client_build_min`` dépasse ``client_build_recommended``. pydantic
+                l'emballe en ``ValidationError``, comme tout refus de validation.
+        """
+        if self.client_build_min > self.client_build_recommended:
+            raise ValueError(
+                "CLIENT_BUILD_MIN doit être inférieur ou égal à CLIENT_BUILD_RECOMMENDED : "
+                "un build refusé ne peut pas être seulement recommandé"
+            )
+        return self

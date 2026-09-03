@@ -13,7 +13,12 @@ SECRETS = (MOT_DE_PASSE_POSTGRESQL, MOT_DE_PASSE_VALKEY)
 BLANCHES = {"vide": "", "espaces": "   ", "tabulation-et-saut": "\t\n"}
 """Les formes du vide qu'une variable d'environnement peut prendre, par nom de cas."""
 
-SEUILS = ("RATE_LIMIT_IP_REQUESTS", "RATE_LIMIT_IP_WINDOW_SECONDS")
+SEUILS = (
+    "RATE_LIMIT_IP_REQUESTS",
+    "RATE_LIMIT_IP_WINDOW_SECONDS",
+    "CLIENT_BUILD_MIN",
+    "CLIENT_BUILD_RECOMMENDED",
+)
 """Les réglages dont la valeur est un entier borné — les seuls que `0` doit faire échouer."""
 
 REQUISES = {
@@ -24,6 +29,10 @@ REQUISES = {
     "VALKEY_PASSWORD": MOT_DE_PASSE_VALKEY,
     "RATE_LIMIT_IP_REQUESTS": "600",
     "RATE_LIMIT_IP_WINDOW_SECONDS": "60",
+    # Deux valeurs **distinctes**, et c'est nécessaire : avec un couple identique, un champ qui
+    # lirait la variable de l'autre passerait le test de lecture sans qu'on le voie.
+    "CLIENT_BUILD_MIN": "1",
+    "CLIENT_BUILD_RECOMMENDED": "2",
 }
 
 
@@ -89,6 +98,65 @@ def test_un_seuil_nul_empeche_le_demarrage(
 
     with pytest.raises(ValidationError):
         Settings()
+
+
+@pytest.mark.parametrize(
+    ("minimum", "recommande", "accepte"),
+    [("1", "1", True), ("2", "3", True), ("3", "2", False)],
+    ids=["égaux", "minimum sous le recommandé", "minimum au-dessus du recommandé"],
+)
+def test_l_ordre_des_deux_seuils_de_version_decide_du_demarrage(
+    environnement_complet: None,
+    monkeypatch: pytest.MonkeyPatch,
+    minimum: str,
+    recommande: str,
+    accepte: bool,
+) -> None:
+    """Un build refusé ne peut pas être seulement « recommandé » : l'ordre des deux seuils est une
+    règle, pas une convention.
+
+    L'inverse — un minimum au-dessus du recommandé — renverrait au magasin toute une flotte pour
+    une mise à jour que le serveur ne présente que comme suggérée. Chaque seuil pris isolément est
+    pourtant valide, d'où un validateur de **modèle** : la faute est dans la paire.
+
+    Les trois cas bornent la frontière : **égaux** (l'état nominal, où la version publiée est à la
+    fois le plancher et la cible), au-dessous, et au-dessus. Sans le premier, un validateur écrit
+    en `>=` passerait la suite en refusant l'état le plus courant.
+    """
+    monkeypatch.setenv("CLIENT_BUILD_MIN", minimum)
+    monkeypatch.setenv("CLIENT_BUILD_RECOMMENDED", recommande)
+
+    if not accepte:
+        with pytest.raises(ValidationError):
+            Settings()
+        return
+
+    reglages = Settings()
+
+    assert (reglages.client_build_min, reglages.client_build_recommended) == (
+        int(minimum),
+        int(recommande),
+    )
+
+
+def test_le_refus_de_la_paire_de_builds_ne_divulgue_aucun_secret(
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Un validateur de modèle voit la classe entière — donc les secrets, et pydantic recopie son
+    entrée dans la ``ValidationError``.
+
+    C'est exactement le piège que documente l'alias ``Secret`` : une règle qui rejette sur le
+    contenu ferait imprimer le contenu dans la trace même qu'on assainit. Ici la règle ne porte que
+    sur deux entiers, et le ``repr`` d'un ``SecretStr`` reste masqué — mais rien ne le garantit
+    d'un pydantic futur, et cette assertion est ce qui le dira.
+    """
+    monkeypatch.setenv("CLIENT_BUILD_MIN", "3")
+    monkeypatch.setenv("CLIENT_BUILD_RECOMMENDED", "2")
+
+    with pytest.raises(ValidationError) as refus:
+        Settings()
+
+    assert [secret for secret in SECRETS if secret in str(refus.value)] == []
 
 
 @pytest.mark.parametrize(
