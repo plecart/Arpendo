@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-SEUILS = {"client_build_min": 12, "client_build_recommended": 34}
+SEUILS_PUBLIES = {"client_build_min": 12, "client_build_recommended": 34}
 """Deux valeurs **distinctes** et étrangères au `.env` du poste comme au job de CI.
 
 Un couple identique laisserait passer une route qui rendrait deux fois le même champ ; des valeurs
@@ -15,8 +15,8 @@ chercher son client Valkey dans `app.state`.
 """
 
 
-pytestmark = pytest.mark.parametrize("settings", [SEUILS], indirect=True)
-"""Tous les tests de ce module parlent à une api dont les seuils sont ceux de [SEUILS]."""
+pytestmark = pytest.mark.parametrize("settings", [SEUILS_PUBLIES], indirect=True)
+"""Tous les tests de ce module parlent à une api dont les seuils sont ceux de [SEUILS_PUBLIES]."""
 
 
 async def test_version_publie_les_deux_seuils_sans_authentification(

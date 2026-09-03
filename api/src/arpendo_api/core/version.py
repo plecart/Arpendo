@@ -8,7 +8,7 @@ from arpendo_api.core.settings import Settings
 router = APIRouter()
 
 
-class Versions(BaseModel):
+class VersionThresholds(BaseModel):
     """Ce que le serveur publie sur les versions du client — deux nombres, aucun verdict.
 
     Le serveur **ne décide pas** si le client qui l'interroge est acceptable : il annonce ses deux
@@ -34,7 +34,7 @@ class Versions(BaseModel):
 
 
 @router.get("/version")
-async def version(request: Request) -> Versions:
+async def version(request: Request) -> VersionThresholds:
     """Publie les deux seuils de version du client, sans authentification.
 
     C'est l'étape 1 de la séquence de démarrage (spec UX §2.1) : elle précède la session, donc
@@ -50,7 +50,7 @@ async def version(request: Request) -> Versions:
     interroge une fois par lancement, et le coût est celui d'une lecture en mémoire.
     """
     settings: Settings = request.app.state.settings
-    return Versions(
+    return VersionThresholds(
         min_build=settings.client_build_min,
         recommended_build=settings.client_build_recommended,
     )
