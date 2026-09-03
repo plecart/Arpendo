@@ -60,6 +60,11 @@ class RequestIdMiddleware:
     débit : ce dernier tamponne la réponse entière avant de la transmettre, ce qui retiendrait le
     flux SSE dont l'écran Jeu se sert. Il ne détient aucun état ; l'identifiant vit dans le
     contexte de la tâche qui sert la requête.
+
+    **Une réponse échappe à l'en-tête : la 500 non rattrapée.** Mesuré : Starlette monte son
+    ``ServerErrorMiddleware`` au-dessus de la pile applicative, donc la réponse d'erreur qu'il
+    fabrique ne repasse pas par ici. Les lignes de journal de la requête, elles, portent bien
+    l'identifiant. C'est structurel — ``add_middleware`` ne peut pas s'empiler plus haut.
     """
 
     def __init__(self, app: ASGIApp) -> None:

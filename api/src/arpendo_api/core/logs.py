@@ -3,6 +3,11 @@
 Un seul rendu pour **tous** les loggers du processus — le nôtre, celui d'uvicorn, celui d'Alembic,
 ceux des bibliothèques. Docker collecte la sortie standard ; il n'y a donc ni fichier, ni rotation,
 ni second flux à déclarer quelque part.
+
+**Une exception, et une seule** : le refus de démarrage. Les points d'entrée lisent leur
+configuration *avant* d'appeler ``configure_logging``, donc la ``ConfigurationError`` de
+``core.settings`` sort en traceback sur stderr — c'est délibéré, et c'est ce qui garantit que la
+valeur fautive ne traverse jamais cette chaîne de rendu.
 """
 
 import logging
