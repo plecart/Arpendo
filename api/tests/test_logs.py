@@ -5,6 +5,8 @@ import json
 import logging
 
 import structlog
+from alembic import command
+from alembic.config import Config
 from conftest import Lignes, reglages_surcharges
 
 from arpendo_api.core.logs import UVICORN_LOGGERS, configure_logging
@@ -147,3 +149,24 @@ def test_une_exception_journalisee_sort_rendue_sans_divulguer_les_reglages(ligne
     rendu = json.dumps(ligne)
     assert "RuntimeError: connexion refusée" in str(ligne["exception"])
     assert not [secret for secret in TEMOINS.values() if secret in rendu]
+
+
+def test_l_environnement_des_migrations_ouvre_les_journaux_a_son_tour(
+    lignes: Lignes, alembic_config: Config
+) -> None:
+    """`env.py` est le troisième point d'entrée, et le seul dont c'est la **raison d'être**.
+
+    L'api et le worker journaliseraient de toute façon quelque chose ; Alembic, lui, était
+    entièrement muet — ses « Running upgrade … » partent sur un logger qu'aucun handler ne
+    recueillait, et `just migrate` ne parlait que par son code de retour.
+
+    Le test n'appelle **pas** `configure_logging()` : c'est tout l'objet, il éprouve le *câblage*.
+    Mesuré : sans l'appel dans `env.py`, la suite entière reste au vert.
+
+    `upgrade` sur un schéma déjà à `head` n'applique aucune migration mais journalise quand même
+    son ouverture de contexte — c'est ce qui rend ce test rapide et sans effet de bord.
+    """
+    command.upgrade(alembic_config, "head")
+
+    emetteurs = {ligne["logger"] for ligne in lignes()}
+    assert "alembic.runtime.migration" in emetteurs

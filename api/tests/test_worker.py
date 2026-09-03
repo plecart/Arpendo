@@ -18,6 +18,7 @@ from arpendo_api.core.bus import subscribe
 from arpendo_api.core.resources import Resources
 from arpendo_api.core.settings import Settings
 from arpendo_api.worker import TASKS, run, stop_on_sigterm
+from arpendo_api.worker import __main__ as point_d_entree
 
 RESSOURCES_INUTILISEES = cast(Resources, None)
 """Ce que reçoit une tâche qui n'a besoin de rien.
@@ -357,3 +358,39 @@ async def test_run_ouvre_les_reglages_qu_on_lui_donne(settings: Settings) -> Non
     """
     with pytest.raises(ValueError):
         await run({}, asyncio.Event(), settings)
+
+
+async def test_le_point_d_entree_lit_les_reglages_puis_ouvre_les_journaux_puis_deroule(
+    monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    """Le conteneur worker fait trois choses avant sa première tâche, et l'ordre porte un sens.
+
+    Les réglages d'abord — tout en dépend, et un démarrage refusé doit échouer avant que quoi que
+    ce soit d'autre n'existe. Les journaux ensuite, pour que le premier tour ait déjà où écrire.
+    Sans ce test, retirer purement `configure_logging()` du point d'entrée laisse la suite entière
+    au vert (mesuré) : le worker partirait sans journaux JSON, alors que c'est précisément le
+    processus dont cette issue existe pour formater les échecs de tâche.
+
+    Les trois symboles sont substitués dans l'espace de noms du **point d'entrée**, où ils ont été
+    importés : c'est le câblage qu'on éprouve, pas ce que chacun fait — chacun a ses propres tests.
+    """
+    appels: list[str] = []
+    recus: dict[str, object] = {}
+
+    def reglages_espion() -> Settings:
+        appels.append("réglages")
+        return settings
+
+    async def run_espion(taches: object, arret: object, reglages: object) -> None:
+        appels.append("run")
+        recus["taches"], recus["reglages"] = taches, reglages
+
+    monkeypatch.setattr(point_d_entree, "load_settings", reglages_espion)
+    monkeypatch.setattr(point_d_entree, "configure_logging", lambda: appels.append("journaux"))
+    monkeypatch.setattr(point_d_entree, "run", run_espion)
+
+    await point_d_entree._main()
+
+    assert appels == ["réglages", "journaux", "run"]
+    assert recus["taches"] is TASKS
+    assert recus["reglages"] is settings
