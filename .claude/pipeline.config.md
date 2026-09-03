@@ -107,7 +107,10 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 
 ## Langue
 - skills / issues / PRD / descriptions : français
-- identifiants du code (tables, colonnes, champs, types, fonctions) : anglais — fixés par le cadrage
+- identifiants d'`api/` (types, fonctions, modules) et identifiants techniques fixés par le cadrage
+  (tables, colonnes, champs) : anglais
+- code Dart d'`app/` : français (`Bandeau`, `resoudre`, `enLigne`…), hors identifiants techniques
+  ci-dessus — convention établie par les composants mergés et le glossaire (préambule)
 - commentaires / docstrings / noms de tests : français
 - préfixe conventional commit : anglais (feat/fix/chore/docs/refactor)
 
