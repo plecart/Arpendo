@@ -107,7 +107,7 @@ class Settings(BaseSettings):
             elle affiche un écran bloquant vers le magasin (cadrage §14.1, spec UX §11.2).
         client_build_recommended: numéro de build en deçà duquel une mise à jour est
             *suggérée*, par un bandeau que le joueur peut fermer. Jamais inférieur à
-            ``client_build_min`` — voir :meth:`_recommande_au_moins_le_minimum`.
+            ``client_build_min`` — voir :meth:`_reject_min_above_recommended`.
 
     Exemple :
         >>> Settings()  # doctest: +SKIP
@@ -147,7 +147,7 @@ class Settings(BaseSettings):
     client_build_recommended: Threshold
 
     @model_validator(mode="after")
-    def _recommande_au_moins_le_minimum(self) -> Self:
+    def _reject_min_above_recommended(self) -> Self:
         """Refuse un plancher de version au-dessus de la version recommandée.
 
         Chacun des deux seuils est valide pris seul ; c'est leur **ordre** qui ne l'est pas, d'où
