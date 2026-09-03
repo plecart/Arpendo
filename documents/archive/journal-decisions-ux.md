@@ -693,3 +693,32 @@ cadrage**. `pipeline.config.md`, `CLAUDE.md` et le README racine sont inchangés
 désignent les fichiers SVG, toujours exacts). Corps et brief de #46 déjà conformes — aucune issue
 ouverte ne cite la composition du logotype (le domaine Compte, qui portera l'écran Connexion,
 n'est pas découpé).
+
+## 18.9 Amendement du §1.6 du 4 septembre 2026 — le « 6 % » du retour d'appui
+
+**La contradiction.** Le §1.6 écrivait « Échelle 0,98 plus assombrissement de la surface de
+6 % », alors que le §1.5 définit l'état pressé par un **jeton**, `accent-pressed` — `#052D11` en
+clair (qui n'est pas un noir à 6 % sur l'accent : ce calcul donnerait `#11391C`) et `#D2F8C8` en
+sombre, qui **éclaircit** (« voile blanc de 16 % », identité §0.1 règle 3, §1.1). Relevée par la
+relecture indépendante du lot 2a de #46, le premier code à implémenter le retour d'appui.
+
+**Pourquoi la décision gagne — et pourquoi ne jamais « resimplifier » dans l'autre sens.**
+L'inversion clair/sombre n'est pas un goût : c'est la **contrainte ΔE calculée** de l'identité.
+Les dix couleurs joueur occupent toute la roue entre L 0,47 et 0,76 ; toute variante d'accent
+sombre **assombrie** retombe dans cette bande (mesuré : ΔE 11 à 12, sous le plancher de 15 —
+identité §0.1). En mode sombre, l'état pressé ne peut donc qu'éclaircir. Un « assombrissement de
+6 % » uniforme est inimplémentable sans violer cette mesure.
+
+**Options examinées :**
+
+| Option | Retenue ? |
+|---|---|
+| **La décision gagne** — le §1.6 renvoie au jeton : « passage de la surface à son état pressé — `accent-pressed` (§1.5) sur une surface d'accent, qui fonce en clair et éclaircit en sombre ; state layer Material par défaut ailleurs » | **Oui.** Une seule source pour l'état pressé (la table du §1.5), et le §1.6 cesse de porter un chiffre que rien ne calcule |
+| Le document gagne — implémenter un voile de 6 % | Non. Contredirait la table de jetons du §1.5 et la mesure ΔE de l'identité ; en sombre, il serait faux par construction |
+| Garder « 6 % » comme approximation documentaire | Non. Un chiffre normatif faux est pire qu'une absence : le premier test écrit contre lui rougirait sur du code juste |
+
+**§§ répercutés :** `02-specification-ux.md` §1.6 (la phrase du retour d'appui). §1.5 et identité
+§0.1/§1.1 **inchangés** — ce sont eux qui faisaient autorité. Hors documents :
+`app/lib/ui/core/theme/mouvement.dart`, docstring du jeton `press` (répétait le « 6 % »), corrigée
+dans le même commit. Aucun document de rang 1 ne mentionne le retour d'appui : pas de ligne au
+journal du cadrage.

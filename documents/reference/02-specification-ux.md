@@ -290,8 +290,10 @@ persistante en aura besoin, c'est cette règle qui s'applique, pas une nouvelle 
 un élément qui part aussi lentement qu'il arrive donne l'impression que l'application réfléchit.
 La règle remplace la courbe unique retenue initialement.
 
-**Le retour d'appui — `motion-press`.** Échelle **0,98** plus assombrissement de la surface de
-**6 %**. **Aucun changement d'élévation, aucune ombre, aucun enfoncement visible** : l'identité
+**Le retour d'appui — `motion-press`.** Échelle **0,98** plus le passage de la surface à son
+**état pressé** — `accent-pressed` (§1.5) sur une surface d'accent, qui **fonce en clair et
+éclaircit en sombre** ; state layer Material par défaut ailleurs.
+**Aucun changement d'élévation, aucune ombre, aucun enfoncement visible** : l'identité
 retenue exclut le relief. Un composant qui réclamerait vraiment une profondeur d'appui ne dépasse
 pas **1 dp**.
 

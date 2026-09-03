@@ -13,7 +13,9 @@ import 'package:flutter/material.dart';
 enum JetonMouvement {
   /// `motion-press` — retour d'appui sur toute cible tactile.
   ///
-  /// Échelle 0,98 plus assombrissement de la surface de 6 %. Aucun changement
+  /// Échelle 0,98 plus le passage de la surface à son état pressé —
+  /// `accent-pressed` (§1.5) sur une surface d'accent, qui fonce en clair et
+  /// **éclaircit** en sombre (§1.6 amendé, archive §18.9). Aucun changement
   /// d'élévation, aucune ombre, aucun enfoncement visible : l'identité retenue
   /// exclut le relief.
   press(120),
