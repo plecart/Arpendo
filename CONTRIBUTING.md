@@ -25,8 +25,8 @@ Chaque étape ci-dessous a une commande dédiée (`/triage`, `/cycle-pr`…) —
    vérité (`documents/reference/`, issues ouvertes) : le document est amendé dans la session, ou la
    décision est abandonnée. Déclenché par la règle `decisions-vs-doc`, à n'importe quel moment.
 4. **Répercuter** — `repercussions` après chaque merge : confronte d'abord le delta aux sources de
-   vérité (un § falsifié → `contradiction`), puis corrige le corps des issues dont la
-   planification est devenue fausse. Lancé automatiquement en fin de `cycle-pr`.
+   vérité (un § falsifié → `contradiction`), puis corrige la spec — corps et brief d'agent —
+   des issues dont la planification est devenue fausse. Lancé automatiquement en fin de `cycle-pr`.
 5. **Valider** — `plan-qa` → `execution-qa` → `bug-vers-issue`, proposé quand un **thème se vide**
    de ses issues ouvertes. La QA ne re-teste jamais ce que la CI couvre déjà.
 

@@ -68,6 +68,10 @@ peut-être bougé. Confronter le plan à la réalité **actuelle** du code :
 - **Pour chaque décision verrouillée et chaque fichier listé**, vérifier qu'elle tient toujours :
   l'interface existe-t-elle encore sous cette forme ? une PR récente a-t-elle déjà fait une partie
   du travail, déplacé un module, changé un contrat, rendu une hypothèse caduque ?
+- **Confronter le brief au « Journal de spec » du corps de l'issue** : toute entrée du journal
+  postérieure à la date du brief se lit comme un erratum potentiel — une réconciliation a pu ne pas
+  atteindre le brief. En cas d'écart entre les deux, le journal (adossé aux sources de vérité)
+  l'emporte, et l'écart se signale dans le briefing.
 - **Vérifier que la suite du dev tient** : ce que cette PR prépare pour les issues suivantes est-il
   toujours cohérent, ou l'ordre / le découpage doit-il être revu ?
 - **Vérifier la faisabilité de l'ordre des commits** : pour chaque commit prévu, ce dont ses tests
