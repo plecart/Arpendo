@@ -499,6 +499,15 @@ Le merge **clôt l'issue liée** (via `Closes #N`). **Retirer aussitôt son labe
 laisser fait apparaître des issues closes dans les files de `triage` et de `pr-paralleles`.
 Le label de catégorie (`bug` / `enhancement`) et le thème restent.
 
+Puis **cocher les critères d'acceptation soldés**, dans le **corps** de l'issue *et* dans le
+commentaire de **brief** (`- [ ]` → `- [x]`) : ils ont été vérifiés à l'Étape 7, il ne reste qu'à
+l'enregistrer là où un lecteur le cherche. Un critère atteint sous une forme **amendée** se coche
+quand même — l'amendement est tracé au journal de spec du corps. Un brief est un artefact daté :
+on coche ses cases, on ne réécrit pas son texte.
+
+Si la PR a porté des **preuves visuelles**, supprimer enfin la branche orpheline promise à
+l'Étape 5 : `git push origin --delete captures/pr-<n>`.
+
 La PR et la conversation qui l'a résolue ont pu acter des décisions, déplacer un contrat d'interface, déjà faire une partie d'un autre lot, ou rendre une
 hypothèse caduque ailleurs. **Immédiatement après le merge**, lancer le skill `repercussions` — la
 conversation qui a résolu l'issue est **encore en contexte**, c'est le moment où l'analyse est la

@@ -40,7 +40,7 @@ Six rôles d'**état** :
 (le rapporteur), le second attend **une session avec le mainteneur**. Une issue peut passer par les
 deux, dans cet ordre.
 
-Chaque issue **ouverte** triée doit porter exactement un rôle de catégorie et un rôle d'état ; une issue **fermée** n'en porte aucun — `cycle-pr` retire l'état à la clôture (Étape 8), et `wontfix` est le seul rôle qui survit à une fermeture. Si les rôles d'état entrent en conflit, signale-le et demande au mainteneur avant de faire quoi que ce soit d'autre.
+Chaque issue **ouverte** triée doit porter exactement un rôle de catégorie et un rôle d'état ; une issue **fermée** n'en porte aucun — `cycle-pr` retire l'état à la clôture (Étape 8), une fermeture manuelle laisse ce geste à faire, et `wontfix` est le seul rôle qui survit à une fermeture. Si les rôles d'état entrent en conflit, signale-le et demande au mainteneur avant de faire quoi que ce soit d'autre.
 
 Ce sont les noms de rôles canoniques ; le mapping vers les vrais labels GitHub est dans `.claude/pipeline.config.md` — sinon lancer `init-projet`.
 
@@ -86,12 +86,13 @@ Le mainteneur invoque `/triage` et décrit ce qu'il veut en langage naturel. Int
 
 ## Montrer ce qui requiert l'attention
 
-Interroge GitHub (via `gh`) et présente quatre catégories, des plus anciennes aux plus récentes :
+Interroge GitHub (via `gh`) et présente cinq catégories, des plus anciennes aux plus récentes :
 
 1. **Sans label** — jamais triées.
 2. **`needs-triage`** — évaluation en cours.
 3. **`needs-interrogation`** — en attente d'une session `/interroge-moi` avec le mainteneur. C'est la file qui bloque l'alimentation des agents : la signaler explicitement si elle s'allonge.
 4. **`needs-info` avec activité du rapporteur depuis les dernières notes de triage** — nécessite une réévaluation.
+5. **Fermées portant encore un rôle d'état** — la passe de clôture (`cycle-pr` Étape 8 : retrait du label, critères d'acceptation cochés) leur est due et personne ne l'a faite, typiquement parce que le mainteneur a fermé l'issue lui-même. Seule catégorie portant sur des issues fermées ; `wontfix` en est exclu, c'est le seul rôle qui survit à une fermeture.
 
 Affiche les décomptes et un résumé d'une ligne par issue, en indiquant le thème (milestone) de chaque issue quand il y en a un. Si le mainteneur le demande, regroupe l'affichage par thème. Laisse le mainteneur choisir.
 

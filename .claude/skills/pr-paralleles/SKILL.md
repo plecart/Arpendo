@@ -186,8 +186,9 @@ c'est le seul autre canal, et il passe par lui.
 
 - `git worktree list` montre tous les worktrees actifs.
 - Quand une PR passe en review puis est mergée, mettre à jour `PR-PARALLELES.md`.
-- Après chaque merge, la session concernée déroule la passe `repercussions` (Étape 8 de
-  `cycle-pr`). **C'est le moment le plus dangereux d'une vague parallèle** : les autres issues du
+- Après chaque merge, la session concernée déroule la clôture de l'Étape 8 de `cycle-pr` —
+  label d'état retiré, critères d'acceptation cochés, puis la passe `repercussions`. **C'est le
+  moment le plus dangereux d'une vague parallèle** : les autres issues du
   lot sont en cours de développement, et leurs sessions ont déjà lu leur spec.
   - `repercussions` les détecte comme **« en vol »** (via les PR ouvertes et ce tableau de bord) :
     il **n'édite pas** leur corps et **ne change pas** leurs labels, il dépose un commentaire sur
