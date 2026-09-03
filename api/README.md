@@ -219,6 +219,36 @@ Sûr du côté de l'usurpation, dégradé du côté de la disponibilité — pas
 Dans la pile locale, les requêtes venues de l'hôte atteignent le conteneur avec pour pair la
 passerelle du bridge Docker : tout le trafic de la machine partage donc un seul compteur tant
 qu'aucun reverse proxy n'est devant. Sans conséquence au quota par défaut.
+## Contrôle de version du client
+
+`GET /version` publie les deux seuils que l'application mobile interroge **avant tout autre appel**
+(spec UX §2.1, étape 1). Route **publique**, à la racine et non sous `/v1` : elle précède la
+session, et un client qui doit apprendre qu'il est trop vieux pour parler à `/v1` ne peut pas être
+obligé de connaître `/v1` pour le demander — la même raison qui garde `/health` à la racine.
+
+```
+GET /version  →  200  {"min_build": 1, "recommended_build": 1}
+```
+
+| Réglage | Rôle |
+|---|---|
+| `CLIENT_BUILD_MIN` | `build < min` → l'app affiche un écran bloquant vers le magasin, sans retour ni fermeture (cadrage §14.1, spec UX §11.2) |
+| `CLIENT_BUILD_RECOMMENDED` | `build < recommended` → bandeau fermable, priorité 12 (spec UX §2.4) |
+
+Les deux comparaisons sont **strictes** : un build égal à un seuil l'atteint. Les deux réglages
+sont des **numéros de build** — l'entier monotone de `version: x.y.z+N` du manifeste de l'app,
+jamais du semver : c'est le seul champ dont l'ordre est total et déjà garanti par le magasin.
+
+**Le serveur ne rend aucun verdict.** Il annonce ses seuils ; c'est l'app qui compare. Lui faire
+lire `X-Client-Version` pour répondre « à jour / obsolète » couplerait la route à l'en-tête et
+priverait l'app de la connaissance de sa cible — elle ne saurait plus quoi afficher. Un test le
+garde, et il rougit si la comparaison est rapatriée ici.
+
+**`CLIENT_BUILD_MIN <= CLIENT_BUILD_RECOMMENDED` est vérifié au démarrage**, par un validateur de
+modèle de `Settings` : chaque seuil est valide pris seul, c'est leur ordre qui ne l'est pas. Un
+`.env` inversé refuse de démarrer, comme un secret manquant — sans quoi l'incident serait invisible
+côté serveur, la route répondant 200.
+
 ## Le worker
 
 **Un seul paquet, deux points d'entrée** (cadrage §13.0) : l'api HTTP et le worker sont deux hôtes

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from arpendo_api.core import health
+from arpendo_api.core import health, version
 from arpendo_api.core.rate_limit import RateLimitMiddleware
 from arpendo_api.core.resources import open_resources
 from arpendo_api.core.settings import Settings
@@ -40,9 +40,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ses propres connexions, ce qui donne aux tests un état vierge.
     Point d'entrée ASGI : ``uvicorn arpendo_api.main:create_app --factory``.
 
-    Les routeurs des domaines métier s'ajoutent ici sous le préfixe ``/v1`` ; ``/health`` reste
-    à la racine parce qu'il s'adresse aux sondes (reverse proxy, moniteur d'uptime), pas aux
-    clients.
+    Les routeurs des domaines métier s'ajoutent ici sous le préfixe ``/v1``. Deux routeurs restent
+    à la racine, et pour la même raison — leurs lecteurs ne connaissent pas ``/v1`` : ``/health``
+    s'adresse aux sondes (reverse proxy, moniteur d'uptime), et ``/version`` à un client qui doit
+    pouvoir apprendre qu'il est trop vieux pour parler à ``/v1``.
 
     Args:
         settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement — c'est le cas
@@ -56,4 +57,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings if settings is not None else Settings()
     app.add_middleware(RateLimitMiddleware)
     app.include_router(health.router)
+    app.include_router(version.router)
     return app
