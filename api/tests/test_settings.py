@@ -166,6 +166,13 @@ def test_un_demarrage_accepte_rend_les_reglages_de_l_environnement(
 SOURCES = Path(__file__).resolve().parent.parent / "src"
 """L'arbre du paquet — celui que la règle ci-dessous balaie, et le seul."""
 
+CHARGEUR = SOURCES / "arpendo_api" / "core" / "settings.py"
+"""Le seul fichier exempté de la règle, désigné par son chemin complet.
+
+Par le chemin et non par le nom : `settings.py` est un nom qu'un domaine peut reprendre, et il
+s'exempterait alors de la règle sans que personne l'ait voulu.
+"""
+
 CONSTRUCTION_DIRECTE = re.compile(r"\bSettings\(\)")
 """Une construction des réglages qui court-circuite le chargeur.
 
@@ -184,13 +191,14 @@ def test_aucun_point_d_entree_ne_construit_les_reglages_sans_passer_par_le_charg
     quatrième hôte du paquet héritera de la règle sans que personne ait à s'en souvenir.
 
     `core/settings.py` est le seul exempté : c'est lui qui construit, et sa docstring d'exemple
-    montre la forme interdite ailleurs.
+    montre la forme interdite ailleurs. L'exemption porte sur le **chemin** et non sur le nom de
+    fichier — sinon un futur `domains/<x>/settings.py` s'exempterait tout seul, sans que personne
+    l'ait décidé.
     """
     fautifs = [
         source.relative_to(SOURCES).as_posix()
         for source in SOURCES.rglob("*.py")
-        if source.name != "settings.py"
-        and CONSTRUCTION_DIRECTE.search(source.read_text(encoding="utf-8"))
+        if source != CHARGEUR and CONSTRUCTION_DIRECTE.search(source.read_text(encoding="utf-8"))
     ]
 
     assert fautifs == []

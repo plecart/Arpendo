@@ -118,9 +118,11 @@ async def run(
             retarde aucune autre, et un test l'observe.
         stop: l'événement qui met fin à toutes les boucles. C'est l'appelant qui le pose — depuis
             un signal en production, directement dans un test.
-        settings: les réglages à utiliser. Omis, ils sont lus par ``load_settings`` comme le fait
-            ``create_app`` : c'est le cas du conteneur, qui lance le module sans argument. Un test
-            en fournit un explicite pour décrire l'environnement qu'il veut éprouver.
+        settings: les réglages à utiliser. **Le conteneur les fournit** : son point d'entrée les
+            lit lui-même, avant d'ouvrir les journaux, pour qu'un démarrage refusé échoue avant
+            que quoi que ce soit d'autre n'existe. Le repli sur ``load_settings`` sert aux tests,
+            qui appellent ``run`` directement — et à eux seuls ; un test qui veut décrire un
+            environnement particulier passe le sien.
 
     Returns:
         Rien, et seulement une fois **toutes** les boucles terminées et les ressources libérées.

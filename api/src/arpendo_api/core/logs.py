@@ -79,6 +79,11 @@ def configure_logging() -> None:
 
     Les loggers d'uvicorn font exception et sont désarmés : lui les configure avant d'appeler la
     fabrique, donc ne pas le faire laisserait deux formats sur la même sortie.
+
+    Limite connue : la garde n'observe que le **handler**, pas la configuration structlog. Les deux
+    sont posées ensemble et rien en production ne défait l'une sans l'autre ; un test qui appelle
+    ``structlog.reset_defaults()`` sans retirer le handler obtiendrait, lui, une moitié de
+    configuration — d'où la fixture qui fait les deux.
     """
     root = logging.getLogger()
     if _already_configured(root):

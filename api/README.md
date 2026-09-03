@@ -78,7 +78,9 @@ n'y a ni fichier, ni rotation, ni second flux à déclarer ailleurs.
 ```
 
 Les clés sont **stables** : `timestamp` (ISO, UTC, suffixé `Z`), `level`, `logger`, `event`, plus
-ce que l'appelant a lié. Elles le sont parce qu'une seule liste de processeurs sert aux deux
+ce que l'appelant a lié. Les valeurs sont échappées en ASCII — `partie créée` sort
+`partie créée` —, défaut de `json.dumps` que le rendu conserve : sans conséquence pour
+un agrégateur, moins lisible pour un œil humain devant `docker logs`. Elles le sont parce qu'une seule liste de processeurs sert aux deux
 origines — la chaîne structlog et la `foreign_pre_chain` du formateur. Deux listes divergeraient au
 premier ajout, et la divergence ne se verrait que dans l'agrégateur.
 
@@ -128,9 +130,17 @@ légitime aura un sens, il aura son propre en-tête et sa propre validation.
 par le limiteur sans que la requête atteigne l'application ; dans l'ordre inverse, exactement les
 réponses qu'on cherche à diagnostiquer seraient les seules sans identifiant. Un test l'éprouve.
 
-Le contexte est **délié dans un `finally`** : il appartient au fil d'exécution, pas à la requête.
-Une requête qui lève laisserait sa clé derrière elle, et une tâche de fond se verrait rattachée à
-un travail qui ne l'a pas demandée.
+Le contexte est **restauré** à la sortie, et non supprimé (`bound_contextvars`) : il appartient au
+fil d'exécution, pas à la requête. Une requête qui lève laisserait sa clé derrière elle, et une
+tâche de fond se verrait rattachée à un travail qui ne l'a pas demandée ; et le jour où un contexte
+englobant liera `request_id`, la valeur d'avant sera rendue plutôt qu'effacée.
+
+**Une limite mesurée : une 500 non rattrapée ne porte pas l'en-tête.** Starlette monte son
+`ServerErrorMiddleware` **au-dessus** de la pile de middlewares de l'application ; la réponse
+d'erreur qu'il fabrique ne repasse donc pas par le nôtre. Les lignes de journal émises *pendant*
+la requête portent bien l'identifiant — c'est le plus utile — mais la réponse que le client voit
+n'en porte aucun. Structurel, non contournable par `add_middleware` : à savoir avant de chercher
+un identifiant sur un rapport d'erreur 500.
 
 ## Sessions
 
@@ -247,9 +257,9 @@ de Valkey est indolore par conception, et des compteurs remis à zéro sont sans
 attrapées `ConnectionError` et `TimeoutError` de redis-py — sœurs, l'une n'hérite pas de l'autre,
 il faut donc nommer les deux — **et tout ce qui hérite de la première**, dont
 `AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. La branche est muette
-par construction — aucune trace, pas même en JSON — mais `/health` le dit en répondant 503. Assumé :
-rejeter chaque requête sur
-une erreur de configuration ferait une panne totale là où l'on a un service dégradé et signalé.
+par construction — aucune trace, pas même en JSON — mais `/health` le dit en répondant 503.
+Assumé : rejeter chaque requête sur une erreur de configuration ferait une panne totale là où
+l'on a un service dégradé et signalé.
 Attraper `Exception`, en revanche, désarmerait la limitation au premier bug du limiteur au lieu de
 le faire sortir en 500.
 

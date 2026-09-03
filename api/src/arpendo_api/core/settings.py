@@ -124,17 +124,20 @@ class ConfigurationError(RuntimeError):
 def _describe(invalid: ValidationError) -> str:
     """Réduit une erreur de validation à ce qu'on a le droit d'écrire : où, et quoi.
 
-    Les trois exclusions se justifient une par une. ``include_input`` retire l'entrée brute — un
-    secret y figure en clair, l'emballage ``SecretStr`` n'ayant pas encore eu lieu quand pydantic
-    la recopie. ``include_url`` retire un lien de documentation, sans valeur ici.
-    ``include_context`` est la moins évidente et la plus nécessaire : le contexte porte
-    l'exception d'origine, dont le message peut citer la valeur que le validateur vient de
-    refuser.
+    Ce rendu ne lit que ``loc`` et ``msg``. Les trois exclusions portent donc sur des champs qu'il
+    n'ouvre pas : elles ferment la fuite **à la source**, pour que le jour où ce rendu s'enrichira
+    d'un champ, il ne puisse pas se servir dans ce qu'on a interdit. ``include_input`` retire
+    l'entrée brute — un secret y figure en clair, l'emballage ``SecretStr`` n'ayant pas encore eu
+    lieu quand pydantic la recopie ; ``include_url`` retire un lien de documentation, sans valeur
+    ici ; ``include_context`` retire l'exception d'origine.
 
-    Les trois portent sur des champs que ce rendu ne lit pas — il ne prend que ``loc`` et ``msg``.
-    C'est délibéré et ce n'est pas décoratif : elles ferment la fuite au niveau de la *source*,
-    donc le jour où ce rendu s'enrichira d'un champ, il ne pourra pas se servir dans ce qu'on a
-    interdit. La ligne de défense observable, elle, est le ``from None`` de l'appelant.
+    **Ce qu'elles ne ferment pas**, et qu'il ne faut pas se croire protégé d'avoir : ``msg`` porte
+    lui aussi le texte de l'exception d'origine — pydantic rend ``"Value error, <message>"`` pour
+    un ``ValueError`` levé dans un validateur. Un validateur dont le message citerait la valeur
+    refusée fuirait par ``msg``, exclusions ou non. Ce qui l'interdit est ailleurs : la docstring
+    de ``Secret`` proscrit tout validateur qui rejette sur le *contenu*. Vérifié — mesuré en
+    retirant chacune des trois exclusions : la suite reste verte, elles sont une ceinture, pas la
+    bretelle. La bretelle est le ``from None`` de l'appelant, qu'un test fait rougir.
 
     Args:
         invalid: l'erreur levée par la construction des réglages.
