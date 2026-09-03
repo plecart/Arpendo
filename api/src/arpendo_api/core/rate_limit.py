@@ -92,8 +92,8 @@ async def _retry_after(valkey: Redis, key: str, quota: int, window: int) -> int 
 
     L'ensemble attrapé est plus large qu'il n'en a l'air : tout ce qui hérite de
     ``ConnectionError`` y entre, dont ``AuthenticationError``. Un mot de passe Valkey erroné
-    désarme donc la limitation au lieu de faire échouer l'api — sans trace dans les journaux
-    jusqu'à #42, mais ``/health`` le signale en 503.
+    désarme donc la limitation au lieu de faire échouer l'api — **sans laisser de trace**, la
+    branche étant muette par construction, mais ``/health`` le signale en 503.
     C'est le choix assumé : rejeter chaque requête sur une erreur de configuration ferait une
     panne totale là où l'on a un service dégradé et visible. Attraper ``Exception``, en revanche,
     transformerait un bug de ce module en trou silencieux dans la limitation.
