@@ -20,19 +20,26 @@ from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
 
 from arpendo_api.core.settings import Settings
 
-POSITION_KEYS = ["latitude", "longitude", "lat", "lon", "email"]
-"""Les clés que ce projet ajoute au denylist du SDK — position et adresse.
+PROJECT_KEYS = ["latitude", "longitude", "lat", "lon", "email"]
+"""Les clés que **ce projet** ajoute au denylist du SDK : la position, et l'adresse e-mail.
+
+Nommées par leur provenance et non par leur nature — « les clés de position » exclurait ``email``,
+qui est là pour la même raison sans être une position.
 
 ``token``, ``authorization``, ``password``, ``cookie`` et une trentaine d'autres y sont **déjà** :
 les répéter ici donnerait à croire qu'ils n'y seraient pas sans nous.
 """
 
-DENYLIST = [*DEFAULT_DENYLIST, *POSITION_KEYS]
+DENYLIST = [*DEFAULT_DENYLIST, *PROJECT_KEYS]
 """Le denylist complet passé à ``EventScrubber``.
 
 Il **remplace** celui du SDK et ne s'y ajoute pas — lu dans ``sentry_sdk/scrubber.py`` :
 ``self.denylist = DEFAULT_DENYLIST.copy() if denylist is None else denylist``. N'y poser que les
-clés du projet retirerait donc en silence les trente-sept du SDK, en croyant en ajouter cinq.
+clés du projet retirerait donc en silence les **33** du SDK, en croyant en ajouter cinq.
+
+Les quatre clés d'adresse IP (``x_forwarded_for``, ``x_real_ip``, ``ip_address``, ``remote_addr``)
+ne sont pas concernées : ``EventScrubber`` les ajoute lui-même dès que ``send_default_pii`` est
+faux, quel que soit le denylist qu'on lui passe — mesuré.
 """
 
 PATTERNS = (
@@ -98,7 +105,7 @@ def scrub(event: Any, hint: Any = None) -> Any:
     return _scrub_value(event)
 
 
-def configure_sentry(settings: Settings) -> None:
+def configure_sentry(settings: Settings, transport: Any = None) -> None:
     """Initialise Sentry — ou ne fait **rien du tout**, si aucun DSN n'est configuré.
 
     « Désactivé » veut dire *aucun appel à* ``sentry_sdk.init``, et non un ``init`` avec un DSN
@@ -109,12 +116,27 @@ def configure_sentry(settings: Settings) -> None:
     présente et fausse.
 
     Appelée par les deux hôtes qui servent du trafic — la fabrique d'application et le worker —
-    **après** ``configure_logging``, pour que le handler du SDK s'ajoute au nôtre plutôt que de le
-    précéder. L'environnement des migrations ne l'appelle pas : un processus court, sans requête,
-    dont l'échec se lit dans le code de retour.
+    après ``configure_logging``. **Cet ordre est une convention, pas une contrainte** : mesuré, le
+    SDK n'installe aucun handler sur la racine, il remplace ``logging.Logger.callHandlers``, ce qui
+    le rend insensible à l'ordre. On va donc simplement du moins effectif au plus effectif :
+    les réglages, puis les journaux, puis le seul des trois qui ouvre une porte vers le réseau.
+    L'environnement des migrations ne l'appelle pas : un processus court, sans requête, dont
+    l'échec se lit dans le code de retour.
+
+    ``include_local_variables=False`` ferme la seule voie par laquelle une coordonnée sortait
+    malgré les deux filets. Mesuré : le SDK joint par défaut les variables locales de chaque frame,
+    et son sérialiseur éclate un tuple en éléments séparés — ``position = (48.858370, 2.294481)``
+    devenait ``["48.85837", "2.294481"]``. ``EventScrubber`` ne la voyait pas, la clé n'étant pas au
+    denylist ; ``scrub`` non plus, chaque nombre étant devenu une chaîne isolée et le motif exigeant
+    la paire. Le prix est réel — les traces perdent leurs variables locales — et il est assumé : le
+    domaine Territoire est fait de fonctions dont les locales *sont* des positions, et §12.3 pèse
+    plus lourd qu'un confort de débogage. Type, message et pile restent.
 
     Args:
         settings: les réglages validés. Seuls ``sentry_dsn`` et ``sentry_sample_rate`` sont lus.
+        transport: le transport du SDK. Omis, c'est celui du SDK, qui envoie sur le réseau. Un test
+            en fournit un qui garde les enveloppes — c'est le seul moyen d'éprouver un événement
+            **tel que le SDK le construit**, plutôt que tel qu'on croit qu'il le construit.
     """
     if settings.sentry_dsn is None:
         return
@@ -123,6 +145,8 @@ def configure_sentry(settings: Settings) -> None:
         dsn=settings.sentry_dsn.get_secret_value(),
         sample_rate=settings.sentry_sample_rate,
         send_default_pii=False,
+        include_local_variables=False,
         before_send=scrub,
         event_scrubber=EventScrubber(denylist=DENYLIST, recursive=True),
+        transport=transport,
     )

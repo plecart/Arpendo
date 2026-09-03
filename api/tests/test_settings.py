@@ -256,8 +256,9 @@ def test_un_taux_d_echantillonnage_hors_bornes_empeche_le_demarrage(
     """Le taux vit dans `]0, 1]` — les deux bouts comptent, pour des raisons opposées.
 
     Zéro ne veut pas dire « moins d'événements » : il veut dire « aucun », donc un Sentry
-    configuré, facturé, et muet. Au-dessus de 1, la valeur n'a pas de sens et le SDK la
-    tronquerait en silence, ce qui ferait croire à un réglage appliqué.
+    configuré, facturé, et muet. Au-dessus de 1, la valeur n'a pas de sens : mesuré, le SDK la
+    retient telle quelle et se comporte comme à 1 — un `1.5` posé pour « envoyer plus » resterait
+    donc sans effet et sans signal.
     """
     monkeypatch.setenv("SENTRY_SAMPLE_RATE", hors_bornes)
 

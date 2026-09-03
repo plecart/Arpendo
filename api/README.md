@@ -173,9 +173,17 @@ d'exceptions non rattrapées.
 | `SENTRY_SAMPLE_RATE` | part des événements envoyés, dans `]0, 1]`. `1.0` sur le poste ; la valeur de production est tranchée par #47 |
 
 `configure_sentry(settings)` est appelée par les **deux hôtes qui servent du trafic** — la fabrique
-d'application et le worker — **après** `configure_logging()`, pour que le handler du SDK s'ajoute au
-nôtre au lieu de le précéder. L'environnement des migrations ne l'appelle pas : un processus court,
-sans requête, dont l'échec se lit dans le code de retour.
+d'application et le worker — après `configure_logging()`. Cet ordre est une **convention, pas une
+contrainte** : mesuré, le SDK n'installe aucun handler sur la racine, il remplace
+`logging.Logger.callHandlers`, ce qui le rend insensible à l'ordre. On va du moins effectif au plus
+effectif — les réglages, les journaux, puis le seul des trois qui ouvre une porte vers le réseau.
+L'environnement des migrations ne l'appelle pas : un processus court, sans requête, dont l'échec se
+lit dans le code de retour.
+
+**Les lignes de journal atteignent Sentry**, et pas seulement stdout : l'intégration de
+journalisation du SDK en fait des breadcrumbs à partir de `INFO` et des événements à partir de
+`ERROR`. Elles passent donc par `scrub` comme le reste — vérifié : `logger.error("echec a
+48.858370, 2.294481")` produit un événement dont le message ressort assaini.
 
 ### Deux filets d'assainissement, parce qu'aucun ne suffit seul
 
@@ -185,9 +193,10 @@ reconstruit exactement l'historique de localisation que §12.3 interdit ».
 - **`EventScrubber`** (fourni par le SDK) travaille **par clé** : `password`, `token`,
   `authorization`, `cookie`… plus les clés de position que ce projet ajoute — `latitude`,
   `longitude`, `lat`, `lon`, `email`. Attention, **il remplace son denylist par défaut quand on lui
-  en passe un** : `DENYLIST` reprend donc les trente-sept du SDK avant d'ajouter les cinq nôtres.
-  Un test l'épingle, parce que l'erreur inverse — croire ajouter et en fait retirer — ne se voit
-  nulle part.
+  en passe un** : `DENYLIST` reprend donc les 33 du SDK avant d'ajouter les cinq nôtres. Un test
+  l'épingle, parce que l'erreur inverse — croire ajouter et en fait retirer — ne se voit nulle
+  part. (Les quatre clés d'adresse IP font exception : le SDK les ajoute de lui-même dès que
+  `send_default_pii` est faux.)
 - **`scrub`**, en `before_send`, travaille **par motif** sur le corps entier de l'événement :
   paires de coordonnées décimales, `Bearer …`, adresses e-mail. C'est lui qui attrape ce que
   l'autre ne peut pas voir — une coordonnée noyée dans un message, ou le secret qu'une

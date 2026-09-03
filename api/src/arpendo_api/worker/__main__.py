@@ -18,9 +18,10 @@ async def _main() -> None:
 
     Dans cet ordre, et une seule fois. Les réglages viennent en premier parce que tout en dépend,
     et parce qu'un démarrage refusé doit échouer avant que quoi que ce soit d'autre n'existe. Les
-    journaux ensuite, pour que le premier tour de tâche ait déjà où écrire — et **avant** Sentry,
-    dont le SDK pose son propre handler sur la racine : il s'ajoute alors au nôtre au lieu de le
-    précéder.
+    journaux ensuite, pour que le premier tour de tâche ait déjà où écrire. Sentry en dernier, non
+    par contrainte technique — mesuré, il n'installe aucun handler et l'ordre lui est indifférent —
+    mais parce que c'est le seul des trois qui ouvre une porte vers le réseau : il vient après ce
+    qui peut encore échouer sans rien émettre.
     """
     settings = load_settings()
     configure_logging()

@@ -100,8 +100,9 @@ SampleRate = Annotated[float, Field(gt=0, le=1)]
 Zéro ne veut pas dire « moins d'événements », il veut dire **aucun** : un Sentry configuré,
 facturé, et muet — la panne la plus coûteuse d'un outil d'observabilité, puisqu'elle ne se
 constate que le jour où l'on cherche une erreur qui n'a jamais été envoyée. Au-dessus de 1, la
-valeur n'a pas de sens et le SDK la ramènerait à 1 en silence, ce qui ferait croire à un réglage
-appliqué.
+valeur n'a pas de sens : mesuré, le SDK ne l'écrête pas, il la **retient telle quelle** et se
+comporte comme à 1 — donc un ``1.5`` posé pour « envoyer plus » resterait sans effet et sans
+signal. La borne le dit au démarrage, en nommant le champ.
 """
 
 
@@ -123,11 +124,12 @@ class Settings(BaseSettings):
     instance, pour qu'ajouter un serveur ne demande que des variables d'environnement. Le ``.env``
     du poste est chargé en amont, par le justfile en local et par Compose dans les conteneurs.
 
-    Aucun champ n'a de valeur par défaut et tous refusent le vide — le blanc pour les chaînes,
-    zéro pour les seuils : construire ``Settings`` sans l'une des variables, ou avec une variable
-    posée mais sans contenu utile, lève une ``pydantic.ValidationError``. Cet échec est voulu
-    bruyant et immédiat — une api qui démarre avec une configuration trouée échoue plus tard,
-    plus loin, et sur une erreur moins lisible.
+    **Un seul champ est facultatif**, ``sentry_dsn``, et c'est une décision qui se lit : absent, il
+    veut dire « Sentry désactivé ». Tous les autres sont requis et refusent le vide — le blanc pour
+    les chaînes, zéro pour les seuils et pour le taux d'échantillonnage : construire ``Settings``
+    sans l'une de ces variables, ou avec une variable posée mais sans contenu utile, lève une
+    ``pydantic.ValidationError``. Cet échec est voulu bruyant et immédiat — une api qui démarre
+    avec une configuration trouée échoue plus tard, plus loin, et sur une erreur moins lisible.
 
     ``VALKEY_PASSWORD`` suit la même règle que les autres : le cadrage §13.10 exige un Valkey
     authentifié « même sans port publié », donc dans les trois environnements — poste, CI,
@@ -153,7 +155,7 @@ class Settings(BaseSettings):
         >>> Settings()  # doctest: +SKIP
         Settings(database_url=SecretStr('**********'), valkey_url='redis://…',
                  valkey_password=SecretStr('**********'), rate_limit_ip_requests=600,
-                 rate_limit_ip_window_seconds=60)
+                 rate_limit_ip_window_seconds=60, sentry_dsn=None, sentry_sample_rate=1.0)
     """
 
     database_url: Secret
