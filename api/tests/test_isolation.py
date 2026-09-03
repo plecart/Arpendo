@@ -25,11 +25,9 @@ VALKEY_URL_DU_COMPOSE = re.compile(r"VALKEY_URL:\s*(\S+)")
 Lue au **texte** et non au YAML, parce que la valeur est un littéral et le reste : une ancre
 `x-env` qui factoriserait la ligne la déplacerait sans la réécrire.
 
-Toute autre forme fait **échouer bruyamment** — `base_logique` lève sur ce qu'elle ne sait pas
-lire, et l'assertion d'en-tête couvre la disparition de la clé. Aucune ne rend ce garde vert en
-ne mesurant plus rien ; c'est le comportement voulu. En particulier, un compose qui interpolerait
-(`VALKEY_URL: ${VALKEY_URL}`) prendrait la valeur du `.env` de la suite : les deux configurations
-refusionneraient, et un rouge est alors le **verdict juste**, pas une panne du parseur.
+Toute autre forme fait **échouer bruyamment**, jamais silencieusement : l'interpolation a son
+propre message, la disparition de la clé aussi, et `base_logique` lève sur le reste. Aucune ne
+rend ce garde vert en ne mesurant plus rien.
 """
 
 
@@ -57,11 +55,21 @@ def test_la_suite_n_utilise_pas_la_base_valkey_de_l_application() -> None:
     sur 30 sont vertes** — le défaut y est entièrement invisible, et c'est ce qui l'avait laissé
     passer.
     """
-    du_compose = {
-        base_logique(url) for url in VALKEY_URL_DU_COMPOSE.findall(COMPOSE.read_text("utf-8"))
-    }
+    urls = VALKEY_URL_DU_COMPOSE.findall(COMPOSE.read_text("utf-8"))
 
-    assert du_compose, "aucun VALKEY_URL lu dans le compose : le garde ne mesure plus rien"
+    assert urls, "aucun VALKEY_URL lu dans le compose : le garde ne mesure plus rien"
+    # Une valeur que le compose interpole vient du `.env` — celui de la suite. Les deux
+    # configurations refusionnent, et l'isolation disparaît pour de bon. Le dire ici, sinon
+    # `base_logique` lève un `ValueError` que le prochain lecteur prendra pour une panne de
+    # parseur, et qu'il réparera en assouplissant le parseur.
+    interpolees = [url for url in urls if "$" in url]
+    assert not interpolees, (
+        f"le compose interpole {interpolees} : il prendrait alors la base logique du `.env` de la "
+        "suite, et l'application se retrouverait sur la même que les tests. Garder un littéral, "
+        "ou déplacer l'isolation ailleurs — mais pas assouplir ce garde"
+    )
+
+    du_compose = {base_logique(url) for url in urls}
     assert base_logique(Settings().valkey_url) not in du_compose, (
         "la suite vise la même base logique Valkey que l'application du compose : elle effacera "
         "les compteurs de l'application et lira les siens. Poser `VALKEY_URL` sur la base 1 dans "
