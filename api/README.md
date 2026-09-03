@@ -164,6 +164,13 @@ quota, l'api répond **429** avec un `Retry-After` valant ce qu'il reste de la f
 n'est exemptée : `/health` compte comme les autres, ses quelques sondes par minute étant
 négligeables devant le quota — et c'est ce qui en fait l'endpoint réel des tests.
 
+> **Les clients de test ne se présentent pas sous `127.0.0.1`.** Cette adresse a un vrai locataire
+> sur le poste : le healthcheck du conteneur `api` interroge `/health` toutes les dix secondes
+> depuis l'intérieur du conteneur, donc sous le même `ratelimit:ip:127.0.0.1`, dans le Valkey que
+> `just test` utilise — `just up` étant précisément requis pour lancer `just test`. La suite prend
+> donc une adresse de `192.0.2.0/24` (TEST-NET-1), dont le dernier octet vient du pid pour que deux
+> suites parallèles ne se marchent pas dessus non plus. Voir `PAIR_DE_TEST` dans `tests/conftest.py`.
+
 **Ajouter un axe de limitation, c'est ajouter une entrée à `DIMENSIONS`** (`core/rate_limit.py`),
 sur le modèle de `PROBES` : un nom, une fonction qui tire la clé de la requête, et deux fonctions
 qui lisent le quota et la fenêtre dans les réglages. Le middleware ne les connaît pas et ne change

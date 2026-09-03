@@ -1,3 +1,4 @@
+import os
 import uuid
 from collections.abc import AsyncIterator, Mapping
 from pathlib import Path
@@ -17,6 +18,25 @@ from arpendo_api.core import resources
 from arpendo_api.core.journal import DomainEvent
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
+
+PAIR_DE_TEST = (f"192.0.2.{100 + os.getpid() % 100}", 0)
+"""L'adresse sous laquelle les clients de test se présentent à l'application.
+
+**Surtout pas `127.0.0.1`**, le défaut d'`ASGITransport` : cette adresse a un vrai locataire dans
+l'environnement de développement. Le healthcheck du conteneur `api` interroge `/health` toutes les
+dix secondes depuis l'intérieur du conteneur, donc sous `ratelimit:ip:127.0.0.1`, dans le Valkey
+que la suite utilise. Mesuré : `test_la_fenetre_expire_et_le_quota_repart`, qui tient une fenêtre
+d'une seconde à un jeton, échouait deux fois sur quatre avec le conteneur levé, zéro fois sur six
+sans lui. Invisible en CI, où aucun conteneur `api` n'existe.
+
+Le dernier octet vient du **pid** : deux suites lancées en parallèle — deux worktrees d'une même
+vague sur le même Valkey — ne partagent alors ni leur compteur ni leur purge. Une adresse fixe
+échangerait une collision contre une autre.
+
+`192.0.2.0/24` est **TEST-NET-1** (RFC 5737), réservée à la documentation : aucune machine réelle
+ne la porte. L'octet est borné à 100–199 pour rester hors des adresses basses que
+`test_rate_limit.py` emploie déjà dans ses propres scénarios (`192.0.2.1`, `198.51.100.1`).
+"""
 
 VALKEY_SUR_UN_PORT_FERME = {"valkey_url": "redis://127.0.0.1:1/0"}
 """Un Valkey absent, décrit une seule fois pour les modules qui éprouvent une panne de cache.
@@ -89,8 +109,14 @@ async def app(settings: Settings) -> AsyncIterator[FastAPI]:
 
 @pytest.fixture
 async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
-    """Client HTTP branché directement sur l'application, sans réseau ni serveur."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    """Client HTTP branché directement sur l'application, sans réseau ni serveur.
+
+    Il se présente sous [PAIR_DE_TEST] plutôt que sous le `127.0.0.1` par défaut d'`ASGITransport`
+    — voir cette constante pour le pourquoi. C'est `ASGITransport` qui pose `scope["client"]`,
+    exactement là où un vrai serveur le poserait : aucun code de production ne voit la différence.
+    """
+    transport = ASGITransport(app=app, client=PAIR_DE_TEST)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
 
