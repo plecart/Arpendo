@@ -117,9 +117,10 @@ jobs:
 
       - name: Tests
         # Coordonnées des conteneurs `services` ci-dessus — les tests parlent à de vrais
-        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les variables que
+        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les huit variables que
         # `arpendo_api.core.settings.Settings` lit, et les seules : toute autre est absente parce
-        # qu'aucun code ne la lit encore.
+        # qu'aucun code ne la lit encore — y compris les deux seuils de version du client, qui
+        # ne parlent à aucun service mais que `Settings` exige sans défaut.
         #
         # `SENTRY_DSN` est posée **vide**, et c'est une assertion, pas un remplissage : la suite
         # doit s'exécuter avec Sentry désactivé, sans réseau et sans projet Sentry. La poser vide
@@ -135,10 +136,15 @@ jobs:
         # dans les trois environnements, et aucune dépendance à l'ordre du résolveur.
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/postgres
-          VALKEY_URL: redis://127.0.0.1:6379/0
+          # Base logique 1, comme sur le poste — et ce n'est pas une préférence
+          # d'homogénéité : `tests/test_isolation.py` tourne ici aussi, y lit le compose du
+          # dépôt et le compare à cet environnement. Avec la base 0, la CI serait rouge.
+          VALKEY_URL: redis://127.0.0.1:6379/1
           VALKEY_PASSWORD: valkey-de-ci
           RATE_LIMIT_IP_REQUESTS: "600"
           RATE_LIMIT_IP_WINDOW_SECONDS: "60"
+          CLIENT_BUILD_MIN: "1"
+          CLIENT_BUILD_RECOMMENDED: "1"
           SENTRY_DSN: ""
           SENTRY_SAMPLE_RATE: "1.0"
         run: just test

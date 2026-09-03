@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from arpendo_api.core import health
+from arpendo_api.core import health, version
 from arpendo_api.core.logs import configure_logging
 from arpendo_api.core.rate_limit import RateLimitMiddleware
 from arpendo_api.core.request_id import RequestIdMiddleware
@@ -48,9 +48,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     est idempotente, donc la construire plusieurs fois — ce que font les tests — n'installe qu'un
     handler.
 
-    Les routeurs des domaines métier s'ajoutent ici sous le préfixe ``/v1`` ; ``/health`` reste
-    à la racine parce qu'il s'adresse aux sondes (reverse proxy, moniteur d'uptime), pas aux
-    clients.
+    Les routeurs des domaines métier s'ajoutent ici sous le préfixe ``/v1``. Deux routeurs restent
+    à la racine, et pour la même raison — leurs lecteurs ne connaissent pas ``/v1`` : ``/health``
+    s'adresse aux sondes (reverse proxy, moniteur d'uptime), et ``/version`` à un client qui doit
+    pouvoir apprendre qu'il est trop vieux pour parler à ``/v1``.
 
     Args:
         settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement par
@@ -76,4 +77,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestIdMiddleware)
     app.include_router(health.router)
+    app.include_router(version.router)
     return app

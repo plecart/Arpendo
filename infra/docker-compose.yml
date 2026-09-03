@@ -85,6 +85,11 @@ services:
       # un second garde dirait la même chose plus tôt et moins bien.
       RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
       RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+      # Les deux seuils que `GET /version` publie. Interpolés comme les précédents : le conteneur
+      # et le poste annoncent la même cible, sinon l'app testée dans l'émulateur et celle testée
+      # sur le téléphone du réseau local ne verraient pas la même.
+      CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
+      CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
       # Sentry. `:-` sur le DSN et pas sur le taux, et l'asymétrie est le sujet : un DSN absent est
       # un état légitime — Sentry désactivé, le défaut du poste — là où un taux absent est une
       # configuration trouée que `Settings` doit refuser en nommant le champ.
@@ -123,17 +128,20 @@ services:
     environment:
       # **Les sept** variables que `Settings` exige, recopiées depuis `api` : la classe valide la
       # configuration entière au démarrage, quel que soit l'hôte, et un worker à qui il en manque
-      # une refuse de démarrer. Les deux seuils du limiteur ne servent à aucune tâche d'ici, mais
-      # ils sont requis et sans défaut — les omettre empêcherait le conteneur de démarrer. Sentry,
-      # lui, sert bien ici : un tour de tâche qui échoue est exactement ce qu'on veut voir remonter.
-      # `FORWARDED_ALLOW_IPS`, en revanche, n'est pas reprise : elle est lue par uvicorn, que ce
-      # point d'entrée n'exécute pas. Pas d'ancre YAML pour factoriser cette recopie — elle arrive
-      # avec le lot 3 de #42, qui absorbera ces lignes.
+      # une refuse de démarrer. Les deux seuils du limiteur et les deux seuils de version du
+      # client ne servent à aucune tâche d'ici, mais ils sont requis et sans défaut — les omettre
+      # empêcherait le conteneur de démarrer. Sentry, lui, sert bien ici : un tour de tâche qui
+      # échoue est exactement ce qu'on veut voir remonter. `FORWARDED_ALLOW_IPS`, en revanche,
+      # n'est pas reprise : elle est lue par uvicorn, que ce point d'entrée n'exécute pas. Pas
+      # d'ancre YAML pour factoriser cette recopie — elle arrive avec le lot 3 de #42, qui
+      # absorbera ces lignes.
       DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
       VALKEY_URL: redis://valkey:6379/0
       VALKEY_PASSWORD: ${VALKEY_PASSWORD}
       RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
       RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+      CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
+      CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_SAMPLE_RATE: ${SENTRY_SAMPLE_RATE}
     command: ["python", "-m", "arpendo_api.worker"]

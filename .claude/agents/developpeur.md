@@ -18,4 +18,7 @@ Règles :
 - **Tout doute sur le scope, une contradiction avec une source de vérité, une décision non
   triviale → tu t'arrêtes et tu remontes au lead.** Les arbitrages `decisions-vs-doc`, le
   briefing et la review avant merge sont à lui, pas à toi.
-- Zone sensible de `.claude/pipeline.config.md` touchée → tu t'arrêtes avant de committer.
+- Zone sensible de `.claude/pipeline.config.md` touchée → tu t'arrêtes et tu remontes au lead. **La
+  cadence de cet arrêt dépend de la zone** — `.claude/rules/contraintes.md`, « Points d'arrêt
+  humains », en est la source unique : certaines zones s'arrêtent à chaque commit, d'autres une
+  seule fois par PR. La lire, plutôt que présumer.

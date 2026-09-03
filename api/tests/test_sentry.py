@@ -2,13 +2,13 @@
 
 import json
 from collections.abc import Iterator
-from typing import Annotated, Any
+from typing import Any
 
 import pytest
 import sentry_sdk
 from conftest import reglages_surcharges
 from httpx import AsyncClient
-from pydantic import AfterValidator, ValidationError
+from pydantic import BaseModel, ValidationError
 from sentry_sdk.transport import Transport
 
 from arpendo_api import main
@@ -65,17 +65,6 @@ def _init_espionne(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     appels: list[dict[str, Any]] = []
     monkeypatch.setattr(sentry_module.sentry_sdk, "init", lambda **kw: appels.append(kw))
     return appels
-
-
-def _refuse_sans_citer(valeur: str) -> str:
-    """Un validateur qui rejette **sans jamais citer la valeur** — la règle que `Secret` impose.
-
-    C'est ce qui isole la thèse du test qui l'emploie : la coordonnée qu'on retrouve ensuite dans
-    le texte de l'exception ne peut venir que de l'`input_value` que pydantic y recopie, puisque
-    le message, lui, ne la porte pas. Un validateur bavard fournirait un second canal et le test
-    ne distinguerait plus les deux.
-    """
-    raise ValueError("format attendu")
 
 
 def _valeurs(objet: Any) -> list[str]:
@@ -138,21 +127,28 @@ def test_scrub_laisse_intact_ce_qui_ressemble_a_une_donnee_sensible() -> None:
 def test_scrub_retire_la_valeur_brute_qu_une_erreur_de_validation_recopie() -> None:
     """Le cas qui a motivé `before_send` plutôt que le seul `EventScrubber`.
 
-    `pydantic` recopie l'entrée **brute** dans le `input_value` de sa `ValidationError`, avant tout
-    emballage `SecretStr` — et le texte de l'exception la porte donc en clair. `EventScrubber`
-    travaille par clés et ne regarde jamais la valeur d'une exception.
+    `pydantic` recopie l'entrée **brute** dans le `input_value` de sa `ValidationError`, et le
+    texte de l'exception la porte donc en clair. `EventScrubber` travaille par clés et ne regarde
+    jamais la valeur d'une exception.
 
-    L'entrée est ici **une vraie position refusée par un vrai validateur**, pas une chaîne
-    concaténée par le test : c'est ce qui distingue ce cas du balayage général, qui pose lui-même
-    ses motifs aux bons endroits. Ici personne ne choisit où la donnée atterrit — c'est pydantic
-    qui la range dans son message, et le test constate qu'elle en ressort assainie.
+    **Le modèle est un corps de requête, et non `Settings` — c'est délibéré.** `Settings` porte
+    depuis #91 un `hide_input_in_errors=True` qui retire l'entrée de ses messages : ce chemin-là
+    est fermé à la source, et l'éprouver ici ne prouverait plus rien (mesuré : le test rougissait
+    à la fusion, faute de valeur à assainir). Le chemin qui reste ouvert est celui de tout **autre**
+    modèle, à commencer par le plus exposé : un corps de requête, dont les données viennent
+    justement d'un joueur.
+
+    Personne ne choisit ici où la donnée atterrit — c'est pydantic qui la range dans son message,
+    et le test constate qu'elle en ressort assainie.
     """
 
-    class ReglagesAuFormat(Settings):
-        valkey_url: Annotated[str, AfterValidator(_refuse_sans_citer)]
+    class CorpsDeRequete(BaseModel):
+        latitude: float
 
     with pytest.raises(ValidationError) as refus:
-        ReglagesAuFormat(valkey_url=COORDONNEES)
+        CorpsDeRequete(latitude=COORDONNEES)  # type: ignore[arg-type]
+
+    assert COORDONNEES in str(refus.value), "prémisse : pydantic recopie bien l'entrée brute"
 
     assaini = scrub({"exception": {"values": [{"value": str(refus.value)}]}})
 

@@ -74,3 +74,9 @@ Le code visé est **modulaire, scalable, fractionné** — objectif permanent, p
 - Commit touchant une **zone sensible** déclarée dans `.claude/pipeline.config.md` (section
   « Périmètre ») → rendre la main pour validation manuelle **avant** de committer.
 - Par défaut, sont sensibles : l'**UI à valider visuellement** et l'**authentification**.
+- **Exception, pour l'UI à valider visuellement seule** : l'arrêt se prend **une fois par PR**,
+  avant `gh pr ready`, sur l'écran monté et regardé dans les deux modes — pas avant chaque commit.
+  Un écran n'existe pas avant d'être assemblé : au commit qui pose un widget, un jeton de thème ou
+  une clé de texte, il n'y a rien à regarder, et demander de valider à l'aveugle transforme le
+  point d'arrêt en formalité qu'on apprend à expédier. C'est le contraire de ce qu'il sert.
+  L'**authentification** reste au commit : ce qu'on y valide se lit dans le diff, pas à l'écran.
