@@ -66,6 +66,100 @@ silence. Un test qui veut un environnement dégradé surcharge `settings` par pa
 indirecte et hérite du reste de la chaîne, comme le fait le test « Valkey injoignable ».
 Les tests asynchrones n'ont besoin d'aucun marqueur (`asyncio_mode = "auto"`).
 
+## Journaux
+
+**Un objet JSON par ligne, sur la sortie standard, pour tous les loggers du processus** — le nôtre,
+celui d'uvicorn, celui d'Alembic, ceux des bibliothèques. Docker collecte la sortie standard : il
+n'y a ni fichier, ni rotation, ni second flux à déclarer ailleurs.
+
+```json
+{"event": "Running upgrade -> ada3c4690df8", "logger": "alembic.runtime.migration",
+ "level": "info", "timestamp": "2026-09-03T08:41:35.751365Z"}
+```
+
+Les clés sont **stables** : `timestamp` (ISO, UTC, suffixé `Z`), `level`, `logger`, `event`, plus
+ce que l'appelant a lié. Elles le sont parce qu'une **seule liste de processeurs** sert aux deux
+origines — la chaîne structlog et la `foreign_pre_chain` du formateur. Deux listes divergeraient au
+premier ajout, et la divergence ne se verrait que dans l'agrégateur.
+
+Un seul processeur échappe à cette liste, et c'est instructif : **le rendu de la pile**.
+`stack_info=True` doit produire la clé `stack` des deux côtés, mais `StackInfoRenderer` ne
+transporte pas la pile — il la **recalcule depuis sa propre frame**. Juste au moment de l'appel,
+faux au moment du formatage, où il capturerait la plomberie du handler à la place du point d'appel.
+La stdlib garde donc la sienne, qu'on renomme (`_rename_stack_info`) plutôt que de la recalculer.
+Un test couvre les deux origines.
+
+Les valeurs sont **échappées en ASCII**, défaut de `json.dumps` que le rendu conserve : tout
+caractère non ASCII part sous sa forme `\uXXXX`, donc l'événement « partie créée » sort avec ses
+deux `é` remplacés chacun par une séquence de six caractères. Sans conséquence pour un agrégateur,
+moins lisible pour un œil humain devant `docker logs`.
+
+**`configure_logging()` est appelée par les trois points d'entrée** : `create_app`, le worker et
+`env.py`. Deux propriétés en découlent, toutes deux éprouvées par `tests/test_logs.py` :
+
+- **idempotente** — le second appel ne fait rien. Sans quoi chaque ligne serait doublée, ce qui ne
+  casse rien de visible et se paie en volume d'agrégation ;
+- **elle n'enlève le handler de personne** — un `basicConfig(force=True)` vide le handler de
+  capture de pytest (mesuré). Elle ajoute le sien, elle ne fait pas le ménage. Les loggers
+  d'uvicorn font seule exception : lui les configure **avant** d'appeler la fabrique, et les
+  laisser en place mettrait deux formats sur la même sortie.
+
+**Journaliser depuis le code du paquet** — un logger de la stdlib suffit, il passe par le même
+rendu :
+
+```python
+import structlog
+
+_journal = structlog.get_logger(__name__)
+_journal.info("partie créée", hexagones=3)
+```
+
+**Ajouter un contexte à toutes les lignes d'une unité de travail** — un `bind_contextvars` dans le
+domaine qui le connaît ; `merge_contextvars` est en tête de la chaîne et le verse dans chaque
+ligne. Rien à changer dans `core/logs.py`.
+
+Aucun `--log-config` n'est passé à uvicorn : ce serait une troisième déclaration à tenir à jour
+dans le Dockerfile, dans le compose et sur le poste.
+
+**Une exception, et une seule : le refus de démarrage.** Les trois points d'entrée lisent leur
+configuration **avant** d'ouvrir les journaux, donc une `ConfigurationError` sort en traceback
+Python sur stderr, pas en objet JSON sur stdout. L'ordre est délibéré : à ce moment-là la chaîne de
+rendu n'existe pas, et c'est ce qui garantit que la valeur fautive ne la traverse pas — ni elle, ni
+Sentry, qui s'y branchera. Le traceback ne porte que le nom du champ et la nature du défaut, jamais
+la valeur (`from None`, voir « Structure »). Un agrégateur qui n'indexe que du JSON ne verra donc
+pas cette ligne-là : c'est dans `docker logs` qu'on lit pourquoi un conteneur a refusé de démarrer.
+
+### L'identifiant de requête
+
+Chaque requête HTTP reçoit un **`uuid4` généré par le serveur**. Il est lié au contexte pour toute
+la durée de la requête — donc présent sous la clé `request_id` dans chaque ligne qu'elle produit —
+et annoncé sur la réponse par l'en-tête `X-Request-ID`. C'est ce qui permet de partir d'une erreur
+signalée par un joueur et de retrouver dans l'agrégateur exactement les lignes de *sa* requête,
+plutôt que tout ce que les autres faisaient à la même seconde.
+
+**L'en-tête entrant n'est jamais repris.** C'est une entrée non fiable, et le journal est un lieu
+de confiance : la reprendre laisserait un appelant choisir la clé sur laquelle ses requêtes sont
+regroupées — se confondre avec un autre, ou déposer une chaîne de son choix, où un saut de ligne
+suffit à fabriquer une fausse entrée. Le jour où un identifiant de corrélation venu d'un client
+légitime aura un sens, il aura son propre en-tête et sa propre validation.
+
+**`RequestIdMiddleware` est empilé au-dessus du limiteur de débit** (donc déclaré après lui dans
+`create_app` : Starlette enveloppe, le dernier déclaré est traversé le premier). Un 429 est produit
+par le limiteur sans que la requête atteigne l'application ; dans l'ordre inverse, exactement les
+réponses qu'on cherche à diagnostiquer seraient les seules sans identifiant. Un test l'éprouve.
+
+Le contexte est **restauré** à la sortie, et non supprimé (`bound_contextvars`) : il appartient au
+fil d'exécution, pas à la requête. Une requête qui lève laisserait sa clé derrière elle, et une
+tâche de fond se verrait rattachée à un travail qui ne l'a pas demandée ; et le jour où un contexte
+englobant liera `request_id`, la valeur d'avant sera rendue plutôt qu'effacée.
+
+**Une limite mesurée : une 500 non rattrapée ne porte pas l'en-tête.** Starlette monte son
+`ServerErrorMiddleware` **au-dessus** de la pile de middlewares de l'application ; la réponse
+d'erreur qu'il fabrique ne repasse donc pas par le nôtre. Les lignes de journal émises *pendant*
+la requête portent bien l'identifiant — c'est le plus utile — mais la réponse que le client voit
+n'en porte aucun. Structurel, non contournable par `add_middleware` : à savoir avant de chercher
+un identifiant sur un rapport d'erreur 500.
+
 ## Sessions
 
 Une route qui a besoin de la base annote son paramètre — l'injection fait le reste :
@@ -180,9 +274,10 @@ pas. Une clé `None` veut dire « cet axe ne s'applique pas à cette requête »
 de Valkey est indolore par conception, et des compteurs remis à zéro sont sans conséquence). Sont
 attrapées `ConnectionError` et `TimeoutError` de redis-py — sœurs, l'une n'hérite pas de l'autre,
 il faut donc nommer les deux — **et tout ce qui hérite de la première**, dont
-`AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. Aucune trace dans les
-journaux jusqu'à #42, mais `/health` le dit en répondant 503. Assumé : rejeter chaque requête sur
-une erreur de configuration ferait une panne totale là où l'on a un service dégradé et signalé.
+`AuthenticationError` : un mot de passe Valkey erroné désarme la limitation. La branche est muette
+par construction — aucune trace, pas même en JSON — mais `/health` le dit en répondant 503.
+Assumé : rejeter chaque requête sur une erreur de configuration ferait une panne totale là où
+l'on a un service dégradé et signalé.
 Attraper `Exception`, en revanche, désarmerait la limitation au premier bug du limiteur au lieu de
 le faire sortir en 500.
 
@@ -268,7 +363,7 @@ un chemin POSIX absolu (`/tmp/…`). C'est voulu — ce chemin est le seul qui r
 quand #45 posera un système de fichiers en lecture seule.
 
 **Un tour de tâche qui échoue ne fait pas tomber le worker** : le tour est perdu, l'erreur part sur
-le journal de la stdlib (que #42 configurera) en nommant la tâche fautive, et le tour suivant
+le journal de la stdlib — donc en JSON, comme le reste — en nommant la tâche fautive, et le suivant
 repart. Plusieurs joueurs dépendent de ce processus — l'échec d'une purge sur un hoquet de la base
 est un incident local, pas une raison de priver tout le monde des autres tâches.
 
@@ -314,10 +409,11 @@ d'`alembic.ini` : l'URL vient de `Settings`, comme pour l'application. Les scrip
 | L'appliquer sur le poste | `just migrate` |
 | L'appliquer dans un conteneur éphémère | `docker compose -f infra/docker-compose.yml --env-file .env run --rm api alembic upgrade head` — c'est ce que la CI de déploiement déclenchera (cadrage §13.9 règle 3) |
 
-**`just migrate` ne dit rien quand il travaille** : les messages « Running upgrade … » passent par
-le logger d'Alembic, qu'aucun handler ne configure — le logging est le sujet de #42, et un
-`alembic.ini` n'existe pas ici. **Le code de retour est le signal** ; pour voir l'état,
-`just migrate && cd api && uv run alembic current`.
+**`just migrate` dit ce qu'il fait** : `env.py` appelle `configure_logging()` comme les deux autres
+points d'entrée, donc les messages « Running upgrade … » du logger d'Alembic sortent en JSON, sur la
+même sortie et avec les mêmes clés que le reste. C'est la raison pour laquelle le troisième appel
+existe — sans lui, la commande resterait muette et seul son code de retour parlerait. Pour l'état
+courant sans rien appliquer : `cd api && uv run alembic current`.
 
 **Jamais au démarrage** : rien dans `main.py` n'appelle Alembic. Une migration se joue une fois,
 hors du cycle de vie des conteneurs.
@@ -334,12 +430,15 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
 ## Structure
 
 - `src/arpendo_api/main.py` — `create_app()`, la fabrique de l'hôte HTTP. Les routeurs des
-  domaines s'y ajoutent sous `/v1` ; `/health` reste à la racine, parce qu'il s'adresse aux
-  sondes et non aux clients.
+  domaines s'y ajoutent sous `/v1` ; **deux** restent à la racine, parce que leurs lecteurs ne
+  connaissent pas `/v1` : `/health`, qui s'adresse aux sondes, et `/version`, qui s'adresse à un
+  client trop vieux pour parler à `/v1`.
 - `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
-  l'environnement du paquet), `valkey.py`, `health.py`, `journal.py` (la ligne, le type, le
-  registre), `bus.py` (`publish` / `subscribe`), `resources.py` (les ressources partagées et leur
-  cycle de vie).
+  l'environnement du paquet), `logs.py` (le rendu JSON, une fois pour tous les loggers),
+  `request_id.py` (l'identifiant de requête et son en-tête), `valkey.py`, `health.py`,
+  `version.py` (les deux seuils de version du client),
+  `journal.py` (la ligne, le type, le registre), `bus.py` (`publish` / `subscribe`),
+  `resources.py` (les ressources partagées et leur cycle de vie).
 - `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
   déclarative et les conventions de schéma — sa docstring en est la référence), `session.py` (la
   session par requête), `migrations/` (Alembic).
@@ -352,6 +451,20 @@ celui de PostgreSQL. Les afficher, les journaliser ou les sérialiser rend `Secr
 et rien d'autre ; la valeur ne sort que par un `.get_secret_value()` explicite, dans la seule
 fabrique qui la consomme. Un futur secret — clé de session, DSN Sentry, jeton FCM — se déclare
 avec le même alias.
+
+**Les trois hôtes du paquet lisent leur configuration par `load_settings()`**, jamais par
+`Settings()` — l'api, le worker et l'environnement des migrations. La différence n'est visible que
+le jour où la configuration est fausse : `Settings()` lève une `ValidationError` qui recopie
+l'entrée **brute** dans l'`input_value` de chacune de ses erreurs, avant l'emballage `SecretStr`.
+Son *message* n'en porte plus rien — `hide_input_in_errors` du `model_config` l'en retire, donc la
+trace du démarrage refusé ne la montre pas — mais `errors()` et `json(include_input=True)` la
+portent toujours, et rien n'empêche un appelant futur de les lire. `load_settings()` traduit
+l'erreur en
+`ConfigurationError` qui nomme le champ et la nature du défaut, jamais la valeur — et coupe le
+chaînage (`from None`), sans quoi la trace d'origine s'imprimerait juste au-dessus. C'est le seul
+chemin du démarrage qu'aucun assainissement d'événement ne couvre : Sentry lit son propre DSN dans
+ces réglages, il n'existe donc pas encore. Un test balaie `src/` et échoue sur tout `Settings()`
+qui reparaîtrait hors de `settings.py`.
 
 **Les ressources partagées — moteur, fabrique de sessions, client Valkey — sont ouvertes par
 `core/resources.py`**, et par personne d'autre. `open_resources(settings)` les empile sur un

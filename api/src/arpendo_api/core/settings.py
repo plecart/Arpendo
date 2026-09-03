@@ -2,7 +2,7 @@
 
 from typing import Annotated, Self
 
-from pydantic import AfterValidator, Field, SecretStr, model_validator
+from pydantic import AfterValidator, Field, SecretStr, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -56,9 +56,11 @@ ajoutée ici ne doit jamais rejeter sur le contenu** : pydantic recopie l'entré
 imprimée est alors du blanc ; refuser un format ferait imprimer le secret dans la trace même que
 cet alias existe pour assainir.
 
-``hide_input_in_errors`` (voir ``Settings.model_config``) retire cette entrée du **message**, mais
-pas de ``ValidationError.errors()`` : la règle ci-dessus reste donc la bonne, avec un filet de
-moins à traverser.
+``hide_input_in_errors`` (voir ``Settings.model_config``) retire cette entrée du **message**, et
+:func:`_describe` la retire de ``errors()`` sur le chemin de démarrage — mais la règle ci-dessus
+reste la bonne : ni l'une ni l'autre ne couvre le ``msg``, que pydantic compose à partir du texte
+du ``ValueError`` levé dans le validateur. Un validateur qui rejette sur le contenu fuit par là,
+quelles que soient les exclusions.
 """
 
 
@@ -133,9 +135,13 @@ class Settings(BaseSettings):
     est tout ce dont a besoin la personne qui répare un ``.env``. Ce qu'on retire est la valeur,
     qu'elle connaît déjà.
 
-    Ne couvre pas ``ValidationError.errors()`` ni ``json(include_input=True)``, qui portent
-    toujours l'entrée brute. Aucun code du dépôt ne les appelle ; le filtrage entrant de Sentry
-    (#42) est ce qui couvre ce chemin.
+    **Ne couvre pas** ``ValidationError.errors()`` ni ``json(include_input=True)``, qui portent
+    toujours l'entrée brute. Le seul appelant du dépôt est :func:`_describe`, qui les ferme de son
+    côté par ``include_input=False`` — les deux protections sont indépendantes et se recouvrent
+    volontairement : celle-ci ferme le **message** de toute ``ValidationError``, où qu'elle soit
+    levée, y compris hors du chemin de démarrage ; celle de :func:`load_settings` ferme le chemin
+    de démarrage, où l'exception atteint les journaux du conteneur. Aucune ne rend l'autre
+    superflue.
     """
 
     database_url: Secret
@@ -176,3 +182,70 @@ class Settings(BaseSettings):
                 "un build refusé ne peut pas être seulement recommandé"
             )
         return self
+
+
+class ConfigurationError(RuntimeError):
+    """Un démarrage refusé, décrit sans jamais citer la valeur qui l'a fait refuser.
+
+    Distincte de la ``ValidationError`` de pydantic, qui en est la *cause* : celle-là recopie
+    l'entrée brute dans chacune de ses erreurs et dans son texte, celle-ci ne porte que le nom du
+    champ et la nature du défaut. C'est le type qu'un point d'entrée laisse remonter jusqu'à
+    l'arrêt du processus — donc le seul dont le texte atteigne les journaux du conteneur.
+    """
+
+
+def _describe(invalid: ValidationError) -> str:
+    """Réduit une erreur de validation à ce qu'on a le droit d'écrire : où, et quoi.
+
+    Ce rendu ne lit que ``loc`` et ``msg``. Les trois exclusions portent donc sur des champs qu'il
+    n'ouvre pas : elles ferment la fuite **à la source**, pour que le jour où ce rendu s'enrichira
+    d'un champ, il ne puisse pas se servir dans ce qu'on a interdit. ``include_input`` retire
+    l'entrée brute — un secret y figure en clair, l'emballage ``SecretStr`` n'ayant pas encore eu
+    lieu quand pydantic la recopie ; ``include_url`` retire un lien de documentation, sans valeur
+    ici ; ``include_context`` retire l'exception d'origine.
+
+    **Ce qu'elles ne ferment pas**, et qu'il ne faut pas se croire protégé d'avoir : ``msg`` porte
+    lui aussi le texte de l'exception d'origine — pydantic rend ``"Value error, <message>"`` pour
+    un ``ValueError`` levé dans un validateur. Un validateur dont le message citerait la valeur
+    refusée fuirait par ``msg``, exclusions ou non. Ce qui l'interdit est ailleurs : la docstring
+    de ``Secret`` proscrit tout validateur qui rejette sur le *contenu*. Vérifié — mesuré en
+    retirant chacune des trois exclusions : la suite reste verte, elles sont une ceinture, pas la
+    bretelle. La bretelle est le ``from None`` de l'appelant, qu'un test fait rougir.
+
+    Args:
+        invalid: l'erreur levée par la construction des réglages.
+
+    Returns:
+        Un fragment ``champ: nature du défaut`` par champ fautif, séparés par des points-virgules.
+        Un champ imbriqué est rendu pointé, comme pydantic le nomme.
+    """
+    return "; ".join(
+        f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
+        for error in invalid.errors(include_input=False, include_url=False, include_context=False)
+    )
+
+
+def load_settings() -> Settings:
+    """Lit les réglages, ou refuse de démarrer sans écrire nulle part la valeur fautive.
+
+    La porte d'entrée de la configuration pour les **trois** hôtes du paquet — l'api, le worker et
+    l'environnement des migrations. ``Settings()`` reste utilisable et inchangé : c'est lui que les
+    tests de validation éprouvent, et c'est sa ``ValidationError`` que ce chargeur traduit.
+
+    Le chemin qu'il protège n'a aucun autre filet : à ce moment du démarrage, Sentry n'est pas
+    initialisé — il lit son propre DSN dans ces réglages — donc aucun assainissement d'événement
+    ne s'applique. ``from None`` n'est pas une commodité d'écriture : sans lui, l'interpréteur
+    imprimerait la trace de la cause au-dessus de la nôtre, et cette trace-là porte l'entrée brute
+    — soit exactement ce que la traduction vient de retirer.
+
+    Returns:
+        Les réglages validés.
+
+    Raises:
+        ConfigurationError: si l'environnement décrit une configuration que ``Settings`` refuse.
+            Le message nomme chaque champ fautif et la nature de son défaut, jamais sa valeur.
+    """
+    try:
+        return Settings()
+    except ValidationError as invalid:
+        raise ConfigurationError(f"Configuration invalide — {_describe(invalid)}") from None

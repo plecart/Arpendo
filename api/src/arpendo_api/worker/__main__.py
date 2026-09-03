@@ -7,12 +7,21 @@ reste ici que ce qu'un point d'entrée de processus ne peut pas éprouver de l'i
 
 import asyncio
 
+from arpendo_api.core.logs import configure_logging
+from arpendo_api.core.settings import load_settings
 from arpendo_api.worker import TASKS, run, stop_on_sigterm
 
 
 async def _main() -> None:
-    """Déroule la table de tâches jusqu'au SIGTERM du gestionnaire de conteneurs."""
-    await run(TASKS, stop_on_sigterm())
+    """Lit la configuration, ouvre les journaux, puis déroule la table jusqu'au SIGTERM.
+
+    Dans cet ordre, et une seule fois. Les réglages viennent en premier parce que tout en dépend,
+    et parce qu'un démarrage refusé doit échouer avant que quoi que ce soit d'autre n'existe. Les
+    journaux viennent ensuite, pour que le premier tour de tâche ait déjà où écrire.
+    """
+    settings = load_settings()
+    configure_logging()
+    await run(TASKS, stop_on_sigterm(), settings)
 
 
 if __name__ == "__main__":

@@ -13,14 +13,15 @@ from contextlib import suppress
 from pathlib import Path
 
 from arpendo_api.core.resources import Resources, open_resources
-from arpendo_api.core.settings import Settings
+from arpendo_api.core.settings import Settings, load_settings
 
 _journal = logging.getLogger(__name__)
 """Le journal du worker.
 
-Aucun handler n'est configuré — c'est le sujet de #42 — mais la stdlib en pose un de dernier
-recours qui écrit sur ``stderr`` à partir de ``WARNING``. Un échec de tâche est donc visible dans
-``docker compose logs worker`` dès aujourd'hui, et #42 le formatera sans qu'une ligne change ici.
+Un ``logging.Logger`` de la stdlib, et non un logger structlog : c'est ``configure_logging`` qui,
+depuis le point d'entrée, branche la racine sur le rendu JSON — un échec de tâche en ressort donc
+formaté comme le reste, sans qu'une ligne change ici. Le nom du module devient la clé ``logger``
+de la ligne.
 """
 
 Task = Callable[[Resources], Awaitable[None]]
@@ -117,12 +118,18 @@ async def run(
             retarde aucune autre, et un test l'observe.
         stop: l'événement qui met fin à toutes les boucles. C'est l'appelant qui le pose — depuis
             un signal en production, directement dans un test.
-        settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement, comme le fait
-            ``create_app`` : c'est le cas du conteneur, qui lance le module sans argument. Un test
-            en fournit un explicite pour décrire l'environnement qu'il veut éprouver.
+        settings: les réglages à utiliser. **Le conteneur les fournit** : son point d'entrée les
+            lit lui-même, avant d'ouvrir les journaux, pour qu'un démarrage refusé échoue avant
+            que quoi que ce soit d'autre n'existe. Le repli sur ``load_settings`` sert aux tests,
+            qui appellent ``run`` directement — et à eux seuls ; un test qui veut décrire un
+            environnement particulier passe le sien.
 
     Returns:
         Rien, et seulement une fois **toutes** les boucles terminées et les ressources libérées.
+
+    Raises:
+        ConfigurationError: si les réglages sont omis et que l'environnement en décrit une
+            configuration invalide.
 
     Note:
         ``TaskGroup`` plutôt que ``gather`` : si une boucle venait à lever malgré la garde par
@@ -130,7 +137,7 @@ async def run(
         sur un moteur et un client déjà fermés — mesuré, quatre tours de plus. Le groupe, lui,
         annule tout avant de remonter, donc cet état ne peut pas exister.
     """
-    async with open_resources(settings if settings is not None else Settings()) as resources:
+    async with open_resources(settings if settings is not None else load_settings()) as resources:
         async with asyncio.TaskGroup() as groupe:
             for name, (interval, task) in tasks.items():
                 groupe.create_task(_repeat(name, interval, task, resources, stop))

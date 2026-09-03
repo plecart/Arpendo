@@ -6,9 +6,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from arpendo_api.core import health, version
+from arpendo_api.core.logs import configure_logging
 from arpendo_api.core.rate_limit import RateLimitMiddleware
+from arpendo_api.core.request_id import RequestIdMiddleware
 from arpendo_api.core.resources import open_resources
-from arpendo_api.core.settings import Settings
+from arpendo_api.core.settings import Settings, load_settings
 
 
 @asynccontextmanager
@@ -40,22 +42,38 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ses propres connexions, ce qui donne aux tests un état vierge.
     Point d'entrée ASGI : ``uvicorn arpendo_api.main:create_app --factory``.
 
+    C'est aussi le seul endroit où les journaux de l'hôte HTTP peuvent être configurés : uvicorn
+    pose les siens **avant** d'appeler cette fabrique, et ``configure_logging`` les reprend. Elle
+    est idempotente, donc la construire plusieurs fois — ce que font les tests — n'installe qu'un
+    handler.
+
     Les routeurs des domaines métier s'ajoutent ici sous le préfixe ``/v1``. Deux routeurs restent
     à la racine, et pour la même raison — leurs lecteurs ne connaissent pas ``/v1`` : ``/health``
     s'adresse aux sondes (reverse proxy, moniteur d'uptime), et ``/version`` à un client qui doit
     pouvoir apprendre qu'il est trop vieux pour parler à ``/v1``.
 
     Args:
-        settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement — c'est le cas
-            en production, où l'application est construite par uvicorn sans argument. Un test en
-            fournit un explicite pour décrire l'environnement qu'il veut éprouver.
+        settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement par
+            ``load_settings`` — c'est le cas en production, où l'application est construite par
+            uvicorn sans argument, et où une configuration fausse doit échouer sans jamais écrire
+            la valeur fautive. Un test en fournit un explicite pour décrire l'environnement qu'il
+            veut éprouver.
 
     Returns:
         L'application, dont les connexions s'ouvriront à l'entrée dans son cycle de vie.
+
+    Raises:
+        ConfigurationError: si les réglages sont omis et que l'environnement en décrit une
+            configuration invalide.
     """
     app = FastAPI(title="Arpendo", lifespan=_lifespan)
-    app.state.settings = settings if settings is not None else Settings()
+    app.state.settings = settings if settings is not None else load_settings()
+    configure_logging()
+    # Empilés du plus extérieur au plus intérieur : Starlette ajoute chaque middleware AUTOUR des
+    # précédents, donc le dernier déclaré est traversé le premier. L'identifiant doit être lié
+    # avant le limiteur, pour qu'un refus 429 porte lui aussi son identifiant.
     app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestIdMiddleware)
     app.include_router(health.router)
     app.include_router(version.router)
     return app
