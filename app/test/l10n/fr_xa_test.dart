@@ -1,6 +1,7 @@
 import 'package:arpendo/domain/bandeau/lignes.dart';
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/bandeau/bandeau.dart';
+import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -32,6 +33,14 @@ final composants = <String, WidgetBuilder>{
       Bandeau(entree: ligneReseauAbsent()),
   'le bandeau à deux actions (ligne 12)': (_) => Bandeau(
     entree: ligneMiseAJourRecommandee(onMettreAJour: () {}, onFermer: () {}),
+  ),
+  // Son libellé vient de l'appelant : n'importe quelle valeur d'ARB prouve le
+  // chemin de rendu sous la locale allongée — celle-ci est la première livrée.
+  // Les libellés réels (« Réessayer », « Mettre à jour ») arrivent avec leurs
+  // écrans, qui s'inscrivent ici à leur tour.
+  'le bouton pleine largeur': (context) => BoutonPleineLargeur(
+    libelle: AppLocalizations.of(context).marqueAccroche,
+    onPressed: () {},
   ),
 };
 

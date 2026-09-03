@@ -87,6 +87,15 @@ class Mouvement {
   /// La sortie dure 75 % de l'entrée — §1.6.
   static const double _rapportSortie = 0.75;
 
+  /// Échelle de la cible sous le doigt — `motion-press`, §1.6.
+  ///
+  /// Une **cible**, pas une durée : la coupure des animations rend le
+  /// changement instantané ([entree] tombe à zéro), elle ne le supprime pas —
+  /// l'état pressé reste visible, comme l'assombrissement `accent-pressed`.
+  /// Elle vit ici et non dans `ButtonStyle`, qui n'a aucune propriété
+  /// d'échelle : c'est `BoutonPleineLargeur` qui l'applique.
+  static const double echellePression = 0.98;
+
   /// Courbe d'entrée — un élément entre par l'endroit où il va vivre.
   static const Curve courbeEntree = Curves.easeOutCubic;
 

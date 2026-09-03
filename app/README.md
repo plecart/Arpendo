@@ -277,6 +277,15 @@ contrôleur qu'on rembobine applique un **second** miroir temporel, ce qui inver
   que le rembourrage y a déjà été appliqué *et* retiré du `MediaQuery`. Une feuille s'affiche par
   le `Navigator`, donc hors de la pile, et reçoit bien les deux.
 
+### Le bouton pleine largeur
+
+`ui/core/boutons/bouton_pleine_largeur.dart` est le bouton principal des écrans sans carte
+(§4, §11.2) : un `FilledButton` pleine largeur qui porte le retour d'appui `motion-press` du
+§1.6 — échelle 0,98 à l'appui, via `Mouvement.of`. L'échelle vit **dans ce widget et pas dans le
+thème** : `ButtonStyle` n'a aucune propriété d'échelle, et ses `ButtonLayerBuilder` sont clippés
+par la forme du `Material`. L'assombrissement d'appui, lui, vient du `FilledButtonThemeData`
+(`accent-pressed`). Les marges d'écran (`space-4`) restent à l'appelant.
+
 ## Icône de lancement
 
 `documents/assets/icone-app.svg` est la **source unique** de l'icône (identité visuelle §1.5,
