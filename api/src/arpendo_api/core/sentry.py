@@ -38,12 +38,13 @@ Il **remplace** celui du SDK et ne s'y ajoute pas — lu dans ``sentry_sdk/scrub
 clés du projet retirerait donc en silence les **33** du SDK, en croyant en ajouter cinq.
 
 Les quatre clés d'adresse IP (``x_forwarded_for``, ``x_real_ip``, ``ip_address``, ``remote_addr``)
-ne sont pas concernées : ``EventScrubber`` les ajoute lui-même dès que ``send_default_pii`` est
-faux, quel que soit le denylist qu'on lui passe — mesuré.
+ne sont pas concernées : ``EventScrubber`` les ajoute **toujours** ici, quel que soit le denylist
+qu'on lui passe — mesuré. Elles dépendent du paramètre ``send_default_pii`` de *son constructeur*,
+qu'on ne lui passe pas et dont le défaut est faux ; ce n'est pas l'option homonyme d'``init``.
 """
 
 PATTERNS = (
-    re.compile(r"-?\d{1,3}\.\d{4,}\s*,\s*-?\d{1,3}\.\d{4,}"),
+    re.compile(r"-?\d{1,3}\.\d{4,}[^\d\-]{1,20}-?\d{1,3}\.\d{4,}"),
     re.compile(r"\bBearer\s+[\w\-._~+/]+=*", re.IGNORECASE),
     re.compile(r"\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b"),
 )
@@ -65,6 +66,44 @@ def _scrub_text(text: str) -> str:
     return text
 
 
+DEGREE_LIMIT = 180.0
+"""La plus grande valeur absolue qu'un degré prenne — au-delà, ce n'est pas une longitude."""
+
+DEGREE_PRECISION = 4
+"""Décimales minimales pour qu'un nombre soit tenu pour une coordonnée.
+
+Quatre décimales valent environ 11 m. En dessous, la valeur ne localise plus personne, et le seuil
+évite d'emporter les nombres ronds que le code produit partout — un `1.0`, un `0.25`.
+"""
+
+
+def _looks_like_degree(value: Any) -> bool:
+    """Dit si ce **nombre** a la forme d'une composante de coordonnée.
+
+    Une forme, pas une certitude : `12.345678` peut être une durée. C'est pourquoi cette fonction
+    ne décide rien seule — voir ``_has_coordinate_pair``.
+    """
+    if not isinstance(value, float):
+        return False
+    return abs(value) <= DEGREE_LIMIT and len(repr(value).partition(".")[2]) >= DEGREE_PRECISION
+
+
+def _has_coordinate_pair(values: Any) -> bool:
+    """Dit si ces valeurs voisines contiennent **au moins deux** composantes de coordonnée.
+
+    C'est la même règle que pour les chaînes, transposée aux nombres : **une position se reconnaît
+    à la paire**. Un flottant isolé est indécidable — durée, prix, moyenne — et le redresser
+    emporterait la moitié des nombres d'un événement. Deux flottants de forme géographique dans le
+    **même conteneur** — la liste des paramètres d'un log, le contexte d'une frame, un `extra` —
+    sont une position bien plus souvent qu'une coïncidence.
+
+    Le faux positif assumé est un conteneur de deux mesures fines (`{"p50": 12.345678, "p99":
+    98.765432}`), qui sera assaini pour rien. L'asymétrie est voulue : perdre un centile se voit et
+    se répare, laisser fuir une position ne se voit pas et ne se répare pas (cadrage §12.3).
+    """
+    return sum(1 for valeur in values if _looks_like_degree(valeur)) >= 2
+
+
 def _scrub_value(value: Any) -> Any:
     """Descend dans la structure et n'assainit que les chaînes qu'elle contient.
 
@@ -77,10 +116,23 @@ def _scrub_value(value: Any) -> Any:
     if isinstance(value, str):
         return _scrub_text(value)
     if isinstance(value, dict):
-        return {key: _scrub_value(inner) for key, inner in value.items()}
+        paire = _has_coordinate_pair(value.values())
+        return {clef: _scrub_child(inner, paire) for clef, inner in value.items()}
     if isinstance(value, list):
-        return [_scrub_value(inner) for inner in value]
+        paire = _has_coordinate_pair(value)
+        return [_scrub_child(inner, paire) for inner in value]
     return value
+
+
+def _scrub_child(value: Any, in_coordinate_pair: bool) -> Any:
+    """Assainit un élément, en tenant compte de ce que ses **voisins** révèlent.
+
+    C'est là que la règle de la paire s'applique : un nombre n'est retiré que si le conteneur qui
+    le porte en contient un second de même forme.
+    """
+    if in_coordinate_pair and _looks_like_degree(value):
+        return REDACTED
+    return _scrub_value(value)
 
 
 def scrub(event: Any, hint: Any = None) -> Any:
@@ -105,7 +157,7 @@ def scrub(event: Any, hint: Any = None) -> Any:
     return _scrub_value(event)
 
 
-def configure_sentry(settings: Settings, transport: Any = None) -> None:
+def configure_sentry(settings: Settings) -> None:
     """Initialise Sentry — ou ne fait **rien du tout**, si aucun DSN n'est configuré.
 
     « Désactivé » veut dire *aucun appel à* ``sentry_sdk.init``, et non un ``init`` avec un DSN
@@ -123,20 +175,22 @@ def configure_sentry(settings: Settings, transport: Any = None) -> None:
     L'environnement des migrations ne l'appelle pas : un processus court, sans requête, dont
     l'échec se lit dans le code de retour.
 
-    ``include_local_variables=False`` ferme la seule voie par laquelle une coordonnée sortait
-    malgré les deux filets. Mesuré : le SDK joint par défaut les variables locales de chaque frame,
-    et son sérialiseur éclate un tuple en éléments séparés — ``position = (48.858370, 2.294481)``
-    devenait ``["48.85837", "2.294481"]``. ``EventScrubber`` ne la voyait pas, la clé n'étant pas au
-    denylist ; ``scrub`` non plus, chaque nombre étant devenu une chaîne isolée et le motif exigeant
-    la paire. Le prix est réel — les traces perdent leurs variables locales — et il est assumé : le
-    domaine Territoire est fait de fonctions dont les locales *sont* des positions, et §12.3 pèse
-    plus lourd qu'un confort de débogage. Type, message et pile restent.
+    ``include_local_variables=False`` ferme **une** voie : le SDK joint par défaut les variables
+    locales de chaque frame, et une ``position = (48.858370, 2.294481)`` en sortait telle quelle.
+    Le prix est réel — les traces perdent leurs variables locales, partout et pas seulement dans
+    Territoire — et il est assumé : §12.3 pèse plus lourd qu'un confort de débogage, et type,
+    message, pile, fichier et ligne restent.
+
+    **Ce n'est pas la seule voie, et il ne faut pas le croire.** Les autres sont fermées par
+    ``scrub``, dont la règle de la paire vaut pour les chaînes *et* pour les nombres — le détail
+    est dans ``PATTERNS`` et ``_has_coordinate_pair``, et la population complète des formes connues
+    est épinglée par ``FORMES_DE_POSITION`` dans les tests. Reste ouvert, et documenté : le
+    **contexte source** des frames, que le SDK joint aussi (``include_source_context``) — il porte
+    du code, donc une donnée d'utilisateur ne peut pas s'y trouver, mais une valeur écrite en dur
+    dans le code, si.
 
     Args:
         settings: les réglages validés. Seuls ``sentry_dsn`` et ``sentry_sample_rate`` sont lus.
-        transport: le transport du SDK. Omis, c'est celui du SDK, qui envoie sur le réseau. Un test
-            en fournit un qui garde les enveloppes — c'est le seul moyen d'éprouver un événement
-            **tel que le SDK le construit**, plutôt que tel qu'on croit qu'il le construit.
     """
     if settings.sentry_dsn is None:
         return
@@ -148,5 +202,4 @@ def configure_sentry(settings: Settings, transport: Any = None) -> None:
         include_local_variables=False,
         before_send=scrub,
         event_scrubber=EventScrubber(denylist=DENYLIST, recursive=True),
-        transport=transport,
     )

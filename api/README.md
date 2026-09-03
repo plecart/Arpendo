@@ -188,8 +188,10 @@ lit dans le code de retour.
 
 **Les lignes de journal atteignent Sentry**, et pas seulement stdout : l'intégration de
 journalisation du SDK en fait des breadcrumbs à partir de `INFO` et des événements à partir de
-`ERROR`. Elles passent donc par `scrub` comme le reste — vérifié : `logger.error("echec a
-48.858370, 2.294481")` produit un événement dont le message ressort assaini.
+`ERROR`. Elles passent donc par `scrub`, **message rendu comme paramètres bruts** : un
+`logger.error("echec a %s, %s", lat, lon)` expédie le message formaté *et* la liste `params`, et
+c'est la règle de la paire sur les nombres qui couvre la seconde — le rendu seul aurait masqué une
+donnée voyageant à côté de lui.
 
 ### Deux filets d'assainissement, parce qu'aucun ne suffit seul
 
@@ -203,10 +205,24 @@ reconstruit exactement l'historique de localisation que §12.3 interdit ».
   l'épingle, parce que l'erreur inverse — croire ajouter et en fait retirer — ne se voit nulle
   part. (Les quatre clés d'adresse IP font exception : le SDK les ajoute de lui-même dès que
   `send_default_pii` est faux.)
-- **`scrub`**, en `before_send`, travaille **par motif** sur le corps entier de l'événement :
-  paires de coordonnées décimales, `Bearer …`, adresses e-mail. C'est lui qui attrape ce que
-  l'autre ne peut pas voir — une coordonnée noyée dans un message, ou le secret qu'une
-  `ValidationError` de pydantic recopie en clair dans son texte.
+- **`scrub`**, en `before_send`, travaille **par forme** sur le corps entier de l'événement :
+  paires de coordonnées, `Bearer …`, adresses e-mail. C'est lui qui attrape ce que l'autre ne peut
+  pas voir — une coordonnée noyée dans un message, ou le secret qu'une `ValidationError` de
+  pydantic recopie en clair dans son texte.
+
+**Une position se reconnaît à la paire, jamais à un nombre seul** — et la règle vaut pour les deux
+natures que prend une coordonnée dans un événement :
+
+| | reconnu | ignoré |
+|---|---|---|
+| **chaînes** | deux décimales séparées par n'importe quoi de court et non numérique : `48.858370, 2.294481`, `lat=…&lon=…`, `POINT(… …)`, un JSON sérialisé, un saut de ligne | un horodatage ISO — il n'a **qu'une** décimale longue |
+| **nombres** | deux flottants de forme géographique dans le **même conteneur** : les paramètres d'un log, un `extra`, un `contexts`, la `data` d'un breadcrumb | un flottant isolé, des entiers, des nombres ronds |
+
+Le faux positif assumé est un conteneur de deux mesures fines (`{"p50": 12.345678, "p99":
+98.765432}`), assaini pour rien. L'asymétrie est voulue : perdre un centile se voit et se répare,
+laisser fuir une position ne se voit pas et ne se répare pas. `FORMES_DE_POSITION`, dans
+`tests/test_sentry.py`, épingle la **population** des formes connues — sept d'entre elles fuyaient
+pendant qu'une huitième servait de preuve que « c'était couvert ».
 
 `scrub` est une **fonction pure** : elle rend une structure neuve et ne touche pas l'événement
 reçu, ce qui permet de l'éprouver sur un dictionnaire écrit à la main, sans réseau, sans `init`,

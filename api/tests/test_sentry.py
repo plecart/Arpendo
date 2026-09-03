@@ -67,14 +67,15 @@ def _init_espionne(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     return appels
 
 
-def _refuse_toujours(valeur: str) -> str:
-    """Un validateur qui rejette **en citant la valeur** — ce que `Secret` interdit précisément.
+def _refuse_sans_citer(valeur: str) -> str:
+    """Un validateur qui rejette **sans jamais citer la valeur** — la règle que `Secret` impose.
 
-    Il monte le seul cas où pydantic met une donnée d'utilisateur dans le texte de son exception :
-    un validateur de format. Aucun réglage réel n'en porte, et c'est une règle écrite ; l'éprouver
-    demande donc de la transgresser ici, dans un `Settings` jetable.
+    C'est ce qui isole la thèse du test qui l'emploie : la coordonnée qu'on retrouve ensuite dans
+    le texte de l'exception ne peut venir que de l'`input_value` que pydantic y recopie, puisque
+    le message, lui, ne la porte pas. Un validateur bavard fournirait un second canal et le test
+    ne distinguerait plus les deux.
     """
-    raise ValueError(f"format attendu, reçu : {valeur}")
+    raise ValueError("format attendu")
 
 
 def _valeurs(objet: Any) -> list[str]:
@@ -148,7 +149,7 @@ def test_scrub_retire_la_valeur_brute_qu_une_erreur_de_validation_recopie() -> N
     """
 
     class ReglagesAuFormat(Settings):
-        valkey_url: Annotated[str, AfterValidator(_refuse_toujours)]
+        valkey_url: Annotated[str, AfterValidator(_refuse_sans_citer)]
 
     with pytest.raises(ValidationError) as refus:
         ReglagesAuFormat(valkey_url=COORDONNEES)
@@ -157,6 +158,60 @@ def test_scrub_retire_la_valeur_brute_qu_une_erreur_de_validation_recopie() -> N
 
     assert COORDONNEES not in " ".join(_valeurs(assaini))
     assert REDACTED in " ".join(_valeurs(assaini))
+
+
+FORMES_DE_POSITION = {
+    "virgule": {"m": "48.858370, 2.294481"},
+    "longitude négative": {"m": "48.858370, -2.294481"},
+    "query string REST": {"request": {"query_string": "lat=48.858370&lon=2.294481"}},
+    "WKT PostGIS": {"m": "POINT(2.294481 48.858370)"},
+    "JSON sérialisé en chaîne": {"m": '{"latitude": 48.858370, "longitude": 2.294481}'},
+    "saut de ligne": {"m": "48.858370\n2.294481"},
+    "point-virgule": {"m": "48.858370;2.294481"},
+    "paramètres d'un log": {"logentry": {"params": [48.858370, 2.294481]}},
+    "extra en flottants": {"extra": {"position": [48.858370, 2.294481]}},
+    "contexts en flottants": {"contexts": {"territoire": {"lat": 48.858370, "lon": 2.294481}}},
+    "breadcrumb x/y": {"breadcrumbs": {"values": [{"data": {"y": 48.858370, "x": 2.294481}}]}},
+}
+"""**La population**, pas un échantillon : toutes les formes sous lesquelles une position peut
+atteindre Sentry.
+
+Écrite ici parce qu'un correctif de fuite se juge sur la classe entière et non sur l'occurrence
+qui l'a révélée. Les sept premières sont des chaînes, les quatre dernières des **nombres** — deux
+sous-classes que rien ne rapproche à la lecture, et qui ont chacune fait fuir une position pendant
+que l'autre était couverte.
+"""
+
+NOMBRES_LEGITIMES = {
+    "flottant isolé": {"extra": {"duree_ms": 12.345678}},
+    "entiers": {"extra": {"requetes": 600, "fenetre": 60}},
+    "nombres ronds": {"extra": {"taux": 1.0, "part": 0.25}},
+    "un seul précis": {"extra": {"p50": 12.345678, "taux": 1.0}},
+}
+"""Ce que la règle de la paire ne doit **pas** emporter.
+
+Un flottant isolé est indécidable et reste ; deux flottants dont un seul a la forme d'un degré
+restent aussi. C'est ce qui empêche l'assainissement d'avaler la moitié des nombres d'un événement.
+"""
+
+
+@pytest.mark.parametrize("evenement", FORMES_DE_POSITION.values(), ids=FORMES_DE_POSITION)
+def test_aucune_forme_de_position_n_atteint_sentry(evenement: dict[str, Any]) -> None:
+    """Le balayage de la classe : chaque forme sous laquelle une position peut voyager.
+
+    Mesuré à l'écriture : sept de ces onze formes fuyaient alors que la huitième était couverte et
+    servait de preuve. Les ajouter une à une au fil des incidents reviendrait à découvrir chacune
+    en production.
+    """
+    rendu = json.dumps(scrub(evenement))
+
+    assert "48.85837" not in rendu
+    assert "2.294481" not in rendu
+
+
+@pytest.mark.parametrize("evenement", NOMBRES_LEGITIMES.values(), ids=NOMBRES_LEGITIMES)
+def test_un_nombre_qui_n_est_pas_une_position_survit(evenement: dict[str, Any]) -> None:
+    assert REDACTED not in json.dumps(scrub(evenement))
 
 
 def test_scrub_ne_rend_jamais_none_quel_que_soit_l_evenement() -> None:
@@ -239,10 +294,14 @@ async def test_l_identifiant_de_requete_devient_un_tag_sentry(client: AsyncClien
     L'isolation elle-même est une propriété du SDK, vérifiée dans ses sources
     (`integrations/asgi.py` ouvre `with sentry_sdk.isolation_scope()` par requête) et non ici.
     """
-    reponse = await client.get("/health")
+    try:
+        reponse = await client.get("/health")
 
-    assert sentry_sdk.get_isolation_scope()._tags["request_id"] == reponse.headers[HEADER]
-    sentry_sdk.get_isolation_scope().remove_tag("request_id")
+        assert sentry_sdk.get_isolation_scope()._tags["request_id"] == reponse.headers[HEADER]
+    finally:
+        # Dans un `finally` : un échec de l'assertion laisserait sinon le tag posé pour toute la
+        # suite — exactement ce que cette ligne existe pour éviter.
+        sentry_sdk.get_isolation_scope().remove_tag("request_id")
 
 
 class TransportFactice(Transport):
@@ -255,6 +314,7 @@ class TransportFactice(Transport):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         self.evenements: list[dict[str, Any]] = []
 
     def capture_envelope(self, envelope: Any) -> None:
@@ -264,16 +324,24 @@ class TransportFactice(Transport):
 
 @pytest.fixture
 def sentry_reel() -> Iterator[TransportFactice]:
-    """Sentry réellement initialisé, mais branché sur un transport qui n'envoie rien.
+    """Sentry réellement initialisé, puis branché sur un transport qui n'envoie rien.
 
-    Remet le SDK à l'arrêt après le test : `init` est un effet global de processus, et le laisser
-    en place ferait partir les événements des tests suivants dans ce transport-ci.
+    Le transport est posé **après** `configure_sentry`, sur le client : lui ouvrir un paramètre
+    dans la fonction de production ajouterait à celle-ci une surface qui n'existe que pour les
+    tests — et une surface par laquelle on peut avaler silencieusement tous les événements.
+
+    **Ce que le démontage ne fait pas** : il ne remet pas le SDK à l'arrêt. `init` est un effet
+    global de processus, et il est **irréversible** en pratique — les intégrations restent
+    chargées, `sys.excepthook`, `logging.Logger.callHandlers` et `starlette.routing` restent
+    remplacés. Ce qu'on annule est le seul effet qui compte ici : le transport, remis à `None`,
+    de sorte qu'aucun test suivant n'expédie ses événements dans ce tampon-ci. La conséquence à
+    connaître : après ce test, le processus reste instrumenté par Sentry.
     """
     transport = TransportFactice()
-    configure_sentry(reglages_surcharges({"sentry_dsn": DSN}), transport=transport)
+    configure_sentry(reglages_surcharges({"sentry_dsn": DSN}))
+    sentry_sdk.get_client().transport = transport
     yield transport
-    sentry_sdk.get_client().close()
-    sentry_sdk.init(dsn=None)
+    sentry_sdk.get_client().transport = None
 
 
 def test_une_position_en_variable_locale_ne_part_pas_vers_sentry(
