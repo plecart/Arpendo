@@ -66,12 +66,21 @@ class RequestIdMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        """Lie l'identifiant le temps de la requête, et le délie **quoi qu'il arrive**.
+        """Lie l'identifiant le temps de la requête, et **restaure** le contexte à la sortie.
 
-        Le ``finally`` n'est pas une précaution de style : le contexte appartient au fil
-        d'exécution, pas à la requête. Une requête qui lève laisserait sa clé derrière elle, et la
-        ligne suivante — une tâche de fond, une autre requête servie par la même tâche — se verrait
-        rattachée à un travail qui ne l'a pas demandée.
+        ``bound_contextvars`` plutôt qu'un ``bind`` suivi d'un ``unbind`` dans un ``finally`` : le
+        second *supprime* la clé, quand celui-ci **rétablit la valeur antérieure** s'il y en avait
+        une (vérifié dans ``structlog/contextvars.py``). La différence est nulle aujourd'hui — rien
+        d'autre ne lie cette clé — et décisive le jour où un contexte englobant le fera, exactement
+        le genre d'ajout par extension que ce projet vise.
+
+        Le rétablissement se fait **quoi qu'il arrive**, et ce n'est pas une précaution de style :
+        le contexte appartient au fil d'exécution, pas à la requête. Une requête qui lève
+        laisserait sa clé derrière elle, et la ligne suivante — une tâche de fond, une autre
+        requête servie par la même tâche — se verrait rattachée à un travail qui ne l'a pas
+        demandée. Sous uvicorn, chaque requête a sa tâche et donc sa copie de contexte : c'est une
+        ceinture. Sous un transport de test, qui sert l'application dans la tâche de l'appelant,
+        c'est la seule protection.
 
         Tout ce qui n'est pas une requête HTTP traverse sans être touché : le cycle de vie
         (``lifespan``) parcourt la pile de middlewares comme une requête, et n'a ni réponse à
@@ -81,8 +90,5 @@ class RequestIdMiddleware:
             return await self.app(scope, receive, send)
 
         request_id = str(uuid4())
-        structlog.contextvars.bind_contextvars(**{CONTEXT_KEY: request_id})
-        try:
+        with structlog.contextvars.bound_contextvars(**{CONTEXT_KEY: request_id}):
             await self.app(scope, receive, _announcing(send, request_id))
-        finally:
-            structlog.contextvars.unbind_contextvars(CONTEXT_KEY)

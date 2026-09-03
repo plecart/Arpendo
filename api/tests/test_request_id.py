@@ -8,6 +8,7 @@ import structlog
 from conftest import Lignes
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from starlette.types import Receive, Scope, Send
 
 from arpendo_api.core.logs import configure_logging
 from arpendo_api.core.request_id import HEADER, RequestIdMiddleware
@@ -21,6 +22,14 @@ APRES = "après la requête"
 Les deux repères servent à **filtrer** : le client HTTP journalise lui aussi chacun de ses appels,
 et un test qui prendrait « la seule ligne » émise attraperait la sienne un jour sur deux.
 """
+
+
+async def _sans_message(*_: object) -> None:
+    """Un `receive` / `send` qui ne sert à rien, pour un scope qui n'échange aucun message.
+
+    Le cycle de vie éprouvé plus bas ne lit ni n'écrit : lui monter de vrais canaux décrirait un
+    protocole que le test ne regarde pas.
+    """
 
 
 @pytest.fixture
@@ -101,5 +110,50 @@ async def test_aucun_identifiant_ne_survit_a_la_requete(
 
     structlog.get_logger("arpendo_api.essai").info(APRES)
 
+    (ligne,) = [ligne for ligne in lignes() if ligne["event"] == APRES]
+    assert "request_id" not in ligne
+
+
+async def test_un_contexte_englobant_est_restaure_apres_la_requete(
+    client: AsyncClient, lignes: Lignes
+) -> None:
+    """Ce qui était lié avant la requête doit l'être encore après.
+
+    Le middleware **restaure**, il ne supprime pas : un `unbind` ferait disparaître la valeur qu'un
+    contexte englobant avait posée. Rien ne lie `request_id` en amont aujourd'hui — c'est
+    précisément pourquoi ce test existe : sans lui, la différence entre supprimer et restaurer
+    serait invisible jusqu'au jour où elle coûterait cher.
+    """
+    configure_logging()
+    structlog.contextvars.bind_contextvars(request_id="posé-par-un-contexte-englobant")
+
+    await client.get("/essai")
+    lignes()
+
+    structlog.get_logger("arpendo_api.essai").info(APRES)
+
+    (ligne,) = [ligne for ligne in lignes() if ligne["event"] == APRES]
+    assert ligne["request_id"] == "posé-par-un-contexte-englobant"
+
+
+async def test_le_cycle_de_vie_traverse_le_middleware_sans_identifiant(lignes: Lignes) -> None:
+    """Le `lifespan` parcourt la pile de middlewares comme une requête, sans en être une.
+
+    Il n'a ni réponse à enrichir ni contexte à porter, et le traiter comme une requête lui
+    fabriquerait un identifiant que rien ne lirait — et poserait l'en-tête sur un message qui n'en
+    a pas. La garde s'éprouve en appelant le middleware **directement** : un transport de test
+    n'ouvre pas le cycle de vie, et la fixture `app` du conftest y entre en court-circuitant la
+    pile de middlewares.
+    """
+    configure_logging()
+    traverses: list[str] = []
+
+    async def application(scope: Scope, receive: Receive, send: Send) -> None:
+        traverses.append(scope["type"])
+        structlog.get_logger("arpendo_api.essai").info(APRES)
+
+    await RequestIdMiddleware(application)({"type": "lifespan"}, _sans_message, _sans_message)
+
+    assert traverses == ["lifespan"]
     (ligne,) = [ligne for ligne in lignes() if ligne["event"] == APRES]
     assert "request_id" not in ligne
