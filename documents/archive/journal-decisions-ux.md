@@ -694,6 +694,13 @@ désignent les fichiers SVG, toujours exacts). Corps et brief de #46 déjà conf
 ouverte ne cite la composition du logotype (le domaine Compte, qui portera l'écran Connexion,
 n'est pas découpé).
 
+**Seconde édition du §1.5, le 4 septembre 2026 (relecture indépendante du lot 2a).** La phrase
+« le signe se place à gauche du mot » est restée telle quelle au premier passage et pouvait se
+lire comme contredisant le bloc vertical du §4 de la spec (signe 96 dp **au-dessus** du nom). Le
+§1.5 qualifie désormais les deux compositions : logo horizontal (`logo-arpendo.svg`, usage hors
+app) et bloc de marque à l'écran (spec UX §4). **Aucune décision nouvelle** — le §4, de rang
+supérieur, gouvernait déjà l'écran ; l'édition lève l'ambiguïté, elle n'arbitre pas.
+
 ## 18.9 Amendement du §1.6 du 4 septembre 2026 — le « 6 % » du retour d'appui
 
 **La contradiction.** Le §1.6 écrivait « Échelle 0,98 plus assombrissement de la surface de

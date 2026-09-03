@@ -31,7 +31,10 @@ ThemeData themeArpendo(Brightness brightness) => switch (brightness) {
 /// reconstruction de la racine, et tout ce qui lit une couleur se reconstruirait
 /// pour rien. Rendre le même objet règle le problème sans imposer un `==` et un
 /// `hashCode` à écrire à la main sur chaque extension future — et évite au
-/// passage de rebâtir deux `ThemeData` à chaque `build`.
+/// passage de rebâtir deux `ThemeData` à chaque `build`. Les deux
+/// `WidgetStateProperty.resolveWith` du bouton rempli sont des fermetures
+/// qui se comparent aussi par identité : donner un `==` à l'extension ne
+/// suffirait plus à se passer du singleton.
 final ThemeData _clair = _construire(_Palette.clair);
 final ThemeData _sombre = _construire(_Palette.sombre);
 

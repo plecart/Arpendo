@@ -72,7 +72,10 @@ class _BoutonPleineLargeurState extends State<BoutonPleineLargeur> {
     // et ce `State`, ancêtre du build en cours, n'a alors pas le droit de
     // `setState` (le cas est réel : §4 désactive le bouton pendant le
     // chargement, §4.1 tant que le pseudo n'est pas valide). On reporte
-    // d'une frame ; hors build, on reconstruit immédiatement.
+    // d'une frame ; hors build, on reconstruit immédiatement. La phase de
+    // l'ordonnanceur est une **approximation** de « je suis dans un build » :
+    // un `buildScope` hors frame (phase idle) y échapperait — aucun chemin
+    // connu n'y mène ici.
     if (SchedulerBinding.instance.schedulerPhase ==
         SchedulerPhase.persistentCallbacks) {
       SchedulerBinding.instance.addPostFrameCallback((_) {
