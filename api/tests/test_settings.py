@@ -10,6 +10,24 @@ MOT_DE_PASSE_POSTGRESQL = "mot-de-passe-postgresql"
 MOT_DE_PASSE_VALKEY = "mot-de-passe-valkey"
 SECRETS = (MOT_DE_PASSE_POSTGRESQL, MOT_DE_PASSE_VALKEY)
 
+DSN_COURT = "p://s3cr3t"
+"""Un DSN **court** — le pire cas pour la divulgation, pas le cas courant."""
+
+FRAGMENT_REVELATEUR = DSN_COURT[:7]
+"""Le fragment de l'entrée brute que la troncature de pydantic laisse effectivement passer.
+
+`str(ValidationError)` n'affiche l'entrée fautive que sur une vingtaine de caractères. Sur un
+validateur de **modèle**, cette entrée est le dictionnaire entier, et son début se lit
+`{'database_url': 'p://s3c...` — **mesuré**. Le mot de passe complet n'y tient donc jamais, et un
+test qui ne chercherait que le secret entier serait vert par deux accidents cumulés : la longueur
+de la valeur, et celle du nom de champ qui la précède. Deux accidents qu'une réorganisation des
+champs, ou un nom plus court, suffiraient à défaire sans que rien ne le signale.
+
+L'invariant qu'on veut n'est donc pas « le secret n'apparaît pas entier », c'est **« aucun
+fragment de l'entrée brute n'atteint le message »** — ce que `hide_input_in_errors` garantit, et
+que rien d'autre ne garantit.
+"""
+
 BLANCHES = {"vide": "", "espaces": "   ", "tabulation-et-saut": "\t\n"}
 """Les formes du vide qu'une variable d'environnement peut prendre, par nom de cas."""
 
@@ -139,24 +157,38 @@ def test_l_ordre_des_deux_seuils_de_version_decide_du_demarrage(
     )
 
 
+@pytest.mark.parametrize("dsn", [REQUISES["DATABASE_URL"], DSN_COURT], ids=["long", "court"])
 def test_le_refus_de_la_paire_de_builds_ne_divulgue_aucun_secret(
-    environnement_complet: None, monkeypatch: pytest.MonkeyPatch
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch, dsn: str
 ) -> None:
-    """Un validateur de modèle voit la classe entière — donc les secrets, et pydantic recopie son
-    entrée dans la ``ValidationError``.
+    """Un validateur de **modèle** voit la classe entière, et pydantic recopie l'entrée dans
+    l'erreur — donc les secrets, en clair.
 
-    C'est exactement le piège que documente l'alias ``Secret`` : une règle qui rejette sur le
-    contenu ferait imprimer le contenu dans la trace même qu'on assainit. Ici la règle ne porte que
-    sur deux entiers, et le ``repr`` d'un ``SecretStr`` reste masqué — mais rien ne le garantit
-    d'un pydantic futur, et cette assertion est ce qui le dira.
+    C'est le piège que documente l'alias ``Secret``, aggravé d'un cran : sur un validateur de
+    champ, l'entrée recopiée est la seule valeur du champ ; sur un validateur de modèle, c'est le
+    **dictionnaire entier**, secrets compris. Le masquage de ``SecretStr`` n'y peut rien — mesuré :
+    à ce moment-là l'emballage n'a pas encore eu lieu, pydantic tient les chaînes brutes.
+
+    Ce qui protège réellement est ``hide_input_in_errors`` (`Settings.model_config`), et c'est ce
+    que ce test éprouve. Le cas **court** est celui qui compte : sans ce réglage, la troncature de
+    ``str`` suffirait à cacher un secret situé loin dans un DSN long, et le test passerait pour la
+    mauvaise raison.
+
+    Ce qu'il ne couvre **pas**, et qui reste vrai : ``errors()`` et ``json(include_input=True)``
+    portent toujours l'entrée brute. Aucun code du dépôt ne les appelle ; le filtrage entrant de
+    Sentry (#42) est ce qui couvre ce chemin le jour où une exception de démarrage y remonte.
     """
+    monkeypatch.setenv("DATABASE_URL", dsn)
     monkeypatch.setenv("CLIENT_BUILD_MIN", "3")
     monkeypatch.setenv("CLIENT_BUILD_RECOMMENDED", "2")
 
     with pytest.raises(ValidationError) as refus:
         Settings()
 
-    assert [secret for secret in SECRETS if secret in str(refus.value)] == []
+    message = str(refus.value)
+
+    assert [secret for secret in SECRETS if secret in message] == []
+    assert FRAGMENT_REVELATEUR not in message
 
 
 @pytest.mark.parametrize(

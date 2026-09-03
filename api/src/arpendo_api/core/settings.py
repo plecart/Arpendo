@@ -3,7 +3,7 @@
 from typing import Annotated, Self
 
 from pydantic import AfterValidator, Field, SecretStr, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _reject_blank(text: str) -> str:
@@ -55,6 +55,10 @@ ajoutée ici ne doit jamais rejeter sur le contenu** : pydantic recopie l'entré
 ``input_value`` de sa ``ValidationError``, avant l'emballage. Refuser le blanc est sûr — la valeur
 imprimée est alors du blanc ; refuser un format ferait imprimer le secret dans la trace même que
 cet alias existe pour assainir.
+
+``hide_input_in_errors`` (voir ``Settings.model_config``) retire cette entrée du **message**, mais
+pas de ``ValidationError.errors()`` : la règle ci-dessus reste donc la bonne, avec un filet de
+moins à traverser.
 """
 
 
@@ -113,6 +117,27 @@ class Settings(BaseSettings):
                  client_build_recommended=1)
     """
 
+    model_config = SettingsConfigDict(hide_input_in_errors=True)
+    """Aucune ``ValidationError`` de cette classe ne montre la valeur qui l'a provoquée.
+
+    Sans ce réglage, pydantic recopie l'entrée fautive dans le message : la valeur du champ pour
+    un validateur de champ, et le **dictionnaire entier** pour un validateur de modèle — donc les
+    secrets, avant tout emballage en ``SecretStr``, dont le masquage n'a alors pas encore de prise.
+    Mesuré : `str(e)` laissait passer `{'database_url': 'p://s3c…`.
+
+    Ce que la troncature de pydantic cachait, elle ne le cachait que par coïncidence — la longueur
+    des valeurs du projet et celle du nom de champ qui les précède. Deux coïncidences qu'un champ
+    renommé ou réordonné défait sans un mot.
+
+    Le message reste parfaitement diagnostiquable : pydantic **nomme le champ** en cause, ce qui
+    est tout ce dont a besoin la personne qui répare un ``.env``. Ce qu'on retire est la valeur,
+    qu'elle connaît déjà.
+
+    Ne couvre pas ``ValidationError.errors()`` ni ``json(include_input=True)``, qui portent
+    toujours l'entrée brute. Aucun code du dépôt ne les appelle ; le filtrage entrant de Sentry
+    (#42) est ce qui couvre ce chemin.
+    """
+
     database_url: Secret
     valkey_url: NonEmpty
     valkey_password: Secret
@@ -133,8 +158,10 @@ class Settings(BaseSettings):
         Les deux seuils **égaux** passent : c'est l'état nominal, où la version publiée est à la
         fois le plancher et la cible.
 
-        Le message ne cite que les noms des variables d'environnement, jamais leur valeur : cette
-        classe porte des secrets, et pydantic recopie son entrée dans la ``ValidationError``.
+        Le message ne cite que les noms des variables d'environnement. Ce qui l'y garantit n'est
+        pas le masquage de ``SecretStr`` — un validateur de modèle voit le dictionnaire brut,
+        avant tout emballage — mais ``hide_input_in_errors`` du ``model_config``, et un test
+        l'éprouve sur une valeur assez courte pour survivre à la troncature de pydantic.
 
         Returns:
             Les réglages inchangés — un validateur ``after`` rend le modèle, il ne le remplace pas.
