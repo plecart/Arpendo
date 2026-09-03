@@ -3,55 +3,12 @@
 import io
 import json
 import logging
-from collections.abc import Callable, Iterator
 
-import pytest
 import structlog
-from conftest import reglages_surcharges
+from conftest import Lignes, reglages_surcharges
 
 from arpendo_api.core.logs import UVICORN_LOGGERS, configure_logging
 from arpendo_api.core.settings import Settings
-
-Lignes = Callable[[], list[dict[str, object]]]
-"""Un lecteur des lignes émises depuis le dernier appel, décodées."""
-
-
-@pytest.fixture
-def lignes(capsys: pytest.CaptureFixture[str]) -> Iterator[Lignes]:
-    """Rend un lecteur des lignes émises, et remet les journaux en l'état après le test.
-
-    **C'est au test d'appeler `configure_logging()`, jamais à cette fixture.** Mesuré : pytest
-    substitue un `CaptureIO` **neuf** entre la phase de préparation et la phase d'appel — deux
-    identités différentes pour `sys.stdout`. Un `StreamHandler` construit en préparation reste
-    branché sur le tampon de la préparation, mort au moment où le test écrit, et la sortie
-    paraît vide sans que rien ne l'explique.
-
-    Elle **désinstalle** aussi le handler qu'un test précédent aurait laissé : `create_app` appelle
-    `configure_logging`, donc le premier test qui construit une application en pose un pour toute
-    la session — et l'idempotence ferait alors de tous les appels d'ici des `return` immédiats,
-    branchés sur un tampon mort. C'est une propriété réelle de la conception, pas un artefact :
-    le handler vit dans l'arbre de logging du processus, que la suite partage.
-
-    La restauration, elle, couvre la racine **et** les loggers d'uvicorn : sans elle, un logger
-    désarmé par un test le resterait pour toute la suite.
-    """
-    racine = logging.getLogger()
-    handlers, niveau = list(racine.handlers), racine.level
-    repris = {nom: logging.getLogger(nom) for nom in UVICORN_LOGGERS}
-    etat = {nom: (list(logger.handlers), logger.propagate) for nom, logger in repris.items()}
-    racine.handlers[:] = [
-        handler
-        for handler in handlers
-        if not isinstance(handler.formatter, structlog.stdlib.ProcessorFormatter)
-    ]
-
-    yield lambda: [json.loads(ligne) for ligne in capsys.readouterr().out.splitlines() if ligne]
-
-    racine.handlers[:] = handlers
-    racine.setLevel(niveau)
-    for nom, logger in repris.items():
-        logger.handlers[:], logger.propagate = etat[nom]
-    structlog.reset_defaults()
 
 
 def test_une_ligne_structlog_est_un_objet_json_a_cles_stables(lignes: Lignes) -> None:

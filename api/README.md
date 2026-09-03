@@ -109,6 +109,29 @@ ligne. Rien à changer dans `core/logs.py`.
 Aucun `--log-config` n'est passé à uvicorn : ce serait une troisième déclaration à tenir à jour
 dans le Dockerfile, dans le compose et sur le poste.
 
+### L'identifiant de requête
+
+Chaque requête HTTP reçoit un **`uuid4` généré par le serveur**. Il est lié au contexte pour toute
+la durée de la requête — donc présent sous la clé `request_id` dans chaque ligne qu'elle produit —
+et annoncé sur la réponse par l'en-tête `X-Request-ID`. C'est ce qui permet de partir d'une erreur
+signalée par un joueur et de retrouver dans l'agrégateur exactement les lignes de *sa* requête,
+plutôt que tout ce que les autres faisaient à la même seconde.
+
+**L'en-tête entrant n'est jamais repris.** C'est une entrée non fiable, et le journal est un lieu
+de confiance : la reprendre laisserait un appelant choisir la clé sur laquelle ses requêtes sont
+regroupées — se confondre avec un autre, ou déposer une chaîne de son choix, où un saut de ligne
+suffit à fabriquer une fausse entrée. Le jour où un identifiant de corrélation venu d'un client
+légitime aura un sens, il aura son propre en-tête et sa propre validation.
+
+**`RequestIdMiddleware` est empilé au-dessus du limiteur de débit** (donc déclaré après lui dans
+`create_app` : Starlette enveloppe, le dernier déclaré est traversé le premier). Un 429 est produit
+par le limiteur sans que la requête atteigne l'application ; dans l'ordre inverse, exactement les
+réponses qu'on cherche à diagnostiquer seraient les seules sans identifiant. Un test l'éprouve.
+
+Le contexte est **délié dans un `finally`** : il appartient au fil d'exécution, pas à la requête.
+Une requête qui lève laisserait sa clé derrière elle, et une tâche de fond se verrait rattachée à
+un travail qui ne l'a pas demandée.
+
 ## Sessions
 
 Une route qui a besoin de la base annote son paramètre — l'injection fait le reste :
@@ -352,9 +375,10 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
   domaines s'y ajoutent sous `/v1` ; `/health` reste à la racine, parce qu'il s'adresse aux
   sondes et non aux clients.
 - `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
-  l'environnement du paquet), `valkey.py`, `health.py`, `journal.py` (la ligne, le type, le
-  registre), `bus.py` (`publish` / `subscribe`), `resources.py` (les ressources partagées et leur
-  cycle de vie).
+  l'environnement du paquet), `logs.py` (le rendu JSON, une fois pour tous les loggers),
+  `request_id.py` (l'identifiant de requête et son en-tête), `valkey.py`, `health.py`,
+  `journal.py` (la ligne, le type, le registre), `bus.py` (`publish` / `subscribe`),
+  `resources.py` (les ressources partagées et leur cycle de vie).
 - `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
   déclarative et les conventions de schéma — sa docstring en est la référence), `session.py` (la
   session par requête), `migrations/` (Alembic).

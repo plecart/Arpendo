@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from arpendo_api.core import health
 from arpendo_api.core.logs import configure_logging
 from arpendo_api.core.rate_limit import RateLimitMiddleware
+from arpendo_api.core.request_id import RequestIdMiddleware
 from arpendo_api.core.resources import open_resources
 from arpendo_api.core.settings import Settings, load_settings
 
@@ -67,6 +68,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Arpendo", lifespan=_lifespan)
     app.state.settings = settings if settings is not None else load_settings()
     configure_logging()
+    # Empilés du plus extérieur au plus intérieur : Starlette ajoute chaque middleware AUTOUR des
+    # précédents, donc le dernier déclaré est traversé le premier. L'identifiant doit être lié
+    # avant le limiteur, pour qu'un refus 429 porte lui aussi son identifiant.
     app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestIdMiddleware)
     app.include_router(health.router)
     return app

@@ -1,8 +1,11 @@
+import json
+import logging
 import uuid
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Callable, Iterator, Mapping
 from pathlib import Path
 
 import pytest
+import structlog
 from alembic import command
 from alembic.config import Config
 from evenements import PREFIXE
@@ -15,8 +18,12 @@ from sqlalchemy.schema import CreateIndex, CreateTable
 
 from arpendo_api.core import resources
 from arpendo_api.core.journal import DomainEvent
+from arpendo_api.core.logs import UVICORN_LOGGERS
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
+
+Lignes = Callable[[], list[dict[str, object]]]
+"""Un lecteur des lignes de journal émises depuis le dernier appel, décodées."""
 
 VALKEY_SUR_UN_PORT_FERME = {"valkey_url": "redis://127.0.0.1:1/0"}
 """Un Valkey absent, décrit une seule fois pour les modules qui éprouvent une panne de cache.
@@ -92,6 +99,45 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Client HTTP branché directement sur l'application, sans réseau ni serveur."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
+
+
+@pytest.fixture
+def lignes(capsys: pytest.CaptureFixture[str]) -> Iterator[Lignes]:
+    """Rend un lecteur des lignes de journal émises, et remet les journaux en l'état après le test.
+
+    **C'est au test d'appeler `configure_logging()`, jamais à cette fixture.** Mesuré : pytest
+    substitue un `CaptureIO` **neuf** entre la phase de préparation et la phase d'appel — deux
+    identités différentes pour `sys.stdout`. Un `StreamHandler` construit en préparation reste
+    branché sur le tampon de la préparation, mort au moment où le test écrit, et la sortie
+    paraît vide sans que rien ne l'explique.
+
+    Elle **désinstalle** aussi le handler qu'un test précédent aurait laissé : `create_app` appelle
+    `configure_logging`, donc le premier test qui construit une application en pose un pour toute
+    la session — et l'idempotence ferait alors de tous les appels d'ici des `return` immédiats,
+    branchés sur un tampon mort. C'est une propriété réelle de la conception, pas un artefact :
+    le handler vit dans l'arbre de logging du processus, que la suite partage.
+
+    La restauration couvre la racine, les loggers d'uvicorn **et** le contexte lié : sans elle, un
+    logger désarmé ou un `request_id` oublié par un test le resterait pour toute la suite.
+    """
+    racine = logging.getLogger()
+    handlers, niveau = list(racine.handlers), racine.level
+    repris = {nom: logging.getLogger(nom) for nom in UVICORN_LOGGERS}
+    etat = {nom: (list(logger.handlers), logger.propagate) for nom, logger in repris.items()}
+    racine.handlers[:] = [
+        handler
+        for handler in handlers
+        if not isinstance(handler.formatter, structlog.stdlib.ProcessorFormatter)
+    ]
+
+    yield lambda: [json.loads(ligne) for ligne in capsys.readouterr().out.splitlines() if ligne]
+
+    racine.handlers[:] = handlers
+    racine.setLevel(niveau)
+    for nom, logger in repris.items():
+        logger.handlers[:], logger.propagate = etat[nom]
+    structlog.contextvars.clear_contextvars()
+    structlog.reset_defaults()
 
 
 @pytest.fixture(scope="session")
