@@ -38,6 +38,10 @@ final ThemeData _sombre = _construire(_Palette.sombre);
 /// Hauteur du bouton principal, en dp (§4, §11.2).
 const double _hauteurBoutonPrincipal = 56;
 
+/// Largeur minimale d'un bouton — le plancher Material, conservé tel quel :
+/// c'est la mise en page qui décide d'une pleine largeur, pas le thème.
+const double _largeurMinimaleBouton = 64;
+
 /// Le `ThemeData` d'une palette.
 ///
 /// La palette porte son mode ; la fabrique n'a donc qu'un paramètre, et il n'y a
@@ -94,7 +98,7 @@ ThemeData _construire(_Palette palette) {
         // apparaît (§4, §11.2). La largeur garde le plancher Material : c'est
         // la mise en page qui décide d'une pleine largeur, pas le thème.
         minimumSize: const WidgetStatePropertyAll(
-          Size(64, _hauteurBoutonPrincipal),
+          Size(_largeurMinimaleBouton, _hauteurBoutonPrincipal),
         ),
         // Vide de spec comblé au brief de #46 : un bouton pleine largeur est
         // une surface de contenu, pas « rond par nature » (§7.1) — `radius-md`,

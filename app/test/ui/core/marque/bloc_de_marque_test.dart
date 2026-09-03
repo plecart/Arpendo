@@ -58,6 +58,27 @@ void main() {
       moreOrLessEquals(style.fontSize! * 0.02),
       reason: 'interlettrage +0,02 em — identité §1.5, en em donc en × corps',
     );
+    expect(
+      style.fontFamily,
+      'Roboto',
+      reason:
+          'le §1.2 amendé dit « composé en Roboto w500 ». La famille vient de '
+          'la fusion avec la typographie Android de Material — ce test '
+          "verrouille cette hypothèse, car le ratio de capitale 1456/2048 "
+          "n'est vrai que de Roboto : sans elle, les 24 dp du §4 sont faux",
+    );
+    expect(
+      style.height,
+      1,
+      reason:
+          "boîte serrée sur le corps : l'interligne hérité gonflerait les "
+          'écarts space-3 / space-2 que le §4 mesure entre éléments',
+    );
+    expect(
+      style.color,
+      themeArpendo(Brightness.light).colorScheme.primary,
+      reason: "la teinte du mot dans l'actif `logo-arpendo.svg` est l'accent",
+    );
   });
 
   testWidgets("l'accroche vient de l'ARB, en type-body on-surface-muted", (

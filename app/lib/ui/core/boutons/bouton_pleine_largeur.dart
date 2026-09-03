@@ -3,7 +3,8 @@ import 'package:flutter/scheduler.dart';
 
 import '../theme/mouvement.dart';
 
-/// Le bouton principal des écrans sans carte — 56 dp, pleine largeur (§4, §11.2).
+/// Le bouton principal des écrans sans carte — 56 dp de haut (§4, §11.2),
+/// pleine largeur (§4).
 ///
 /// Un `FilledButton` qui prend toute la largeur disponible et porte le retour
 /// d'appui `motion-press` du §1.6 : échelle [Mouvement.echellePression] à

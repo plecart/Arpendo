@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/allonger_arb.dart' show marqueurDebut, marqueurFin;
 
-/// L'accroche du bloc marque, seul texte que l'app sache rendre aujourd'hui.
+/// L'accroche du bloc marque, isolée pour le test du texte cité du cadrage §1.
 Widget accroche(BuildContext context) =>
     Text(AppLocalizations.of(context).marqueAccroche);
 

@@ -4,6 +4,11 @@ import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Échelle d'appui de `motion-press` — spec UX §1.6, écrite indépendamment de
+/// `Mouvement.echellePression` : c'est leur confrontation qui constitue le
+/// test (comparer la constante à elle-même laisserait passer toute dérive).
+const double _echelleAttendue = 0.98;
+
 void main() {
   testWidgets('le bouton occupe toute la largeur disponible', (tester) async {
     await _monter(tester);
@@ -26,7 +31,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(_echelle(tester).scale, Mouvement.echellePression);
+    expect(_echelle(tester).scale, _echelleAttendue);
 
     await gesture.up();
     await tester.pumpAndSettle();
@@ -73,7 +78,7 @@ void main() {
         tester.getCenter(find.byType(FilledButton)),
       );
       await tester.pumpAndSettle();
-      expect(_echelle(tester).scale, Mouvement.echellePression);
+      expect(_echelle(tester).scale, _echelleAttendue);
 
       await _monter(tester, actif: false);
       await tester.pumpAndSettle();
