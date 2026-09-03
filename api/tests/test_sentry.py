@@ -230,14 +230,19 @@ def test_le_denylist_couvre_les_cles_de_position_sans_perdre_celles_du_sdk() -> 
 async def test_l_identifiant_de_requete_devient_un_tag_sentry(client: AsyncClient) -> None:
     """Sans tag, retrouver dans Sentry les journaux d'une erreur demande de croiser à la main.
 
-    Le tag est lu sur la portée d'**isolation**, celle que l'intégration ASGI du SDK ouvre par
-    requête. Ici aucune intégration n'est active — Sentry est désactivé dans la suite — donc la
-    portée est celle du processus : ce test prouve l'appel et sa valeur, pas l'isolation, que
-    seule l'intégration fournit.
+    **Ce que ce test prouve, et ce qu'il ne prouve pas.** Il prouve que le middleware pose bien la
+    clé et la bonne valeur : retirer l'appel, poser une constante ou viser la portée courante au
+    lieu de la portée d'isolation le font rougir. Il ne prouve **pas** l'isolation entre requêtes,
+    qui vient de l'intégration ASGI du SDK — absente ici, Sentry étant désactivé dans la suite. La
+    portée lue est donc celle du processus, et le test relit ce qu'il vient d'écrire.
+
+    L'isolation elle-même est une propriété du SDK, vérifiée dans ses sources
+    (`integrations/asgi.py` ouvre `with sentry_sdk.isolation_scope()` par requête) et non ici.
     """
     reponse = await client.get("/health")
 
     assert sentry_sdk.get_isolation_scope()._tags["request_id"] == reponse.headers[HEADER]
+    sentry_sdk.get_isolation_scope().remove_tag("request_id")
 
 
 class TransportFactice(Transport):

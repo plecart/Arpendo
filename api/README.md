@@ -172,6 +172,12 @@ d'exceptions non rattrapées.
 | `SENTRY_DSN` | le point de collecte. **Vide = désactivé.** Masqué : l'URL porte la clé du projet |
 | `SENTRY_SAMPLE_RATE` | part des événements envoyés, dans `]0, 1]`. `1.0` sur le poste ; la valeur de production est tranchée par #47 |
 
+⚠️ **Un `SENTRY_DSN` posé dans le `.env` d'un poste fait aussi partir les événements de `just
+test`** : la suite construit de vraies applications, qui appellent `configure_sentry`. Et comme
+`SENTRY_ENVIRONMENT` n'est pas encore posée (elle est portée par #47), le SDK les étiquette
+`production` — son défaut. La CI est protégée, elle pose `SENTRY_DSN` vide explicitement ; un poste
+ne l'est pas. Laisser le DSN vide localement est le défaut, et le bon.
+
 `configure_sentry(settings)` est appelée par les **deux hôtes qui servent du trafic** — la fabrique
 d'application et le worker — après `configure_logging()`. Cet ordre est une **convention, pas une
 contrainte** : mesuré, le SDK n'installe aucun handler sur la racine, il remplace
