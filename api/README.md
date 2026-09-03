@@ -180,6 +180,91 @@ la requête portent bien l'identifiant — c'est le plus utile — mais la répo
 n'en porte aucun. Structurel, non contournable par `add_middleware` : à savoir avant de chercher
 un identifiant sur un rapport d'erreur 500.
 
+## Sentry
+
+**Rien n'est envoyé tant que `SENTRY_DSN` est vide** — et c'est le défaut du poste comme de la CI.
+« Désactivé » veut dire *aucun appel* à `sentry_sdk.init`, et non un `init` avec un DSN vide : ce
+dernier installerait quand même les intégrations, les handlers de journalisation et le hook
+d'exceptions non rattrapées.
+
+| Réglage | Rôle |
+|---|---|
+| `SENTRY_DSN` | le point de collecte. **Vide = désactivé.** Masqué : l'URL porte la clé du projet |
+| `SENTRY_SAMPLE_RATE` | part des événements envoyés, dans `]0, 1]`. `1.0` sur le poste ; la valeur de production est tranchée par #47 |
+
+⚠️ **Un `SENTRY_DSN` posé dans le `.env` d'un poste fait aussi partir les événements de `just
+test`** : la suite construit de vraies applications, qui appellent `configure_sentry`. Et comme
+`SENTRY_ENVIRONMENT` n'est pas encore posée (elle est portée par #47), le SDK les étiquette
+`production` — son défaut. La CI est protégée, elle pose `SENTRY_DSN` vide explicitement ; un poste
+ne l'est pas. Laisser le DSN vide localement est le défaut, et le bon.
+
+`configure_sentry(settings)` est appelée par les **deux hôtes qui servent du trafic** — la fabrique
+d'application et le worker — après `configure_logging()`. Cet ordre est une **convention, pas une
+contrainte** : mesuré, le SDK n'installe aucun handler sur la racine, il remplace
+`logging.Logger.callHandlers`, ce qui le rend insensible à l'ordre. On va du moins effectif au plus
+effectif — les réglages, les journaux, puis le seul des trois qui ouvre une porte vers le réseau.
+L'environnement des migrations ne l'appelle pas : un processus court, sans requête, dont l'échec se
+lit dans le code de retour.
+
+**Les lignes de journal atteignent Sentry**, et pas seulement stdout : l'intégration de
+journalisation du SDK en fait des breadcrumbs à partir de `INFO` et des événements à partir de
+`ERROR`. Elles passent donc par `scrub`, **message rendu comme paramètres bruts** : un
+`logger.error("echec a %s, %s", lat, lon)` expédie le message formaté *et* la liste `params`, et
+c'est la règle de la paire sur les nombres qui couvre la seconde — le rendu seul aurait masqué une
+donnée voyageant à côté de lui.
+
+### Deux filets d'assainissement, parce qu'aucun ne suffit seul
+
+Le cadrage §13.10 est explicite : « le scrubbing PII doit être configuré explicitement, sinon on
+reconstruit exactement l'historique de localisation que §12.3 interdit ».
+
+- **`EventScrubber`** (fourni par le SDK) travaille **par clé** : `password`, `token`,
+  `authorization`, `cookie`… plus les clés de position que ce projet ajoute — `latitude`,
+  `longitude`, `lat`, `lon`, `email`. Attention, **il remplace son denylist par défaut quand on lui
+  en passe un** : `DENYLIST` reprend donc les 33 du SDK avant d'ajouter les cinq nôtres. Un test
+  l'épingle, parce que l'erreur inverse — croire ajouter et en fait retirer — ne se voit nulle
+  part. (Les quatre clés d'adresse IP font exception : le SDK les ajoute de lui-même dès que
+  `send_default_pii` est faux.)
+- **`scrub`**, en `before_send`, travaille **par forme** sur le corps entier de l'événement :
+  paires de coordonnées, `Bearer …`, adresses e-mail. C'est lui qui attrape ce que l'autre ne peut
+  pas voir — une coordonnée noyée dans un message, ou le secret qu'une `ValidationError` de
+  pydantic recopie en clair dans son texte.
+
+**Une position se reconnaît à la paire, jamais à un nombre seul** — et la règle vaut pour les deux
+natures que prend une coordonnée dans un événement :
+
+| | reconnu | ignoré |
+|---|---|---|
+| **chaînes** | deux décimales séparées par n'importe quoi de court et non numérique : `48.858370, 2.294481`, `lat=…&lon=…`, `POINT(… …)`, un JSON sérialisé, un saut de ligne | un horodatage ISO — il n'a **qu'une** décimale longue |
+| **nombres** | deux flottants de forme géographique dans le **même conteneur** : les paramètres d'un log, un `extra`, un `contexts`, la `data` d'un breadcrumb | un flottant isolé, des entiers, des nombres ronds |
+
+Le faux positif assumé est un conteneur de deux mesures fines (`{"p50": 12.345678, "p99":
+98.765432}`), assaini pour rien. L'asymétrie est voulue : perdre un centile se voit et se répare,
+laisser fuir une position ne se voit pas et ne se répare pas. `FORMES_DE_POSITION`, dans
+`tests/test_sentry.py`, épingle la **population** des formes connues — sept d'entre elles fuyaient
+pendant qu'une huitième servait de preuve que « c'était couvert ».
+
+`scrub` est une **fonction pure** : elle rend une structure neuve et ne touche pas l'événement
+reçu, ce qui permet de l'éprouver sur un dictionnaire écrit à la main, sans réseau, sans `init`,
+sans projet Sentry.
+
+**Le motif de coordonnée exige une paire**, jamais un nombre isolé : un horodatage ISO
+(`…:35.751365Z`) a exactement la même forme décimale, et un motif à un seul nombre les emporterait
+tous — on assainirait la seule chose qui permet de dater une erreur. Un test épingle un horodatage,
+un index H3 et un numéro de build comme devant **survivre**.
+
+**Ce que ces deux filets ne couvrent pas** : les lignes de journal. `scrub` est un `before_send`
+Sentry, il ne traverse jamais la sortie standard. L'assainissement des coordonnées dans les
+journaux est porté par #92, à traiter avant que le domaine Territoire journalise sa première
+position.
+
+**L'identifiant de requête est posé en tag Sentry** par `RequestIdMiddleware` — c'est lui qui relie
+une erreur remontée dans Sentry aux lignes de journal qu'elle a produites.
+
+Pas de `traces_sample_rate` (pas de performance), pas de `set_user` (ce qu'un identifiant de compte
+vaut au RGPD sera tranché par le domaine Compte), pas de table `ignore_errors` vide. Le Data
+Scrubbing configuré côté serveur Sentry est un **troisième** filet, indépendant de ce code (#30).
+
 ## Sessions
 
 Une route qui a besoin de la base annote son paramètre — l'injection fait le reste :
@@ -469,8 +554,16 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
 **Les réglages sensibles sont des `Secret`** — le mot de passe Valkey et l'URL de base, qui porte
 celui de PostgreSQL. Les afficher, les journaliser ou les sérialiser rend `SecretStr('**********')`
 et rien d'autre ; la valeur ne sort que par un `.get_secret_value()` explicite, dans la seule
-fabrique qui la consomme. Un futur secret — clé de session, DSN Sentry, jeton FCM — se déclare
-avec le même alias.
+fabrique qui la consomme. Un futur secret — clé de session, jeton FCM — se déclare avec le même
+alias.
+
+**Le DSN Sentry est la seule exception, et elle est instructive** : il se déclare `OptionalSecret`,
+pas `Secret`. `Secret` refuse le blanc, parce que partout ailleurs une variable posée mais vide est
+une configuration trouée qu'il vaut mieux découvrir au démarrage. Pour le DSN, « vide » est au
+contraire une **décision de l'exploitant** — Sentry désactivé — et le poste comme la CI tournent
+ainsi. `OptionalSecret` ramène donc le blanc à `None` par un validateur `before`, sans jamais
+rejeter. Sans lui, `SENTRY_DSN=` donnerait `SecretStr('')` : une valeur présente et fausse, et une
+branche « désactivé » qui ne se déclencherait jamais.
 
 **Les trois hôtes du paquet lisent leur configuration par `load_settings()`**, jamais par
 `Settings()` — l'api, le worker et l'environnement des migrations. La différence n'est visible que
