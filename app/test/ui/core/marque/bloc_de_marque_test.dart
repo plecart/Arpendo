@@ -24,9 +24,18 @@ void main() {
     // `documents/assets/` est la source unique (README racine) : toute
     // retouche se fait là-bas puis se recopie. Ce test remplace le `md5sum`
     // manuel de la convention — une dérive silencieuse rougit ici.
+    final source = File('../documents/assets/signe-arpendo.svg');
+    expect(
+      source.existsSync(),
+      isTrue,
+      reason:
+          'seul test du dépôt dépendant du répertoire courant : il se lance '
+          "depuis app/ (recette just). Lancé d'ailleurs, c'est cette "
+          'précondition qui échoue — pas une PathNotFoundException nue',
+    );
     expect(
       File('assets/signe-arpendo.svg').readAsBytesSync(),
-      File('../documents/assets/signe-arpendo.svg').readAsBytesSync(),
+      source.readAsBytesSync(),
     );
   });
 
