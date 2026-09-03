@@ -95,17 +95,11 @@ class Bandeau extends StatelessWidget {
                   spacing: Espacements.x2,
                   children: [
                     for (final action in entree.actions)
+                      // La cible tactile du §1.4 vient du `TextButtonThemeData`
+                      // du thème (#46) — aucun style local : il masquerait le
+                      // thème, qui l'emporterait en silence.
                       TextButton(
                         onPressed: action.onPressed,
-                        style: TextButton.styleFrom(
-                          // La cible tactile du §1.4 **sur les deux axes** :
-                          // « 48 × 48 dp, aucune exception ». Le défaut
-                          // Material vaut 64 × 40, donc trop plat. Porté par
-                          // le bouton lui-même faute de thème de composant :
-                          // celui-ci naîtra avec le premier écran qui puisse
-                          // le valider à l'œil (#46).
-                          minimumSize: const Size.square(CiblesTactiles.min),
-                        ),
                         child: Text(action.libelle(textes)),
                       ),
                   ],

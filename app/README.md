@@ -103,9 +103,13 @@ directement : c'est ce passage obligé qui applique `MediaQuery.disableAnimation
    portent sur des *comportements* — l'inversion de l'état pressé, la coupure des animations, le
    rapport de sortie. Un test qui compare une constante à la spec ne prouve que la copie.
 
-**Le thème de composant n'existe pas encore.** `FilledButtonThemeData`, `InputDecorationTheme` et
-leurs semblables naissent avec le premier composant qui les réclame, écran sous les yeux — de même
-que `scaffoldBackgroundColor`, qui vaudra `surfaceDim` (« fond d'écran hors carte », §1.5).
+**Les thèmes de composant naissent avec le premier composant qui les réclame**, écran sous les
+yeux. Les deux premiers sont arrivés avec l'écran d'attente (#46) : `FilledButtonThemeData`
+(56 dp, fond `primary`, appui `accent-pressed` — state layer Material neutralisé, le jeton est
+déjà l'état pressé —, `radius-md`) et `TextButtonThemeData` (cible tactile 48 × 48 du §1.4, que
+les actions du bandeau reçoivent du thème, sans style local qui le masquerait).
+`scaffoldBackgroundColor` vaut `surfaceDim` (« fond d'écran hors carte », §1.5) — le report
+documenté ici depuis #34 est soldé. `InputDecorationTheme` et leurs semblables attendent le leur.
 
 ## Textes — l'ARB et la locale allongée
 

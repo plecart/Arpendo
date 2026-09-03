@@ -1,4 +1,5 @@
 import 'package:arpendo/ui/core/theme/icones.dart';
+import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/mouvement.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/core/theme/typographie.dart';
@@ -99,6 +100,90 @@ void main() {
             'ThemeData compare ses extensions par == ; deux thèmes inégaux '
             "font notifier l'InheritedWidget Theme et reconstruire tout ce qui "
             'en dépend, pour rien',
+      );
+    });
+  });
+
+  group('thèmes de composant', () {
+    for (final brightness in Brightness.values) {
+      test('le fond d\'écran hors carte est surface-dim — $brightness', () {
+        final theme = themeArpendo(brightness);
+
+        expect(
+          theme.scaffoldBackgroundColor,
+          theme.colorScheme.surfaceDim,
+          reason:
+              'le §1.5 réserve `surface` aux modales et feuilles ; un écran '
+              'sans carte se pose sur `surface-dim` (report de #34 soldé)',
+        );
+      });
+
+      test(
+        'FilledButton : fond primary au repos, accentPressed à l\'appui — $brightness',
+        () {
+          final theme = themeArpendo(brightness);
+          final style = theme.filledButtonTheme.style!;
+
+          expect(style.backgroundColor!.resolve({}), theme.colorScheme.primary);
+          expect(
+            style.backgroundColor!.resolve({WidgetState.pressed}),
+            _chromeDe(theme).accentPressed,
+            reason:
+                "l'appui est le jeton `accent-pressed`, dont l'inversion "
+                'clair/sombre est déjà encodée — pas un voile Material',
+          );
+          expect(
+            style.overlayColor!.resolve({WidgetState.pressed}),
+            Colors.transparent,
+            reason:
+                'le state layer Material assombrirait par-dessus '
+                '`accent-pressed` : le jeton EST déjà l\'état pressé',
+          );
+        },
+      );
+    }
+
+    test('FilledButton : hauteur 56 dp et rayon md déclarés par le thème', () {
+      final style = themeArpendo(Brightness.light).filledButtonTheme.style!;
+
+      expect(style.minimumSize!.resolve({})!.height, 56);
+      expect(
+        style.shape!.resolve({}),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(Rayons.md)),
+        reason:
+            'vide de spec comblé au brief de #46 : un bouton pleine largeur '
+            'est une surface de contenu, pas « rond par nature » (§7.1) — '
+            'rayon à confirmer à l\'œil en HITL',
+      );
+    });
+
+    testWidgets('un FilledButton rend 56 dp de haut sous le thème', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: themeArpendo(Brightness.light),
+          home: Scaffold(
+            body: Center(
+              child: FilledButton(onPressed: () {}, child: const Text('Go')),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.getSize(find.byType(FilledButton)).height, 56);
+    });
+
+    test('TextButton : la cible tactile du §1.4 sur les deux axes', () {
+      final style = themeArpendo(Brightness.light).textButtonTheme.style!;
+
+      expect(
+        style.minimumSize!.resolve({}),
+        const Size.square(CiblesTactiles.min),
+        reason:
+            'le défaut Material vaut 64 × 40, trop plat ; la contrainte vit '
+            'dans le thème pour que les actions du bandeau (§2.4) comme tout '
+            'futur bouton texte la reçoivent sans style local',
       );
     });
   });

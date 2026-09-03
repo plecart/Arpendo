@@ -154,20 +154,26 @@ void main() {
     expect(_ecranDeReference.width - materiau.right, Espacements.x4);
   });
 
-  testWidgets('un bouton respecte la cible tactile sur les deux axes', (
+  testWidgets('la cible tactile des actions vient du thème, sans style local', (
     tester,
   ) async {
     await _monter(tester, _entree(actions: 1));
 
+    expect(
+      tester.widget<TextButton>(find.byType(TextButton)).style,
+      isNull,
+      reason:
+          'un style de widget l\'emporte sur le thème : un `minimumSize` '
+          'local rendrait le `TextButtonThemeData` de #46 sans effet sur le '
+          'composant pour lequel il est écrit, et le défaut serait invisible',
+    );
     // La **contrainte déclarée**, pas la géométrie : une largeur rendue sous
     // la police de test ne dit rien de la largeur réelle.
-    final style = tester
-        .widget<TextButton>(find.byType(TextButton))
-        .style!
-        .minimumSize!
-        .resolve({})!;
-
-    expect(style, const Size.square(CiblesTactiles.min));
+    final theme = Theme.of(tester.element(find.byType(TextButton)));
+    expect(
+      theme.textButtonTheme.style!.minimumSize!.resolve({}),
+      const Size.square(CiblesTactiles.min),
+    );
   });
 
   testWidgets('le glyphe est dessiné à la taille du §1.8', (tester) async {

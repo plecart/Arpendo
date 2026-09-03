@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'mesures.dart';
 import 'typographie.dart';
 
 /// Assemble le `ThemeData` de l'application à partir des jetons de la spec UX §1.
@@ -13,9 +14,10 @@ import 'typographie.dart';
 /// `themeMode: ThemeMode.system` côté `MaterialApp` qui l'arbitre, et rien
 /// d'autre.
 ///
-/// Aucun thème de composant n'est posé ici. `FilledButtonThemeData`,
-/// `InputDecorationTheme` et leurs semblables naissent avec le premier composant
-/// qui les réclame, avec un écran sous les yeux pour les valider.
+/// Les thèmes de composant naissent avec le premier composant qui les réclame,
+/// avec un écran sous les yeux pour les valider : `FilledButtonThemeData` et
+/// `TextButtonThemeData` sont arrivés avec le premier écran (#46) ;
+/// `InputDecorationTheme` et leurs semblables suivront le leur.
 ThemeData themeArpendo(Brightness brightness) => switch (brightness) {
   Brightness.light => _clair,
   Brightness.dark => _sombre,
@@ -32,6 +34,9 @@ ThemeData themeArpendo(Brightness brightness) => switch (brightness) {
 /// passage de rebâtir deux `ThemeData` à chaque `build`.
 final ThemeData _clair = _construire(_Palette.clair);
 final ThemeData _sombre = _construire(_Palette.sombre);
+
+/// Hauteur du bouton principal, en dp (§4, §11.2).
+const double _hauteurBoutonPrincipal = 56;
 
 /// Le `ThemeData` d'une palette.
 ///
@@ -57,6 +62,46 @@ ThemeData _construire(_Palette palette) {
       onError: palette.surAplat,
     ),
     textTheme: Typographie.creneauxMaterial,
+    // Fond d'écran hors carte (§1.5) : `surface` est réservée aux modales et
+    // aux feuilles. Solde le report documenté par #34/#60.
+    scaffoldBackgroundColor: palette.surfaceDim,
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        // L'appui est le jeton `accent-pressed`, dont l'inversion clair/sombre
+        // est déjà encodée (§1.5) — pas un voile Material par-dessus.
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.pressed)
+              ? palette.accentPressed
+              : palette.accent,
+        ),
+        // Sans quoi le state layer Material assombrirait par-dessus
+        // `accent-pressed` : le jeton EST déjà l'état pressé.
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        // 56 dp de haut — la hauteur du bouton principal, partout où il
+        // apparaît (§4, §11.2). La largeur garde le plancher Material : c'est
+        // la mise en page qui décide d'une pleine largeur, pas le thème.
+        minimumSize: const WidgetStatePropertyAll(
+          Size(64, _hauteurBoutonPrincipal),
+        ),
+        // Vide de spec comblé au brief de #46 : un bouton pleine largeur est
+        // une surface de contenu, pas « rond par nature » (§7.1) — `radius-md`,
+        // à confirmer à l'œil en HITL.
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Rayons.md),
+          ),
+        ),
+      ),
+    ),
+    // La cible tactile du §1.4 sur les deux axes — « 48 × 48 dp, aucune
+    // exception », là où le défaut Material vaut 64 × 40. Dans le thème pour
+    // que les actions du bandeau (§2.4) comme tout futur bouton texte la
+    // reçoivent sans style local — un style de widget masquerait celui-ci.
+    textButtonTheme: const TextButtonThemeData(
+      style: ButtonStyle(
+        minimumSize: WidgetStatePropertyAll(Size.square(CiblesTactiles.min)),
+      ),
+    ),
     extensions: [
       CouleursChrome(
         accentPressed: palette.accentPressed,
