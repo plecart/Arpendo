@@ -144,7 +144,7 @@ Lues par `cycle-pr`, `execution-qa` et la génération de CI. `n/a` = étape abs
 - domaines (nom métier → chemin) — servent aussi de thèmes/milestones à `triage` :
   - <Domaine A> : <chemin/>
   - <Domaine B> : <chemin/>
-- zones sensibles (arrêt humain avant commit) : <ex. migrations, paiements, écrans publics>
+- zones sensibles (arrêt humain — cadence dans `.claude/rules/contraintes.md`) : <ex. migrations, paiements, écrans publics>
 - hors périmètre : <ce que le projet ne couvre pas / ne doit pas toucher>
 - surfaces exposées — ce que la QA a le droit de vérifier ; ne lister que ce qui existe :
   <ex. API HTTP, interface web, CLI, persistance, traitements asynchrones, fichiers produits,
