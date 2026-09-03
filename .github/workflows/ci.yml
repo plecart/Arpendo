@@ -117,10 +117,15 @@ jobs:
 
       - name: Tests
         # Coordonnées des conteneurs `services` ci-dessus — les tests parlent à de vrais
-        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les sept variables que
+        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les huit variables que
         # `arpendo_api.core.settings.Settings` lit, et les seules : toute autre est absente parce
         # qu'aucun code ne la lit encore — y compris les deux seuils de version du client, qui
         # ne parlent à aucun service mais que `Settings` exige sans défaut.
+        #
+        # `SENTRY_DSN` est posée **vide**, et c'est une assertion, pas un remplissage : la suite
+        # doit s'exécuter avec Sentry désactivé, sans réseau et sans projet Sentry. La poser vide
+        # plutôt que l'omettre exerce en CI la branche « vide → désactivé » que le poste exerce
+        # aussi — celle qui, sans son validateur, donnerait `SecretStr('')` au lieu de `None`.
         #
         # `FORWARDED_ALLOW_IPS` n'y figure pas, bien qu'elle soit dans `.env.example` : elle est
         # lue par uvicorn, que la suite ne démarre jamais. Le test de la frontière de confiance
@@ -140,4 +145,6 @@ jobs:
           RATE_LIMIT_IP_WINDOW_SECONDS: "60"
           CLIENT_BUILD_MIN: "1"
           CLIENT_BUILD_RECOMMENDED: "1"
+          SENTRY_DSN: ""
+          SENTRY_SAMPLE_RATE: "1.0"
         run: just test

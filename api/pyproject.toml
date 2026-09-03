@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "pydantic-settings>=2",
     "redis>=8.1.0",
+    "sentry-sdk[fastapi]>=2.68.1",
     "sqlalchemy[asyncio]>=2.0.52",
     "structlog>=26.1.0",
     "uuid6>=2025.0.1",

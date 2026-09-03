@@ -2,7 +2,14 @@
 
 from typing import Annotated, Self
 
-from pydantic import AfterValidator, Field, SecretStr, ValidationError, model_validator
+from pydantic import (
+    AfterValidator,
+    BeforeValidator,
+    Field,
+    SecretStr,
+    ValidationError,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,17 +57,64 @@ Le type de tout réglage sensible : ``repr``, ``str`` et ``model_dump()`` en ren
 sérialise les réglages ne peut le divulguer. La valeur ne s'obtient que par un
 ``.get_secret_value()`` explicite, et seule la fabrique qui la consomme a une raison de l'écrire.
 
-Tout futur secret — clé de session, DSN Sentry, jeton FCM — se déclare avec cet alias. **Une règle
-ajoutée ici ne doit jamais rejeter sur le contenu** : pydantic recopie l'entrée *brute* dans le
-``input_value`` de sa ``ValidationError``, avant l'emballage. Refuser le blanc est sûr — la valeur
-imprimée est alors du blanc ; refuser un format ferait imprimer le secret dans la trace même que
-cet alias existe pour assainir.
+Tout futur secret — clé de session, jeton FCM — se déclare avec cet alias. **Une règle ajoutée ici
+ne doit jamais rejeter sur le contenu** : pydantic recopie l'entrée *brute* dans le ``input_value``
+de sa ``ValidationError``, avant l'emballage. Refuser le blanc est sûr — la valeur imprimée est
+alors du blanc ; refuser un format ferait imprimer le secret dans la trace même que cet alias
+existe pour assainir.
 
 ``hide_input_in_errors`` (voir ``Settings.model_config``) retire cette entrée du **message**, et
 :func:`_describe` la retire de ``errors()`` sur le chemin de démarrage — mais la règle ci-dessus
 reste la bonne : ni l'une ni l'autre ne couvre le ``msg``, que pydantic compose à partir du texte
 du ``ValueError`` levé dans le validateur. Un validateur qui rejette sur le contenu fuit par là,
 quelles que soient les exclusions.
+
+**Le DSN Sentry fait exception et n'utilise pas cet alias** : celui-ci refuse le blanc, alors
+qu'une valeur vide y est un état légitime — Sentry désactivé. Voir ``OptionalSecret``.
+"""
+
+
+def _none_if_blank(value: object) -> object:
+    """Ramène une valeur blanche à ``None``, et ne rejette jamais rien.
+
+    Mesuré au triage : sans ce validateur, ``SENTRY_DSN=`` dans un ``.env`` donne
+    ``SecretStr('')`` — une valeur *présente* et fausse. La branche « désactivé » ne se
+    déclencherait alors jamais, ni avec le ``.env.example``, ni en CI, et le SDK recevrait un DSN
+    vide au lieu de ne pas être initialisé du tout.
+
+    ``before`` et non ``after`` : il doit voir la chaîne brute, avant l'emballage ``SecretStr``.
+    Il ne lève jamais, donc il n'a aucune valeur à imprimer — la règle de ``Secret`` sur les
+    validateurs qui rejettent sur le contenu ne s'applique pas à lui.
+
+    Args:
+        value: la valeur brute lue dans l'environnement, ou ``None`` si la variable est absente.
+
+    Returns:
+        ``None`` pour une absence ou une chaîne blanche, la valeur inchangée sinon.
+    """
+    if isinstance(value, str) and not value.strip():
+        return None
+    return value
+
+
+OptionalSecret = Annotated[SecretStr | None, BeforeValidator(_none_if_blank)]
+"""Un secret **masqué comme les autres, mais dont l'absence est une décision, pas un trou.**
+
+Un seul réglage le porte aujourd'hui, et c'est délibéré : le DSN Sentry, où « vide » veut dire
+« ne pas initialiser Sentry ». Partout ailleurs, une variable manquante est une configuration
+trouée et doit faire échouer le démarrage — c'est ``Secret`` qu'il faut, pas celui-ci.
+"""
+
+
+SampleRate = Annotated[float, Field(gt=0, le=1)]
+"""Un taux d'échantillonnage, dans ``]0, 1]`` — les deux bornes pour des raisons opposées.
+
+Zéro ne veut pas dire « moins d'événements », il veut dire **aucun** : un Sentry configuré,
+facturé, et muet — la panne la plus coûteuse d'un outil d'observabilité, puisqu'elle ne se
+constate que le jour où l'on cherche une erreur qui n'a jamais été envoyée. Au-dessus de 1, la
+valeur n'a pas de sens : mesuré, le SDK ne l'écrête pas, il la **retient telle quelle** et se
+comporte comme à 1 — donc un ``1.5`` posé pour « envoyer plus » resterait sans effet et sans
+signal. La borne le dit au démarrage, en nommant le champ.
 """
 
 
@@ -85,11 +139,12 @@ class Settings(BaseSettings):
     instance, pour qu'ajouter un serveur ne demande que des variables d'environnement. Le ``.env``
     du poste est chargé en amont, par le justfile en local et par Compose dans les conteneurs.
 
-    Aucun champ n'a de valeur par défaut et tous refusent le vide — le blanc pour les chaînes,
-    zéro pour les seuils : construire ``Settings`` sans l'une des variables, ou avec une variable
-    posée mais sans contenu utile, lève une ``pydantic.ValidationError``. Cet échec est voulu
-    bruyant et immédiat — une api qui démarre avec une configuration trouée échoue plus tard,
-    plus loin, et sur une erreur moins lisible.
+    **Un seul champ est facultatif**, ``sentry_dsn``, et c'est une décision qui se lit : absent, il
+    veut dire « Sentry désactivé ». Tous les autres sont requis et refusent le vide — le blanc pour
+    les chaînes, zéro pour les seuils et pour le taux d'échantillonnage : construire ``Settings``
+    sans l'une de ces variables, ou avec une variable posée mais sans contenu utile, lève une
+    ``pydantic.ValidationError``. Cet échec est voulu bruyant et immédiat — une api qui démarre
+    avec une configuration trouée échoue plus tard, plus loin, et sur une erreur moins lisible.
 
     ``VALKEY_PASSWORD`` suit la même règle que les autres : le cadrage §13.10 exige un Valkey
     authentifié « même sans port publié », donc dans les trois environnements — poste, CI,
@@ -110,13 +165,18 @@ class Settings(BaseSettings):
         client_build_recommended: numéro de build en deçà duquel une mise à jour est
             *suggérée*, par un bandeau que le joueur peut fermer. Jamais inférieur à
             ``client_build_min`` — voir :meth:`_reject_min_above_recommended`.
+        sentry_dsn: le point de collecte Sentry. **Le seul réglage facultatif** : absent ou vide,
+            Sentry n'est pas initialisé du tout. Sensible — l'URL porte la clé du projet.
+        sentry_sample_rate: la part des événements réellement envoyés, dans ``]0, 1]``. Requis,
+            et sans défaut : le §13.11 en fait un garde-fou de coût, donc une valeur qu'on choisit
+            par environnement plutôt qu'une qu'on subit.
 
     Exemple :
         >>> Settings()  # doctest: +SKIP
         Settings(database_url=SecretStr('**********'), valkey_url='redis://…',
                  valkey_password=SecretStr('**********'), rate_limit_ip_requests=600,
                  rate_limit_ip_window_seconds=60, client_build_min=1,
-                 client_build_recommended=1)
+                 client_build_recommended=1, sentry_dsn=None, sentry_sample_rate=1.0)
     """
 
     model_config = SettingsConfigDict(hide_input_in_errors=True)
@@ -151,6 +211,8 @@ class Settings(BaseSettings):
     rate_limit_ip_window_seconds: Threshold
     client_build_min: Threshold
     client_build_recommended: Threshold
+    sentry_dsn: OptionalSecret = None
+    sentry_sample_rate: SampleRate
 
     @model_validator(mode="after")
     def _reject_min_above_recommended(self) -> Self:

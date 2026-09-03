@@ -56,7 +56,16 @@ REQUISES = {
     # lirait la variable de l'autre passerait le test de lecture sans qu'on le voie.
     "CLIENT_BUILD_MIN": "1",
     "CLIENT_BUILD_RECOMMENDED": "2",
+    "SENTRY_SAMPLE_RATE": "1.0",
 }
+
+FACULTATIVES = ("SENTRY_DSN",)
+"""Les réglages qu'on a le droit de ne pas poser — la liste complète, et elle tient en un nom.
+
+`SENTRY_DSN` est le seul : « absent » y est un **état légitime** (Sentry désactivé), là où toute
+autre variable manquante est une configuration trouée. La fixture les retire de l'environnement
+sans les reposer, pour qu'aucun test n'hérite du `.env` du poste.
+"""
 
 
 def test_la_table_des_variables_requises_les_couvre_toutes() -> None:
@@ -76,7 +85,7 @@ def test_la_table_des_variables_requises_les_couvre_toutes() -> None:
 @pytest.fixture
 def environnement_complet(monkeypatch: pytest.MonkeyPatch) -> None:
     """Isole les tests du `.env` du poste : seules les variables posées ici existent."""
-    for nom in REQUISES:
+    for nom in (*REQUISES, *FACULTATIVES):
         monkeypatch.delenv(nom, raising=False)
     for nom, valeur in REQUISES.items():
         monkeypatch.setenv(nom, valeur)
@@ -341,3 +350,65 @@ def test_aucun_point_d_entree_ne_construit_les_reglages_sans_passer_par_le_charg
     ]
 
     assert fautifs == []
+
+
+@pytest.mark.parametrize("blanche", BLANCHES.values(), ids=BLANCHES)
+def test_un_dsn_sentry_blanc_vaut_sentry_desactive(
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch, blanche: str
+) -> None:
+    """`SENTRY_DSN=` dans un `.env` doit désactiver Sentry, pas le configurer avec une chaîne vide.
+
+    Mesuré au triage : sans validateur, pydantic rend `SecretStr('')` — une valeur *présente* et
+    fausse. La branche « désactivé » ne se déclencherait alors jamais, ni avec le `.env.example`,
+    ni en CI, et `sentry_sdk.init` recevrait un DSN vide.
+
+    C'est aussi pourquoi ce champ **n'utilise pas l'alias `Secret`** : cet alias refuse le blanc,
+    là où « vide » est ici un état légitime que l'exploitant choisit.
+    """
+    monkeypatch.setenv("SENTRY_DSN", blanche)
+
+    assert Settings().sentry_dsn is None
+
+
+def test_un_dsn_sentry_absent_vaut_sentry_desactive(environnement_complet: None) -> None:
+    assert Settings().sentry_dsn is None
+
+
+def test_un_dsn_sentry_pose_est_lu_et_masque(
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Présent, il se lit — et reste un secret : c'est une URL qui porte une clé de projet."""
+    dsn = "https://cle-de-projet@o0.ingest.sentry.io/1"
+    monkeypatch.setenv("SENTRY_DSN", dsn)
+
+    reglages = Settings()
+
+    assert reglages.sentry_dsn is not None
+    assert reglages.sentry_dsn.get_secret_value() == dsn
+    assert dsn not in repr(reglages)
+
+
+@pytest.mark.parametrize("hors_bornes", ["0", "0.0", "1.5", "-0.1"])
+def test_un_taux_d_echantillonnage_hors_bornes_empeche_le_demarrage(
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch, hors_bornes: str
+) -> None:
+    """Le taux vit dans `]0, 1]` — les deux bouts comptent, pour des raisons opposées.
+
+    Zéro ne veut pas dire « moins d'événements » : il veut dire « aucun », donc un Sentry
+    configuré, facturé, et muet. Au-dessus de 1, la valeur n'a pas de sens : mesuré, le SDK la
+    retient telle quelle et se comporte comme à 1 — un `1.5` posé pour « envoyer plus » resterait
+    donc sans effet et sans signal.
+    """
+    monkeypatch.setenv("SENTRY_SAMPLE_RATE", hors_bornes)
+
+    with pytest.raises(ValidationError):
+        Settings()
+
+
+@pytest.mark.parametrize("valide", ["0.01", "0.5", "1", "1.0"])
+def test_un_taux_d_echantillonnage_dans_les_bornes_est_accepte(
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch, valide: str
+) -> None:
+    monkeypatch.setenv("SENTRY_SAMPLE_RATE", valide)
+
+    assert Settings().sentry_sample_rate == float(valide)
