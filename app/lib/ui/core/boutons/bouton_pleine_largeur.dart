@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../theme/mouvement.dart';
 
@@ -61,8 +62,25 @@ class _BoutonPleineLargeurState extends State<BoutonPleineLargeur> {
 
   void _surChangementDEtats() {
     final presse = _etats.value.contains(WidgetState.pressed);
-    if (presse != _presse) {
-      setState(() => _presse = presse);
+    if (presse == _presse) {
+      return;
+    }
+    _presse = presse;
+    // Quand le bouton est désactivé sous le doigt, `FilledButton.
+    // didUpdateWidget` retire l'état pressé **pendant la phase de build** —
+    // et ce `State`, ancêtre du build en cours, n'a alors pas le droit de
+    // `setState` (le cas est réel : §4 désactive le bouton pendant le
+    // chargement, §4.1 tant que le pseudo n'est pas valide). On reporte
+    // d'une frame ; hors build, on reconstruit immédiatement.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    } else {
+      setState(() {});
     }
   }
 

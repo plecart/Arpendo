@@ -61,6 +61,29 @@ void main() {
     },
   );
 
+  testWidgets(
+    "désactiver le bouton sous le doigt ne plante pas et rend l'échelle",
+    (tester) async {
+      // Le cas est réel : §4 désactive le bouton pendant le chargement, §4.1
+      // tant que le pseudo n'est pas valide — le doigt peut y être posé.
+      // `FilledButton.didUpdateWidget` retire alors l'état pressé PENDANT le
+      // build, où un `setState` d'ancêtre est interdit.
+      await _monter(tester);
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(FilledButton)),
+      );
+      await tester.pumpAndSettle();
+      expect(_echelle(tester).scale, Mouvement.echellePression);
+
+      await _monter(tester, actif: false);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(_echelle(tester).scale, 1.0);
+      await gesture.up();
+    },
+  );
+
   testWidgets('un tap déclenche onPressed une fois', (tester) async {
     var appuis = 0;
     await _monter(tester, onPressed: () => appuis++);
