@@ -86,7 +86,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   - Territoire : `api/src/arpendo_api/domains/territoire/`, `api/src/arpendo_api/worker/`, `app/lib/data/`
   - Carte & rendu : `app/lib/ui/features/carte/`, `app/lib/ui/core/`
   - Flux & notifications : `api/src/arpendo_api/domains/flux/`, `app/lib/ui/features/flux/`
-- zones sensibles (arrêt humain avant commit) : écrans à valider visuellement · authentification
+- zones sensibles (arrêt humain — **la cadence est fixée par `.claude/rules/contraintes.md`**, et
+  elle n'est pas la même pour les deux) : écrans à valider visuellement · authentification
   — l'arrêt sur les migrations de schéma est levé tant qu'aucun environnement ne porte de données
   réelles ; à réintroduire au premier déploiement
 - hors périmètre : monétisation · analytics produit · iOS (phase 2) · modale « Mes hexagones »
@@ -107,8 +108,12 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 
 ## Langue
 - skills / issues / PRD / descriptions : français
-- identifiants d'`api/` (types, fonctions, modules) et identifiants techniques fixés par le cadrage
-  (tables, colonnes, champs) : anglais
+- identifiants d'`api/src/` (types, fonctions, modules) et identifiants techniques fixés par le
+  cadrage (tables, colonnes, champs) : anglais. **`src/` et non `api/` entier** : le body de la PR
+  #88, qui a posé cette ligne, cite la décision de la vague 3 comme bornant l'anglais aux
+  « identifiants publics d'`api/src` » — la ligne écrite sur-étendait la décision qu'elle
+  enregistrait. Les fonctions d'`api/tests/` relèvent de la ligne suivante, avec les noms de tests
+  et les docstrings qu'elles côtoient
 - code Dart d'`app/` : français (`Bandeau`, `resoudre`, `enLigne`…), hors identifiants techniques
   ci-dessus — convention établie par les composants mergés et le glossaire (préambule)
 - commentaires / docstrings / noms de tests : français

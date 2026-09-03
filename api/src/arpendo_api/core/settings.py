@@ -1,9 +1,9 @@
 """Réglages de l'application, lus dans l'environnement et nulle part ailleurs."""
 
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import AfterValidator, Field, SecretStr, ValidationError
-from pydantic_settings import BaseSettings
+from pydantic import AfterValidator, Field, SecretStr, ValidationError, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _reject_blank(text: str) -> str:
@@ -55,16 +55,25 @@ ajoutée ici ne doit jamais rejeter sur le contenu** : pydantic recopie l'entré
 ``input_value`` de sa ``ValidationError``, avant l'emballage. Refuser le blanc est sûr — la valeur
 imprimée est alors du blanc ; refuser un format ferait imprimer le secret dans la trace même que
 cet alias existe pour assainir.
+
+``hide_input_in_errors`` (voir ``Settings.model_config``) retire cette entrée du **message**, et
+:func:`_describe` la retire de ``errors()`` sur le chemin de démarrage — mais la règle ci-dessus
+reste la bonne : ni l'une ni l'autre ne couvre le ``msg``, que pydantic compose à partir du texte
+du ``ValueError`` levé dans le validateur. Un validateur qui rejette sur le contenu fuit par là,
+quelles que soient les exclusions.
 """
 
 
 Threshold = Annotated[int, Field(ge=1)]
-"""Un réglage entier dont zéro n'est pas une valeur — le type de toute borne de limitation.
+"""Un réglage entier dont zéro n'est pas une valeur.
 
-Un quota de zéro requête, ou une fenêtre de zéro seconde, ne limite pas : il ferme. C'est une
+Le type de toute borne de limitation : un quota de zéro requête, ou une fenêtre de zéro seconde,
+ne limite pas, il ferme. Et celui de tout **numéro de build** : la numérotation commence à 1, si
+bien qu'un seuil de zéro ne désigne aucune version publiable. Dans les deux cas c'est une
 configuration qu'on ne peut avoir voulue, et la refuser au démarrage évite de la découvrir en
-production, une requête rejetée à la fois. La borne est ici et non dans le limiteur : un réglage
-impossible ne doit pas exister, plutôt que d'être rattrapé à chaque usage.
+production — une requête rejetée à la fois, ou une flotte entière renvoyée au magasin. La borne
+est ici et non au point d'usage : un réglage impossible ne doit pas exister, plutôt que d'être
+rattrapé à chaque lecture.
 """
 
 
@@ -96,12 +105,43 @@ class Settings(BaseSettings):
         valkey_password: mot de passe Valkey, fourni séparément de l'URL. Sensible.
         rate_limit_ip_requests: requêtes autorisées par adresse IP et par fenêtre.
         rate_limit_ip_window_seconds: durée de cette fenêtre, en secondes.
+        client_build_min: numéro de build en deçà duquel l'application mobile est refusée —
+            elle affiche un écran bloquant vers le magasin (cadrage §14.1, spec UX §11.2).
+        client_build_recommended: numéro de build en deçà duquel une mise à jour est
+            *suggérée*, par un bandeau que le joueur peut fermer. Jamais inférieur à
+            ``client_build_min`` — voir :meth:`_reject_min_above_recommended`.
 
     Exemple :
         >>> Settings()  # doctest: +SKIP
         Settings(database_url=SecretStr('**********'), valkey_url='redis://…',
                  valkey_password=SecretStr('**********'), rate_limit_ip_requests=600,
-                 rate_limit_ip_window_seconds=60)
+                 rate_limit_ip_window_seconds=60, client_build_min=1,
+                 client_build_recommended=1)
+    """
+
+    model_config = SettingsConfigDict(hide_input_in_errors=True)
+    """Aucune ``ValidationError`` de cette classe ne montre la valeur qui l'a provoquée.
+
+    Sans ce réglage, pydantic recopie l'entrée fautive dans le message : la valeur du champ pour
+    un validateur de champ, et le **dictionnaire entier** pour un validateur de modèle — donc les
+    secrets, avant tout emballage en ``SecretStr``, dont le masquage n'a alors pas encore de prise.
+    Mesuré : `str(e)` laissait passer `{'database_url': 'p://s3c…`.
+
+    Ce que la troncature de pydantic cachait, elle ne le cachait que par coïncidence — la longueur
+    des valeurs du projet et celle du nom de champ qui les précède. Deux coïncidences qu'un champ
+    renommé ou réordonné défait sans un mot.
+
+    Le message reste parfaitement diagnostiquable : pydantic **nomme le champ** en cause, ce qui
+    est tout ce dont a besoin la personne qui répare un ``.env``. Ce qu'on retire est la valeur,
+    qu'elle connaît déjà.
+
+    **Ne couvre pas** ``ValidationError.errors()`` ni ``json(include_input=True)``, qui portent
+    toujours l'entrée brute. Le seul appelant du dépôt est :func:`_describe`, qui les ferme de son
+    côté par ``include_input=False`` — les deux protections sont indépendantes et se recouvrent
+    volontairement : celle-ci ferme le **message** de toute ``ValidationError``, où qu'elle soit
+    levée, y compris hors du chemin de démarrage ; celle de :func:`load_settings` ferme le chemin
+    de démarrage, où l'exception atteint les journaux du conteneur. Aucune ne rend l'autre
+    superflue.
     """
 
     database_url: Secret
@@ -109,6 +149,39 @@ class Settings(BaseSettings):
     valkey_password: Secret
     rate_limit_ip_requests: Threshold
     rate_limit_ip_window_seconds: Threshold
+    client_build_min: Threshold
+    client_build_recommended: Threshold
+
+    @model_validator(mode="after")
+    def _reject_min_above_recommended(self) -> Self:
+        """Refuse un plancher de version au-dessus de la version recommandée.
+
+        Chacun des deux seuils est valide pris seul ; c'est leur **ordre** qui ne l'est pas, d'où
+        un validateur de modèle et non de champ. La configuration fautive renverrait au magasin
+        une flotte entière pour une mise à jour que le serveur ne présente que comme suggérée —
+        un incident qui ne se voit pas côté serveur, puisque la route répond 200.
+
+        Les deux seuils **égaux** passent : c'est l'état nominal, où la version publiée est à la
+        fois le plancher et la cible.
+
+        Le message ne cite que les noms des variables d'environnement. Ce qui l'y garantit n'est
+        pas le masquage de ``SecretStr`` — un validateur de modèle voit le dictionnaire brut,
+        avant tout emballage — mais ``hide_input_in_errors`` du ``model_config``, et un test
+        l'éprouve sur une valeur assez courte pour survivre à la troncature de pydantic.
+
+        Returns:
+            Les réglages inchangés — un validateur ``after`` rend le modèle, il ne le remplace pas.
+
+        Raises:
+            ValueError: si ``client_build_min`` dépasse ``client_build_recommended``. pydantic
+                l'emballe en ``ValidationError``, comme tout refus de validation.
+        """
+        if self.client_build_min > self.client_build_recommended:
+            raise ValueError(
+                "CLIENT_BUILD_MIN doit être inférieur ou égal à CLIENT_BUILD_RECOMMENDED : "
+                "un build refusé ne peut pas être seulement recommandé"
+            )
+        return self
 
 
 class ConfigurationError(RuntimeError):
@@ -144,12 +217,19 @@ def _describe(invalid: ValidationError) -> str:
 
     Returns:
         Un fragment ``champ: nature du défaut`` par champ fautif, séparés par des points-virgules.
-        Un champ imbriqué est rendu pointé, comme pydantic le nomme.
+        Un champ imbriqué est rendu pointé, comme pydantic le nomme. Une erreur de **modèle** — la
+        faute porte sur une combinaison de champs, et ``loc`` est alors vide — se réduit à sa
+        nature, sans le séparateur qui n'introduirait plus rien.
     """
-    return "; ".join(
-        f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-        for error in invalid.errors(include_input=False, include_url=False, include_context=False)
-    )
+    fragments = []
+    for error in invalid.errors(include_input=False, include_url=False, include_context=False):
+        champ = ".".join(str(part) for part in error["loc"])
+        # `loc` est **vide** pour une erreur de modèle : la faute porte sur une combinaison de
+        # champs, pas sur l'un d'eux. Le fragment se réduit alors à sa nature, sans le
+        # séparateur qui n'introduirait plus rien — le validateur de paire nomme lui-même les
+        # variables en cause dans son message.
+        fragments.append(f"{champ}: {error['msg']}" if champ else error["msg"])
+    return "; ".join(fragments)
 
 
 def load_settings() -> Settings:

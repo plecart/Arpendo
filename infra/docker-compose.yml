@@ -85,6 +85,11 @@ services:
       # un second garde dirait la même chose plus tôt et moins bien.
       RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
       RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+      # Les deux seuils que `GET /version` publie. Interpolés comme les précédents : le conteneur
+      # et le poste annoncent la même cible, sinon l'app testée dans l'émulateur et celle testée
+      # sur le téléphone du réseau local ne verraient pas la même.
+      CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
+      CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
       # Lue par uvicorn, pas par `Settings` — d'où un défaut ici, à l'inverse des seuils : cette
       # pile n'a pas de reverse proxy, donc personne n'est de confiance, `X-Forwarded-For` est
       # ignoré et `request.client` reste le pair réel. L'api démarre même si le `.env` est muet.
@@ -116,18 +121,20 @@ services:
     build: ../api
     image: arpendo-api:dev
     environment:
-      # **Les cinq** variables que `Settings` exige, recopiées depuis `api` : la classe valide la
+      # **Les sept** variables que `Settings` exige, recopiées depuis `api` : la classe valide la
       # configuration entière au démarrage, quel que soit l'hôte, et un worker à qui il en manque
-      # une refuse de démarrer. Les deux seuils du limiteur ne servent à aucune tâche d'ici, mais
-      # ils sont requis et sans défaut — les omettre empêcherait le conteneur de démarrer.
-      # `FORWARDED_ALLOW_IPS`, en revanche, n'est pas reprise : elle est lue par uvicorn, que ce
-      # point d'entrée n'exécute pas. Pas d'ancre YAML pour factoriser tout ça — elle arrive avec
-      # #42, qui touchera les deux services.
+      # une refuse de démarrer. Les deux seuils du limiteur et les deux seuils de version du
+      # client ne servent à aucune tâche d'ici, mais ils sont requis et sans défaut — les omettre
+      # empêcherait le conteneur de démarrer. `FORWARDED_ALLOW_IPS`, en revanche, n'est pas
+      # reprise : elle est lue par uvicorn, que ce point d'entrée n'exécute pas. Pas d'ancre YAML
+      # pour factoriser tout ça — elle arrive avec #42, qui touchera les deux services.
       DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
       VALKEY_URL: redis://valkey:6379/0
       VALKEY_PASSWORD: ${VALKEY_PASSWORD}
       RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
       RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+      CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
+      CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
     command: ["python", "-m", "arpendo_api.worker"]
     volumes:
       # Sources montées comme pour `api`, mais **sans rechargement à chaud** : il n'y a pas

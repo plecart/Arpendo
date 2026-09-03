@@ -334,6 +334,36 @@ Sûr du côté de l'usurpation, dégradé du côté de la disponibilité — pas
 Dans la pile locale, les requêtes venues de l'hôte atteignent le conteneur avec pour pair la
 passerelle du bridge Docker : tout le trafic de la machine partage donc un seul compteur tant
 qu'aucun reverse proxy n'est devant. Sans conséquence au quota par défaut.
+## Contrôle de version du client
+
+`GET /version` publie les deux seuils que l'application mobile interroge **avant tout autre appel**
+(spec UX §2.1, étape 1). Route **publique**, à la racine et non sous `/v1` : elle précède la
+session, et un client qui doit apprendre qu'il est trop vieux pour parler à `/v1` ne peut pas être
+obligé de connaître `/v1` pour le demander — la même raison qui garde `/health` à la racine.
+
+```
+GET /version  →  200  {"min_build": 1, "recommended_build": 1}
+```
+
+| Réglage | Rôle |
+|---|---|
+| `CLIENT_BUILD_MIN` | `build < min` → l'app affiche un écran bloquant vers le magasin, sans retour ni fermeture (cadrage §14.1, spec UX §11.2) |
+| `CLIENT_BUILD_RECOMMENDED` | `build < recommended` → bandeau fermable, priorité 12 (spec UX §2.4) |
+
+Les deux comparaisons sont **strictes** : un build égal à un seuil l'atteint. Les deux réglages
+sont des **numéros de build** — l'entier monotone de `version: x.y.z+N` du manifeste de l'app,
+jamais du semver : c'est le seul champ dont l'ordre est total et déjà garanti par le magasin.
+
+**Le serveur ne rend aucun verdict.** Il annonce ses seuils ; c'est l'app qui compare. Lui faire
+lire `X-Client-Version` pour répondre « à jour / obsolète » couplerait la route à l'en-tête et
+priverait l'app de la connaissance de sa cible — elle ne saurait plus quoi afficher. Un test le
+garde, et il rougit si la comparaison est rapatriée ici.
+
+**`CLIENT_BUILD_MIN <= CLIENT_BUILD_RECOMMENDED` est vérifié au démarrage**, par un validateur de
+modèle de `Settings` : chaque seuil est valide pris seul, c'est leur ordre qui ne l'est pas. Un
+`.env` inversé refuse de démarrer, comme un secret manquant — sans quoi l'incident serait invisible
+côté serveur, la route répondant 200.
+
 ## Le worker
 
 **Un seul paquet, deux points d'entrée** (cadrage §13.0) : l'api HTTP et le worker sont deux hôtes
@@ -420,11 +450,13 @@ qu'aucun import n'a enregistrée dans `Base.metadata` passe pour supprimée.
 ## Structure
 
 - `src/arpendo_api/main.py` — `create_app()`, la fabrique de l'hôte HTTP. Les routeurs des
-  domaines s'y ajoutent sous `/v1` ; `/health` reste à la racine, parce qu'il s'adresse aux
-  sondes et non aux clients.
+  domaines s'y ajoutent sous `/v1` ; **deux** restent à la racine, parce que leurs lecteurs ne
+  connaissent pas `/v1` : `/health`, qui s'adresse aux sondes, et `/version`, qui s'adresse à un
+  client trop vieux pour parler à `/v1`.
 - `src/arpendo_api/core/` — le transversal : `settings.py` (la seule lecture de
   l'environnement du paquet), `logs.py` (le rendu JSON, une fois pour tous les loggers),
   `request_id.py` (l'identifiant de requête et son en-tête), `valkey.py`, `health.py`,
+  `version.py` (les deux seuils de version du client),
   `journal.py` (la ligne, le type, le registre), `bus.py` (`publish` / `subscribe`),
   `resources.py` (les ressources partagées et leur cycle de vie).
 - `src/arpendo_api/db/` — la persistance : `engine.py` (le moteur), `base.py` (la base
@@ -443,8 +475,11 @@ avec le même alias.
 **Les trois hôtes du paquet lisent leur configuration par `load_settings()`**, jamais par
 `Settings()` — l'api, le worker et l'environnement des migrations. La différence n'est visible que
 le jour où la configuration est fausse : `Settings()` lève une `ValidationError` qui recopie
-l'entrée **brute** dans son `input_value`, avant l'emballage `SecretStr`, et l'interpréteur
-imprime cette valeur dans la trace du démarrage refusé. `load_settings()` la traduit en
+l'entrée **brute** dans l'`input_value` de chacune de ses erreurs, avant l'emballage `SecretStr`.
+Son *message* n'en porte plus rien — `hide_input_in_errors` du `model_config` l'en retire, donc la
+trace du démarrage refusé ne la montre pas — mais `errors()` et `json(include_input=True)` la
+portent toujours, et rien n'empêche un appelant futur de les lire. `load_settings()` traduit
+l'erreur en
 `ConfigurationError` qui nomme le champ et la nature du défaut, jamais la valeur — et coupe le
 chaînage (`from None`), sans quoi la trace d'origine s'imprimerait juste au-dessus. C'est le seul
 chemin du démarrage qu'aucun assainissement d'événement ne couvre : Sentry lit son propre DSN dans

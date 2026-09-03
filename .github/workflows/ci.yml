@@ -117,9 +117,10 @@ jobs:
 
       - name: Tests
         # Coordonnées des conteneurs `services` ci-dessus — les tests parlent à de vrais
-        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les cinq variables que
+        # PostgreSQL et Valkey, jamais à des doubles. Ce sont les sept variables que
         # `arpendo_api.core.settings.Settings` lit, et les seules : toute autre est absente parce
-        # qu'aucun code ne la lit encore.
+        # qu'aucun code ne la lit encore — y compris les deux seuils de version du client, qui
+        # ne parlent à aucun service mais que `Settings` exige sans défaut.
         #
         # `FORWARDED_ALLOW_IPS` n'y figure pas, bien qu'elle soit dans `.env.example` : elle est
         # lue par uvicorn, que la suite ne démarre jamais. Le test de la frontière de confiance
@@ -137,4 +138,6 @@ jobs:
           VALKEY_PASSWORD: valkey-de-ci
           RATE_LIMIT_IP_REQUESTS: "600"
           RATE_LIMIT_IP_WINDOW_SECONDS: "60"
+          CLIENT_BUILD_MIN: "1"
+          CLIENT_BUILD_RECOMMENDED: "1"
         run: just test
