@@ -86,7 +86,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   - Territoire : `api/src/arpendo_api/domains/territoire/`, `api/src/arpendo_api/worker/`, `app/lib/data/`
   - Carte & rendu : `app/lib/ui/features/carte/`, `app/lib/ui/core/`
   - Flux & notifications : `api/src/arpendo_api/domains/flux/`, `app/lib/ui/features/flux/`
-- zones sensibles (arrêt humain avant commit) : écrans à valider visuellement · authentification
+- zones sensibles (arrêt humain — **la cadence est fixée par `.claude/rules/contraintes.md`**, et
+  elle n'est pas la même pour les deux) : écrans à valider visuellement · authentification
   — l'arrêt sur les migrations de schéma est levé tant qu'aucun environnement ne porte de données
   réelles ; à réintroduire au premier déploiement
 - hors périmètre : monétisation · analytics produit · iOS (phase 2) · modale « Mes hexagones »

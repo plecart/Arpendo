@@ -266,6 +266,10 @@ dans le titre. Puis enchaîner sur le commit suivant (retour 3.1).
 Si le commit touche une **zone sensible** déclarée dans `.claude/pipeline.config.md` (section
 « Périmètre »), rendre la main pour validation manuelle **avant** de committer.
 
+**La cadence dépend de la zone** — certaines n'ont leur arrêt qu'une fois par PR, avant
+`gh pr ready`. `.claude/rules/contraintes.md`, « Points d'arrêt humains », en est la source
+unique : la lire, plutôt que présumer « avant chaque commit ».
+
 ## Étape 4 — Relecture indépendante de fin de PR (avant `git push`)
 
 Quand tous les commits sont faits, deux passes, dans cet ordre.
