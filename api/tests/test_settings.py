@@ -257,6 +257,31 @@ def test_un_demarrage_refuse_n_ecrit_jamais_la_valeur_du_reglage_fautif(
     assert refus.value.__suppress_context__
 
 
+def test_un_refus_portant_sur_la_paire_de_champs_reste_lisible(
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Une erreur de **modèle** n'a pas de champ, et le rendu doit le supporter.
+
+    `loc` est vide pour un validateur de modèle — la faute porte sur la paire, pas sur l'un de ses
+    membres. Le rendu, écrit pour des erreurs de champ, produisait alors un séparateur orphelin :
+    « Configuration invalide — : Value error, … ». Constaté sur le vrai démarrage d'un conteneur,
+    pas en lisant le code.
+
+    Le nom du champ manquant n'est pas une perte : le message du validateur nomme lui-même les
+    deux variables d'environnement en cause, ce qui est ce que lit la personne qui répare un
+    `.env`.
+    """
+    monkeypatch.setenv("CLIENT_BUILD_MIN", "5")
+    monkeypatch.setenv("CLIENT_BUILD_RECOMMENDED", "2")
+
+    with pytest.raises(ConfigurationError) as refus:
+        load_settings()
+
+    message = str(refus.value)
+    assert "— :" not in message, f"séparateur orphelin : {message}"
+    assert "CLIENT_BUILD_MIN" in message
+
+
 def test_un_demarrage_accepte_rend_les_reglages_de_l_environnement(
     environnement_complet: None,
 ) -> None:

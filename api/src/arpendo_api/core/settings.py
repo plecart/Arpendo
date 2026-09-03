@@ -217,12 +217,19 @@ def _describe(invalid: ValidationError) -> str:
 
     Returns:
         Un fragment ``champ: nature du défaut`` par champ fautif, séparés par des points-virgules.
-        Un champ imbriqué est rendu pointé, comme pydantic le nomme.
+        Un champ imbriqué est rendu pointé, comme pydantic le nomme. Une erreur de **modèle** — la
+        faute porte sur une combinaison de champs, et ``loc`` est alors vide — se réduit à sa
+        nature, sans le séparateur qui n'introduirait plus rien.
     """
-    return "; ".join(
-        f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}"
-        for error in invalid.errors(include_input=False, include_url=False, include_context=False)
-    )
+    fragments = []
+    for error in invalid.errors(include_input=False, include_url=False, include_context=False):
+        champ = ".".join(str(part) for part in error["loc"])
+        # `loc` est **vide** pour une erreur de modèle : la faute porte sur une combinaison de
+        # champs, pas sur l'un d'eux. Le fragment se réduit alors à sa nature, sans le
+        # séparateur qui n'introduirait plus rien — le validateur de paire nomme lui-même les
+        # variables en cause dans son message.
+        fragments.append(f"{champ}: {error['msg']}" if champ else error["msg"])
+    return "; ".join(fragments)
 
 
 def load_settings() -> Settings:
