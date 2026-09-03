@@ -43,6 +43,25 @@ def ddl(element: CreateTable | CreateIndex) -> str:
     return str(element.compile(dialect=postgresql.dialect()))
 
 
+def variables_requises() -> set[str]:
+    """Les variables d'environnement sans lesquelles `Settings` refuse de se construire.
+
+    **Dérivées des champs du modèle, jamais recopiées.** C'est la seule représentation de cet
+    ensemble dans la suite : ajouter un champ requis étend d'un coup tout ce qui s'appuie dessus —
+    la couverture des tests de réglages comme la partition des services du compose — sans que
+    personne ait à tenir une seconde liste à jour. Une liste écrite à la main sous-couvrirait en
+    silence, ce qui est le pire des deux mondes : verte et fausse.
+
+    `pydantic_settings` fait correspondre le nom de champ à la variable en majuscules, sans
+    préfixe — `env_prefix` vide et `case_sensitive` faux dans la configuration du modèle.
+
+    Returns:
+        Les noms de variables, en majuscules. Un champ pourvu d'un défaut en est exclu : son
+        absence n'empêche rien.
+    """
+    return {nom.upper() for nom, champ in Settings.model_fields.items() if champ.is_required()}
+
+
 def reglages_surcharges(surcharges: Mapping[str, str]) -> Settings:
     """Les réglages de l'environnement, amendés — et **revalidés**.
 

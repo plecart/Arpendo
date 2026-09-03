@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Annotated
 
 import pytest
-from conftest import reglages_surcharges
+from conftest import reglages_surcharges, variables_requises
 from pydantic import AfterValidator, SecretStr, ValidationError
 
 from arpendo_api.core import settings as settings_module
@@ -57,6 +57,20 @@ REQUISES = {
     "CLIENT_BUILD_MIN": "1",
     "CLIENT_BUILD_RECOMMENDED": "2",
 }
+
+
+def test_la_table_des_variables_requises_les_couvre_toutes() -> None:
+    """`REQUISES` est écrite à la main : rien ne dit qu'elle suit les champs du modèle.
+
+    Trois tests paramétrés la parcourent — lecture, absence, blanc — et un quatrième en tire les
+    seuils bornés. Un champ requis ajouté sans être inscrit ici ne serait donc couvert par aucun
+    d'eux, et **la suite resterait verte** : c'est une sous-couverture silencieuse, le pire des
+    deux mondes.
+
+    On ne peut pas dériver la table entière — ses valeurs sont des données de test, que le modèle
+    ne connaît pas. On dérive donc ce qui peut l'être, l'ensemble des clés, et on le confronte.
+    """
+    assert set(REQUISES) == variables_requises()
 
 
 @pytest.fixture

@@ -11,8 +11,7 @@ from typing import Any
 
 import pytest
 import yaml
-
-from arpendo_api.core.settings import Settings
+from conftest import variables_requises
 
 COMPOSE = Path(__file__).resolve().parent.parent.parent / "infra" / "docker-compose.yml"
 """Le compose local, en chemin absolu : la suite peut être lancée d'ailleurs que d'`api/`."""
@@ -24,19 +23,6 @@ C'est **elle** qui désigne les services concernés, et non une liste de noms é
 troisième point d'entrée bâti sur la même image sera couvert le jour où il naîtra, sans que
 personne ait à penser à l'ajouter. Une liste de noms, elle, aurait vieilli en silence.
 """
-
-
-def _variables_requises() -> set[str]:
-    """Les variables d'environnement sans lesquelles ``Settings`` refuse de se construire.
-
-    Dérivées des champs du modèle, jamais recopiées : ajouter un champ requis étend ce test sans
-    le modifier. Un champ pourvu d'un défaut en est exclu — son absence n'empêche rien.
-
-    ``pydantic_settings`` fait correspondre le nom de champ à la variable en majuscules, sans
-    préfixe (``env_prefix`` vide, ``case_sensitive`` faux) — vérifié sur la configuration réelle
-    du modèle.
-    """
-    return {nom.upper() for nom, champ in Settings.model_fields.items() if champ.is_required()}
 
 
 def _services_du_paquet() -> dict[str, dict[str, Any]]:
@@ -74,4 +60,4 @@ def test_chaque_point_d_entree_recoit_toute_la_configuration_requise(service: st
     """
     declarees = set(_services_du_paquet()[service]["environment"])
 
-    assert _variables_requises() <= declarees
+    assert variables_requises() <= declarees
