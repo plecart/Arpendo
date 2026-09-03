@@ -18,7 +18,7 @@ from sqlalchemy.schema import CreateIndex, CreateTable
 
 from arpendo_api.core import resources
 from arpendo_api.core.journal import DomainEvent
-from arpendo_api.core.logs import UVICORN_LOGGERS
+from arpendo_api.core.logs import UVICORN_LOGGERS, JsonHandler
 from arpendo_api.core.settings import Settings
 from arpendo_api.main import create_app
 
@@ -124,11 +124,7 @@ def lignes(capsys: pytest.CaptureFixture[str]) -> Iterator[Lignes]:
     handlers, niveau = list(racine.handlers), racine.level
     repris = {nom: logging.getLogger(nom) for nom in UVICORN_LOGGERS}
     etat = {nom: (list(logger.handlers), logger.propagate) for nom, logger in repris.items()}
-    racine.handlers[:] = [
-        handler
-        for handler in handlers
-        if not isinstance(handler.formatter, structlog.stdlib.ProcessorFormatter)
-    ]
+    racine.handlers[:] = [handler for handler in handlers if not isinstance(handler, JsonHandler)]
 
     yield lambda: [json.loads(ligne) for ligne in capsys.readouterr().out.splitlines() if ligne]
 

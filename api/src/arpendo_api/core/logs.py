@@ -25,7 +25,6 @@ SHARED_PROCESSORS: tuple[Processor, ...] = (
     structlog.stdlib.add_logger_name,
     structlog.stdlib.add_log_level,
     structlog.processors.TimeStamper(fmt="iso", utc=True),
-    structlog.processors.StackInfoRenderer(),
     structlog.processors.format_exc_info,
 )
 """Ce qui compose une ligne, avant son rendu — et pour les deux origines à la fois.
@@ -40,6 +39,21 @@ par un ``bind_contextvars`` dans le domaine qui le connaît, sans toucher à cet
 """
 
 
+class JsonHandler(logging.StreamHandler):  # type: ignore[type-arg]
+    """Le handler que ce module pose — reconnaissable, et c'est là son unique raison d'être.
+
+    Un ``StreamHandler`` nu obligerait à reconnaître le nôtre à son *formateur*, or un
+    ``ProcessorFormatter`` n'a rien qui nous appartienne : le SDK Sentry, un agrégateur ou un
+    tiers quelconque peut en poser un. ``configure_logging`` se croirait alors déjà configurée et
+    rendrait la main sans rien faire — sans ``JSONRenderer``, sans reprendre les loggers d'uvicorn,
+    sans poser le niveau : exactement les deux formats sur la même sortie que ce module existe pour
+    empêcher.
+
+    C'est aussi ce qui permet aux tests de désinstaller *notre* handler sans toucher aux leurs,
+    sans réécrire le prédicat d'idempotence de leur côté.
+    """
+
+
 def _already_configured(root: logging.Logger) -> bool:
     """Dit si le handler de ce module est déjà posé sur la racine.
 
@@ -47,10 +61,7 @@ def _already_configured(root: logging.Logger) -> bool:
     il reste vrai. Un drapeau survivrait au retrait du handler — par un test, par un tiers — et la
     configuration ne se reposerait jamais.
     """
-    return any(
-        isinstance(handler.formatter, structlog.stdlib.ProcessorFormatter)
-        for handler in root.handlers
-    )
+    return any(isinstance(handler, JsonHandler) for handler in root.handlers)
 
 
 def configure_logging() -> None:
@@ -62,7 +73,9 @@ def configure_logging() -> None:
 
     Elle **ajoute** son handler et n'en retire aucun. Mesuré : un ``basicConfig(force=True)`` vide
     le handler de capture de pytest, et la suite perd ses assertions sur les journaux. Le handler
-    d'un tiers est là pour une raison que cette fonction ne connaît pas.
+    d'un tiers est là pour une raison que cette fonction ne connaît pas. Elle pose en revanche le
+    **niveau** de la racine, qu'elle écrase donc : sans cela, le défaut ``WARNING`` de la stdlib
+    retiendrait les lignes ``info`` que tout ce module existe pour produire.
 
     Les loggers d'uvicorn font exception et sont désarmés : lui les configure avant d'appeler la
     fabrique, donc ne pas le faire laisserait deux formats sur la même sortie.
@@ -77,7 +90,7 @@ def configure_logging() -> None:
         wrapper_class=structlog.stdlib.BoundLogger,
     )
 
-    handler = logging.StreamHandler(sys.stdout)
+    handler = JsonHandler(sys.stdout)
     handler.setFormatter(
         structlog.stdlib.ProcessorFormatter(
             foreign_pre_chain=SHARED_PROCESSORS,

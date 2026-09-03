@@ -91,6 +91,31 @@ def test_la_configuration_laisse_en_place_un_handler_tiers(lignes: Lignes) -> No
     assert tiers in logging.getLogger().handlers
 
 
+def test_le_handler_d_un_tiers_ne_fait_pas_passer_la_configuration_pour_faite(
+    lignes: Lignes,
+) -> None:
+    """Le prédicat d'idempotence doit reconnaître **notre** handler, pas un genre de handler.
+
+    Un `ProcessorFormatter` n'appartient à personne : le SDK Sentry, un agrégateur, un tiers
+    quelconque peut en poser un. Si la garde s'y fiait, `configure_logging` rendrait la main sans
+    poser son `JSONRenderer`, sans reprendre les loggers d'uvicorn et sans poser le niveau — soit
+    les deux formats sur la même sortie que ce module existe pour empêcher, et précisément dans
+    l'environnement où l'on a le plus besoin des journaux.
+    """
+    imposteur = logging.NullHandler()
+    imposteur.setFormatter(
+        structlog.stdlib.ProcessorFormatter(processors=[structlog.dev.ConsoleRenderer()])
+    )
+    logging.getLogger().addHandler(imposteur)
+
+    configure_logging()
+
+    logging.getLogger("uvicorn.access").info("GET /health 200")
+
+    (ligne,) = lignes()
+    assert ligne["event"] == "GET /health 200"
+
+
 TEMOINS = {
     "database_url": "dsn-temoin-que-rien-ne-doit-imprimer",
     "valkey_password": "mot-de-passe-temoin-que-rien-ne-doit-imprimer",
