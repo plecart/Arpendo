@@ -26,8 +26,8 @@ PROJECT_KEYS = ["latitude", "longitude", "lat", "lon", "email"]
 Nommées par leur provenance et non par leur nature — « les clés de position » exclurait ``email``,
 qui est là pour la même raison sans être une position.
 
-``token``, ``authorization``, ``password``, ``cookie`` et une trentaine d'autres y sont **déjà** :
-les répéter ici donnerait à croire qu'ils n'y seraient pas sans nous.
+``token``, ``authorization``, ``password``, ``cookie`` et 29 autres y sont **déjà** : les répéter
+ici donnerait à croire qu'ils n'y seraient pas sans nous.
 """
 
 DENYLIST = [*DEFAULT_DENYLIST, *PROJECT_KEYS]
@@ -48,11 +48,17 @@ PATTERNS = (
     re.compile(r"\bBearer\s+[\w\-._~+/]+=*", re.IGNORECASE),
     re.compile(r"\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b"),
 )
-"""Les motifs retirés du corps entier de l'événement, quel que soit l'endroit où ils logent.
+"""Les motifs retirés des **chaînes**, quel que soit l'endroit de l'événement où elles logent.
 
 La coordonnée se reconnaît à la **paire**, jamais à un nombre isolé : un horodatage ISO
 (``…:35.751365Z``) porte exactement la même forme décimale, et un motif à un seul nombre les
-emporterait tous — on assainirait alors la seule chose qui permet de dater une erreur.
+emporterait tous — on assainirait alors la seule chose qui permet de dater une erreur. Le
+séparateur, lui, est délibérément large : la virgule seule laissait passer ``lat=…&lon=…``, un WKT
+``POINT(… …)``, un JSON sérialisé et un saut de ligne, tous mesurés.
+
+Une position voyage aussi sous forme de **nombres**, et le motif ne peut rien pour elle : c'est
+``_has_coordinate_pair`` qui la reconnaît, par la même règle de la paire. Les deux natures sont
+épinglées ensemble par ``FORMES_DE_POSITION`` dans les tests.
 """
 
 REDACTED = "[retiré]"
