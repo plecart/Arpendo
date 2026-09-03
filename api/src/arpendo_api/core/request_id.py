@@ -2,6 +2,7 @@
 
 from uuid import uuid4
 
+import sentry_sdk
 import structlog
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -87,6 +88,14 @@ class RequestIdMiddleware:
         ceinture. Sous un transport de test, qui sert l'application dans la tâche de l'appelant,
         c'est la seule protection.
 
+        Le même identifiant devient un **tag Sentry**, sans quoi relier une erreur remontée dans
+        Sentry aux lignes de journal qu'elle a produites demanderait de croiser des horodatages —
+        donc de trier au milieu de tout ce que les autres joueurs faisaient à la même seconde. Il
+        est posé sur la *portée d'isolation*, que l'intégration ASGI du SDK ouvre pour chaque
+        requête (vérifié dans ``sentry_sdk/integrations/asgi.py``) : ce middleware s'exécute à
+        l'intérieur, le tag est donc bien celui de la requête. Sentry désactivé, l'appel n'envoie
+        rien nulle part — il écrit dans une portée dont aucun événement ne sortira.
+
         Tout ce qui n'est pas une requête HTTP traverse sans être touché : le cycle de vie
         (``lifespan``) parcourt la pile de middlewares comme une requête, et n'a ni réponse à
         enrichir ni contexte à porter.
@@ -95,5 +104,6 @@ class RequestIdMiddleware:
             return await self.app(scope, receive, send)
 
         request_id = str(uuid4())
+        sentry_sdk.get_isolation_scope().set_tag(CONTEXT_KEY, request_id)
         with structlog.contextvars.bound_contextvars(**{CONTEXT_KEY: request_id}):
             await self.app(scope, receive, _announcing(send, request_id))

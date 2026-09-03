@@ -160,6 +160,60 @@ la requête portent bien l'identifiant — c'est le plus utile — mais la répo
 n'en porte aucun. Structurel, non contournable par `add_middleware` : à savoir avant de chercher
 un identifiant sur un rapport d'erreur 500.
 
+## Sentry
+
+**Rien n'est envoyé tant que `SENTRY_DSN` est vide** — et c'est le défaut du poste comme de la CI.
+« Désactivé » veut dire *aucun appel* à `sentry_sdk.init`, et non un `init` avec un DSN vide : ce
+dernier installerait quand même les intégrations, les handlers de journalisation et le hook
+d'exceptions non rattrapées.
+
+| Réglage | Rôle |
+|---|---|
+| `SENTRY_DSN` | le point de collecte. **Vide = désactivé.** Masqué : l'URL porte la clé du projet |
+| `SENTRY_SAMPLE_RATE` | part des événements envoyés, dans `]0, 1]`. `1.0` sur le poste ; la valeur de production est tranchée par #47 |
+
+`configure_sentry(settings)` est appelée par les **deux hôtes qui servent du trafic** — la fabrique
+d'application et le worker — **après** `configure_logging()`, pour que le handler du SDK s'ajoute au
+nôtre au lieu de le précéder. L'environnement des migrations ne l'appelle pas : un processus court,
+sans requête, dont l'échec se lit dans le code de retour.
+
+### Deux filets d'assainissement, parce qu'aucun ne suffit seul
+
+Le cadrage §13.10 est explicite : « le scrubbing PII doit être configuré explicitement, sinon on
+reconstruit exactement l'historique de localisation que §12.3 interdit ».
+
+- **`EventScrubber`** (fourni par le SDK) travaille **par clé** : `password`, `token`,
+  `authorization`, `cookie`… plus les clés de position que ce projet ajoute — `latitude`,
+  `longitude`, `lat`, `lon`, `email`. Attention, **il remplace son denylist par défaut quand on lui
+  en passe un** : `DENYLIST` reprend donc les trente-sept du SDK avant d'ajouter les cinq nôtres.
+  Un test l'épingle, parce que l'erreur inverse — croire ajouter et en fait retirer — ne se voit
+  nulle part.
+- **`scrub`**, en `before_send`, travaille **par motif** sur le corps entier de l'événement :
+  paires de coordonnées décimales, `Bearer …`, adresses e-mail. C'est lui qui attrape ce que
+  l'autre ne peut pas voir — une coordonnée noyée dans un message, ou le secret qu'une
+  `ValidationError` de pydantic recopie en clair dans son texte.
+
+`scrub` est une **fonction pure** : elle rend une structure neuve et ne touche pas l'événement
+reçu, ce qui permet de l'éprouver sur un dictionnaire écrit à la main, sans réseau, sans `init`,
+sans projet Sentry.
+
+**Le motif de coordonnée exige une paire**, jamais un nombre isolé : un horodatage ISO
+(`…:35.751365Z`) a exactement la même forme décimale, et un motif à un seul nombre les emporterait
+tous — on assainirait la seule chose qui permet de dater une erreur. Un test épingle un horodatage,
+un index H3 et un numéro de build comme devant **survivre**.
+
+**Ce que ces deux filets ne couvrent pas** : les lignes de journal. `scrub` est un `before_send`
+Sentry, il ne traverse jamais la sortie standard. L'assainissement des coordonnées dans les
+journaux est porté par #92, à traiter avant que le domaine Territoire journalise sa première
+position.
+
+**L'identifiant de requête est posé en tag Sentry** par `RequestIdMiddleware` — c'est lui qui relie
+une erreur remontée dans Sentry aux lignes de journal qu'elle a produites.
+
+Pas de `traces_sample_rate` (pas de performance), pas de `set_user` (ce qu'un identifiant de compte
+vaut au RGPD sera tranché par le domaine Compte), pas de table `ignore_errors` vide. Le Data
+Scrubbing configuré côté serveur Sentry est un **troisième** filet, indépendant de ce code (#30).
+
 ## Sessions
 
 Une route qui a besoin de la base annote son paramètre — l'injection fait le reste :
