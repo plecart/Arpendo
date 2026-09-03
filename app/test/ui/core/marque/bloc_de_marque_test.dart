@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
 import 'package:arpendo/ui/core/theme/mesures.dart';
@@ -18,6 +20,16 @@ const double _hauteurCapitale = 24;
 const double _ratioCapitale = 1456 / 2048;
 
 void main() {
+  test('la copie du signe est identique à sa source documents/assets/', () {
+    // `documents/assets/` est la source unique (README racine) : toute
+    // retouche se fait là-bas puis se recopie. Ce test remplace le `md5sum`
+    // manuel de la convention — une dérive silencieuse rougit ici.
+    expect(
+      File('assets/signe-arpendo.svg').readAsBytesSync(),
+      File('../documents/assets/signe-arpendo.svg').readAsBytesSync(),
+    );
+  });
+
   for (final brightness in Brightness.values) {
     testWidgets('le signe mesure 96 dp et prend primary — $brightness', (
       tester,

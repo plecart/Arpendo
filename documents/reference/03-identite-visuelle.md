@@ -286,8 +286,9 @@ dessus, mais il ne doit pas être ce qu'on voit en premier.
 **Le logotype.** `Arpendo` en capitale initiale (ta réponse 9.1), composé en **Roboto w500**,
 interlettrage `+0,02 em` — la composition de l'actif `logo-arpendo.svg`, que l'app rend en texte
 plutôt qu'en SVG (amendement du 3 septembre 2026, archive §18.8 : le lettrage dessiné envisagé au
-premier jet n'a jamais été réalisé). Le signe se place **à gauche
-du mot**, hauteur égale à la hauteur de capitale.
+premier jet n'a jamais été réalisé). Dans le **logo horizontal** (`logo-arpendo.svg`, usage hors
+app), le signe se place à gauche du mot, hauteur égale à la hauteur de capitale ; **à l'écran**,
+le bloc de marque suit la spec UX §4 — signe de 96 dp au-dessus du nom.
 L'accroche « prends du terrain » vient **sous** le mot, en `type-body`, `on-surface-muted`, bas de
 casse, sans point final — discrète, conformément à ta réponse 9.2.
 
