@@ -659,3 +659,37 @@ posant les deux sections côte à côte, ce que la construction du composant a f
 **§§ répercutés :** `02-specification-ux.md` §1.4, cellule de la bande haute. §7.1 est **inchangé** —
 les puces de header restent inertes, et c'est désormais dit dans la cellule elle-même. §12.2 est
 inchangé : son bouton d'action « Partie » est en bande basse.
+
+## 18.8 Amendement du §1.2 du 3 septembre 2026 — la composition du logotype
+
+**La contradiction.** Le brief de #46 (interrogatoire du 27 août 2026, validé) verrouillait
+« Logotype `Text('Arpendo')` Roboto w500, interlettrage `+0,02 em` », alors que le §1.2 de la
+spec écrivait « Le logotype n'est pas composé en Roboto : c'est un dessin, livré en SVG avec
+l'identité » (miroir : identité §1.3). Relevée au briefing du lot 2a, le 3 septembre 2026 — le
+`grep` des sources qu'impose `decisions-vs-doc` n'avait pas été fait sur ce point au brief du
+27 août, même cause que les deux erreurs du brief de #43.
+
+**Le fait qui tranche.** L'actif livré `documents/assets/logo-arpendo.svg` compose lui-même le mot
+par un `<text font-family="Roboto, Arial, sans-serif" font-weight="500" letter-spacing="0.5">`
+(≈ `+0,02 em` à corps 27) : le « dessin » que la prose de l'identité §1.5 décrivait — « lettres
+dessinées sur une base linéale à contraste faible, hampes raccourcies » — n'a jamais été réalisé.
+Aucun actif ne porte de lettrage dessiné.
+
+**Options examinées :**
+
+| Option | Retenue ? |
+|---|---|
+| **La décision gagne** — le logotype est du texte Roboto w500, les documents s'alignent sur l'actif réel | **Oui.** Le rendu `Text` est fidèle au seul logotype qui existe ; zéro actif à produire ; le mode sombre et le réglage de taille système viennent gratuitement |
+| Le document gagne — rendre le logotype depuis le SVG | Non. Il n'existe pas de lettrage dessiné à rendre ; le `<text>` SVG serait rendu par `flutter_svg` avec un support partiel, pour aboutir… à du Roboto |
+| Faire dessiner le lettrage décrit | Non. Charge de création hors périmètre, aucune valeur : la direction « Relevé » est close et l'actif Roboto est l'identité publiée |
+
+**§§ répercutés :** `02-specification-ux.md` §1.2 (la ligne inversée : composé en Roboto w500,
+taille en hauteur de capitale) et §1.8 (le logotype sort de la liste des « dessins hors
+Phosphor ») · `03-identite-visuelle.md` §1.3 et §1.5 (miroirs, même formulation). Le §4 de la spec
+est **inchangé** : « hauteur de capitale 24 dp » et « les ressources SVG du signe et du logotype
+sont livrées avec `03-identite-visuelle.md` §1.5 » restent vrais — `logo-arpendo.svg` existe et
+sert hors app. Aucun document de rang 1 ne mentionne le logotype : **aucune ligne au journal du
+cadrage**. `pipeline.config.md`, `CLAUDE.md` et le README racine sont inchangés (leurs mentions
+désignent les fichiers SVG, toujours exacts). Corps et brief de #46 déjà conformes — aucune issue
+ouverte ne cite la composition du logotype (le domaine Compte, qui portera l'écran Connexion,
+n'est pas découpé).

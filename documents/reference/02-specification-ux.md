@@ -100,7 +100,9 @@ Aucun texte sous 12 dp. Le rendu doit suivre le réglage de taille de police du 
   qui se met à jour en continu.
 - **Interlettrage `+0,01 em` sur `type-caption`** uniquement. Les petites tailles se referment au
   soleil ; c'est le seul endroit où l'espacement gagne de la lisibilité.
-- Le **logotype n'est pas composé en Roboto** : c'est un dessin, livré en SVG avec l'identité.
+- Le **logotype est composé en Roboto w500**, capitale initiale, interlettrage `+0,02 em` — hors
+  échelle : sa taille se fixe en **hauteur de capitale** (§4), jamais en corps. C'est la
+  composition de l'actif `logo-arpendo.svg`, livré avec l'identité (§1.5 de `03-identite-visuelle.md`).
 
 ### 1.3 Rayons et élévations
 
@@ -380,8 +382,8 @@ l'accompagne, ou elle est seule là où la convention Android l'autorise (Param�
 Remplacer l'un des trois par une variante de même contour annulerait la règle du §2.4.
 
 **Pas de jeu d'icônes secondaire.** Une seule famille, une seule graisse. Les seuls dessins hors
-Phosphor sont ceux de l'identité — le signe, le logotype, l'icône d'app, la silhouette de
-notification — livrés avec `03-identite-visuelle.md`.
+Phosphor sont ceux de l'identité — le signe, l'icône d'app, la silhouette de notification —
+livrés avec `03-identite-visuelle.md` ; le logotype, lui, est du texte Roboto (§1.2).
 
 ---
 

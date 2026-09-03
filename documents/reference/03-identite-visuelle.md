@@ -199,7 +199,8 @@ valide.**
   `type-display` ; interlettrage `+0,01 em` sur `type-caption` pour la tenue des petites tailles au
   soleil ; chiffres **tabulaires** (`fontFeatures: ['tnum']`) sur le score et le timer, pour que les
   valeurs ne dansent pas quand elles changent.
-- Le logotype n'est **pas** composé en Roboto : c'est un dessin (§1.5), livré en SVG.
+- Le logotype **est** composé en Roboto w500, capitale initiale, interlettrage `+0,02 em`
+  (§1.5) — la composition de l'actif `logo-arpendo.svg`.
 
 ### 1.4 Jetons de chrome
 
@@ -282,9 +283,10 @@ dessus, mais il ne doit pas être ce qu'on voit en premier.
 </svg>
 ```
 
-**Le logotype.** `Arpendo` en capitale initiale (ta réponse 9.1), lettres dessinées sur une base
-linéale à contraste faible, terminaisons droites, `p` et `d` à hampes légèrement raccourcies pour
-que le mot forme un bloc horizontal stable. Interlettrage `+0,02 em`. Le signe se place **à gauche
+**Le logotype.** `Arpendo` en capitale initiale (ta réponse 9.1), composé en **Roboto w500**,
+interlettrage `+0,02 em` — la composition de l'actif `logo-arpendo.svg`, que l'app rend en texte
+plutôt qu'en SVG (amendement du 3 septembre 2026, archive §18.8 : le lettrage dessiné envisagé au
+premier jet n'a jamais été réalisé). Le signe se place **à gauche
 du mot**, hauteur égale à la hauteur de capitale.
 L'accroche « prends du terrain » vient **sous** le mot, en `type-body`, `on-surface-muted`, bas de
 casse, sans point final — discrète, conformément à ta réponse 9.2.
