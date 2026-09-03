@@ -13,7 +13,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from arpendo_api.core.resources import Resources, open_resources
-from arpendo_api.core.settings import Settings
+from arpendo_api.core.settings import Settings, load_settings
 
 _journal = logging.getLogger(__name__)
 """Le journal du worker.
@@ -117,12 +117,16 @@ async def run(
             retarde aucune autre, et un test l'observe.
         stop: l'événement qui met fin à toutes les boucles. C'est l'appelant qui le pose — depuis
             un signal en production, directement dans un test.
-        settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement, comme le fait
+        settings: les réglages à utiliser. Omis, ils sont lus par ``load_settings`` comme le fait
             ``create_app`` : c'est le cas du conteneur, qui lance le module sans argument. Un test
             en fournit un explicite pour décrire l'environnement qu'il veut éprouver.
 
     Returns:
         Rien, et seulement une fois **toutes** les boucles terminées et les ressources libérées.
+
+    Raises:
+        ConfigurationError: si les réglages sont omis et que l'environnement en décrit une
+            configuration invalide.
 
     Note:
         ``TaskGroup`` plutôt que ``gather`` : si une boucle venait à lever malgré la garde par
@@ -130,7 +134,7 @@ async def run(
         sur un moteur et un client déjà fermés — mesuré, quatre tours de plus. Le groupe, lui,
         annule tout avant de remonter, donc cet état ne peut pas exister.
     """
-    async with open_resources(settings if settings is not None else Settings()) as resources:
+    async with open_resources(settings if settings is not None else load_settings()) as resources:
         async with asyncio.TaskGroup() as groupe:
             for name, (interval, task) in tasks.items():
                 groupe.create_task(_repeat(name, interval, task, resources, stop))

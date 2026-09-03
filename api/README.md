@@ -323,6 +323,17 @@ et rien d'autre ; la valeur ne sort que par un `.get_secret_value()` explicite, 
 fabrique qui la consomme. Un futur secret — clé de session, DSN Sentry, jeton FCM — se déclare
 avec le même alias.
 
+**Les trois hôtes du paquet lisent leur configuration par `load_settings()`**, jamais par
+`Settings()` — l'api, le worker et l'environnement des migrations. La différence n'est visible que
+le jour où la configuration est fausse : `Settings()` lève une `ValidationError` qui recopie
+l'entrée **brute** dans son `input_value`, avant l'emballage `SecretStr`, et l'interpréteur
+imprime cette valeur dans la trace du démarrage refusé. `load_settings()` la traduit en
+`ConfigurationError` qui nomme le champ et la nature du défaut, jamais la valeur — et coupe le
+chaînage (`from None`), sans quoi la trace d'origine s'imprimerait juste au-dessus. C'est le seul
+chemin du démarrage qu'aucun assainissement d'événement ne couvre : Sentry lit son propre DSN dans
+ces réglages, il n'existe donc pas encore. Un test balaie `src/` et échoue sur tout `Settings()`
+qui reparaîtrait hors de `settings.py`.
+
 **Les ressources partagées — moteur, fabrique de sessions, client Valkey — sont ouvertes par
 `core/resources.py`**, et par personne d'autre. `open_resources(settings)` les empile sur un
 `AsyncExitStack` dès leur naissance, donc chacune est libérée même si la suivante échoue à naître

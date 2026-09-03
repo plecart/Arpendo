@@ -1,9 +1,10 @@
 """L'environnement des migrations : ce qu'Alembic exécute pour chaque commande.
 
 Il n'y a pas d'``alembic.ini`` — l'URL de la base vient de ``Settings``, seul lecteur de
-l'environnement (cadrage §13.9 règle 5), et le moteur de ``db.engine.create_engine``, le même que
-l'application : un seul endroit sait ouvrir PostgreSQL. Le moteur est asynchrone, Alembic ne
-l'est pas : la recette officielle passe une connexion synchrone à Alembic par ``run_sync``.
+l'environnement (cadrage §13.9 règle 5), lu par le même ``load_settings`` que les deux autres
+hôtes du paquet, et le moteur de ``db.engine.create_engine``, le même que l'application : un seul
+endroit sait ouvrir PostgreSQL. Le moteur est asynchrone, Alembic ne l'est pas : la recette
+officielle passe une connexion synchrone à Alembic par ``run_sync``.
 
 Ce script s'exécute sur le poste (``just migrate``), dans un conteneur éphémère
 (``docker compose run --rm api alembic upgrade head``) et dans la suite de tests — jamais au
@@ -22,7 +23,7 @@ from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from arpendo_api.core import journal  # noqa: F401 — enregistre `domain_event` dans Base.metadata
-from arpendo_api.core.settings import Settings
+from arpendo_api.core.settings import load_settings
 from arpendo_api.db.base import Base
 from arpendo_api.db.engine import create_engine
 
@@ -57,4 +58,4 @@ async def _run_async(engine: AsyncEngine) -> None:
         await engine.dispose()
 
 
-asyncio.run(_run_async(create_engine(Settings())))
+asyncio.run(_run_async(create_engine(load_settings())))

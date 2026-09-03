@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from arpendo_api.core import health
 from arpendo_api.core.rate_limit import RateLimitMiddleware
 from arpendo_api.core.resources import open_resources
-from arpendo_api.core.settings import Settings
+from arpendo_api.core.settings import Settings, load_settings
 
 
 @asynccontextmanager
@@ -45,15 +45,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     clients.
 
     Args:
-        settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement — c'est le cas
-            en production, où l'application est construite par uvicorn sans argument. Un test en
-            fournit un explicite pour décrire l'environnement qu'il veut éprouver.
+        settings: les réglages à utiliser. Omis, ils sont lus dans l'environnement par
+            ``load_settings`` — c'est le cas en production, où l'application est construite par
+            uvicorn sans argument, et où une configuration fausse doit échouer sans jamais écrire
+            la valeur fautive. Un test en fournit un explicite pour décrire l'environnement qu'il
+            veut éprouver.
 
     Returns:
         L'application, dont les connexions s'ouvriront à l'entrée dans son cycle de vie.
+
+    Raises:
+        ConfigurationError: si les réglages sont omis et que l'environnement en décrit une
+            configuration invalide.
     """
     app = FastAPI(title="Arpendo", lifespan=_lifespan)
-    app.state.settings = settings if settings is not None else Settings()
+    app.state.settings = settings if settings is not None else load_settings()
     app.add_middleware(RateLimitMiddleware)
     app.include_router(health.router)
     return app

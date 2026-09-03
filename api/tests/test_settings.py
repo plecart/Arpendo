@@ -1,10 +1,15 @@
+import re
+import traceback
 from collections.abc import Callable
+from pathlib import Path
+from typing import Annotated
 
 import pytest
 from conftest import reglages_surcharges
-from pydantic import SecretStr, ValidationError
+from pydantic import AfterValidator, SecretStr, ValidationError
 
-from arpendo_api.core.settings import Settings
+from arpendo_api.core import settings as settings_module
+from arpendo_api.core.settings import ConfigurationError, Settings, load_settings
 
 MOT_DE_PASSE_POSTGRESQL = "mot-de-passe-postgresql"
 MOT_DE_PASSE_VALKEY = "mot-de-passe-valkey"
@@ -112,3 +117,80 @@ def test_une_surcharge_de_reglages_en_test_repasse_par_la_validation() -> None:
     """
     with pytest.raises(ValidationError):
         reglages_surcharges({"valkey_url": "   "})
+
+
+def _settings_au_format_refuse(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Substitue à `Settings` une variante dont un validateur refuse le CONTENU d'un secret.
+
+    Aucun validateur réel ne le fait — la docstring de `Secret` l'interdit précisément parce que
+    pydantic recopie l'entrée brute dans le `input_value` de sa `ValidationError`. On monte donc
+    ici l'interdit pour éprouver le chargeur sur le seul cas où il a quelque chose à assainir.
+    """
+
+    def _refuse(_: SecretStr) -> SecretStr:
+        raise ValueError("format attendu : un préfixe reconnu")
+
+    class SettingsAuFormat(Settings):
+        valkey_password: Annotated[SecretStr, AfterValidator(_refuse)]
+
+    monkeypatch.setattr(settings_module, "Settings", SettingsAuFormat)
+
+
+def test_un_demarrage_refuse_n_ecrit_jamais_la_valeur_du_reglage_fautif(
+    environnement_complet: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """La trace d'un démarrage refusé est le dernier endroit où un secret peut fuir.
+
+    À ce moment-là Sentry n'existe pas encore — il lit son DSN dans ces mêmes réglages — donc
+    aucun assainissement d'événement ne couvre ce chemin : c'est la trace elle-même qui doit
+    être propre.
+    """
+    _settings_au_format_refuse(monkeypatch)
+
+    with pytest.raises(ConfigurationError) as refus:
+        load_settings()
+
+    trace = "".join(traceback.format_exception(refus.value))
+    assert MOT_DE_PASSE_VALKEY not in trace
+    assert "valkey_password" in str(refus.value)
+    assert refus.value.__cause__ is None
+    assert refus.value.__suppress_context__
+
+
+def test_un_demarrage_accepte_rend_les_reglages_de_l_environnement(
+    environnement_complet: None,
+) -> None:
+    assert load_settings() == Settings()
+
+
+SOURCES = Path(__file__).resolve().parent.parent / "src"
+"""L'arbre du paquet — celui que la règle ci-dessous balaie, et le seul."""
+
+CONSTRUCTION_DIRECTE = re.compile(r"\bSettings\(\)")
+"""Une construction des réglages qui court-circuite le chargeur.
+
+Épinglée en clair plutôt qu'importée : c'est la forme écrite qu'on interdit, et la reconstruire
+depuis un symbole rendrait la règle aveugle au jour où le symbole change de nom.
+"""
+
+
+def test_aucun_point_d_entree_ne_construit_les_reglages_sans_passer_par_le_chargeur() -> None:
+    """La protection de `load_settings` ne vaut que si personne ne la contourne.
+
+    Un `Settings()` oublié dans un point d'entrée rétablit exactement la fuite que le chargeur
+    existe pour fermer, et rien ne le signalerait : le processus démarrerait normalement, et la
+    trace ne serait sale que le jour où la configuration est fausse — en production, une fois.
+    C'est donc un balayage de l'arbre, et non la relecture des trois appelants connus : le
+    quatrième hôte du paquet héritera de la règle sans que personne ait à s'en souvenir.
+
+    `core/settings.py` est le seul exempté : c'est lui qui construit, et sa docstring d'exemple
+    montre la forme interdite ailleurs.
+    """
+    fautifs = [
+        source.relative_to(SOURCES).as_posix()
+        for source in SOURCES.rglob("*.py")
+        if source.name != "settings.py"
+        and CONSTRUCTION_DIRECTE.search(source.read_text(encoding="utf-8"))
+    ]
+
+    assert fautifs == []
