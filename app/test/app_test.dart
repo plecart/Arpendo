@@ -45,6 +45,18 @@ http.Client _serveurNominal() => MockClient(
 /// Les préférences du test, reposées vides avant chaque cas.
 late PreferencesService prefs;
 
+/// Les liens que la racine a réellement demandé d'ouvrir.
+late List<Uri> liensOuverts;
+
+/// Serveur qui publie [min] et [recommande] — les deux verdicts du §11.2.
+http.Client _serveurQuiPublie({required int min, required int recommande}) =>
+    MockClient(
+      (_) async => http.Response(
+        '{"min_build":$min,"recommended_build":$recommande}',
+        200,
+      ),
+    );
+
 /// La racine telle que `main()` la construit, transport et réseau de test.
 ArpendoApp _app({http.Client? transport, int buildActuel = 4}) {
   final connectivite = _ConnectiviteFigee();
@@ -58,11 +70,14 @@ ArpendoApp _app({http.Client? transport, int buildActuel = 4}) {
     connectivite: connectivite,
     buildActuel: buildActuel,
     preferences: prefs,
-    // Lanceur inerte : la racine ne doit ouvrir aucun lien, seulement
-    // brancher celui qui le fera.
+    // Le lanceur enregistre au lieu d'ouvrir : c'est lui qui prouve que le
+    // fil bouton → service est réellement branché par la racine.
     magasin: MagasinService(
       identifiantApplication: 'com.arpendo.game',
-      lancer: (_) async => true,
+      lancer: (uri) async {
+        liensOuverts.add(uri);
+        return true;
+      },
     ),
   );
 }
@@ -71,6 +86,7 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     prefs = PreferencesService(await SharedPreferences.getInstance());
+    liensOuverts = [];
   });
   testWidgets("l'application démarre sur l'écran d'attente", (tester) async {
     await tester.pumpWidget(_app());
@@ -86,12 +102,7 @@ void main() {
     // (§11.2). C'est ici que ça se vérifie, et pas dans le test de l'écran :
     // l'écran ne sait pas quand il s'affiche, le `switch` de la racine si.
     await tester.pumpWidget(
-      _app(
-        transport: MockClient(
-          (_) async =>
-              http.Response('{"min_build":9,"recommended_build":9}', 200),
-        ),
-      ),
+      _app(transport: _serveurQuiPublie(min: 9, recommande: 9)),
     );
     await tester.pumpAndSettle();
 
@@ -100,6 +111,64 @@ void main() {
       find.byType(EcranAttente),
       findsNothing,
       reason: 'les deux à l\'écran laisseraient une sortie au joueur',
+    );
+  });
+
+  testWidgets('écran bloquant : « Mettre à jour » atteint le magasin', (
+    tester,
+  ) async {
+    // Le fil bouton → service. Ni le test de l'écran (callback feint) ni celui
+    // du service (appelé à la main) ne le voient : seule la racine les relie,
+    // donc c'est ici qu'il se casserait en silence.
+    await tester.pumpWidget(
+      _app(transport: _serveurQuiPublie(min: 9, recommande: 9)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mettre à jour'));
+    await tester.pumpAndSettle();
+
+    expect(liensOuverts, [Uri.parse('market://details?id=com.arpendo.game')]);
+  });
+
+  testWidgets('build sous le recommandé : le bandeau 12 atteint l\'écran', (
+    tester,
+  ) async {
+    // La couture `modele.entreeBandeau` → `EcranAttente`. Sans ce test, la
+    // racine peut passer `null` et toute la suite reste verte — mesuré.
+    await tester.pumpWidget(
+      _app(transport: _serveurQuiPublie(min: 1, recommande: 9)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EcranAttente), findsOneWidget);
+    expect(find.text('Une nouvelle version est disponible.'), findsOneWidget);
+    expect(find.text('Mettre à jour'), findsOneWidget);
+    expect(find.text('Fermer'), findsOneWidget);
+  });
+
+  testWidgets('bandeau 12 : les deux actions sont branchées', (tester) async {
+    await tester.pumpWidget(
+      _app(transport: _serveurQuiPublie(min: 1, recommande: 9)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Mettre à jour'));
+    await tester.pumpAndSettle();
+    expect(liensOuverts, hasLength(1), reason: 'action « Mettre à jour »');
+
+    await tester.tap(find.text('Fermer'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Une nouvelle version est disponible.'),
+      findsNothing,
+      reason: 'fermé, le bandeau disparaît sans quitter l\'écran (§11.2)',
+    );
+    expect(
+      prefs.buildRecommandeEcarte(),
+      9,
+      reason: 'et la fermeture est persistée, sinon il revient au lancement suivant',
     );
   });
 
