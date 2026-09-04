@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 import yaml
-from conftest import COMPOSE, ENV_EXAMPLE, variables_des_reglages, variables_requises
+from conftest import COMPOSE, ENV_EXAMPLE, variables_des_reglages
 
 IMAGE_DU_PAQUET = "arpendo-api:dev"
 """L'image que partagent les points d'entrée du paquet (cadrage §13.0 : un paquet, deux entrées).
@@ -73,19 +73,26 @@ def test_le_compose_declare_au_moins_deux_points_d_entree() -> None:
 
 @pytest.mark.parametrize("service", sorted(_services_du_paquet()))
 def test_chaque_point_d_entree_recoit_toute_la_configuration_requise(service: str) -> None:
-    """Tout champ requis de ``Settings`` est présent dans l'environnement de chaque service.
+    """Toute variable que lit ``Settings`` est présente dans l'environnement de chaque service.
 
     ``Settings`` valide la configuration **entière** au démarrage, quel que soit le point d'entrée :
     un `worker` à qui manque un seuil du limiteur — qu'il n'utilise pourtant jamais — refuse de
     démarrer et redémarre en boucle. La règle est donc « tout ou rien », pas « ce dont le service
     se sert ».
 
+    **Toutes**, et pas seulement les requises : ``SENTRY_DSN`` est le seul réglage facultatif, donc
+    le seul qu'un service puisse perdre sans que rien ne casse — Sentry se désactiverait en
+    silence, alors que le worker en a autant besoin que l'api (un tour de tâche qui échoue est
+    exactement ce qu'on veut voir remonter). Un garde qui ne regarde que les requises laisse
+    passer précisément le cas qui ne se remarque pas.
+
     L'inclusion est à sens unique : un service peut porter davantage. `api` déclare
-    ``FORWARDED_ALLOW_IPS``, que lit uvicorn et non ``Settings``.
+    ``FORWARDED_ALLOW_IPS``, que lit uvicorn et non ``Settings`` ; ce que le `worker` a le droit de
+    porter en plus est borné plus bas.
     """
     declarees = set(_services_du_paquet()[service]["environment"])
 
-    assert variables_requises() <= declarees
+    assert variables_des_reglages() <= declarees
 
 
 def test_l_ancre_partagee_porte_exactement_ce_que_lisent_les_reglages() -> None:
@@ -170,9 +177,11 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
         "ouvertes sans limite, et Docker le tuerait au SIGKILL"
     )
     assert relais.startswith(f"${{{BORNE_UVICORN}:?"), (
-        f"{BORNE_UVICORN} est relayée par {relais!r}, sans le garde `:?` : un `.env` qui ne la "
-        "porte pas — ou qui la laisse vide — donnerait une chaîne vide, que click ignore. Compose "
-        "n'émettrait qu'un avertissement, et la borne serait perdue en silence"
+        f"{BORNE_UVICORN} est relayée par {relais!r}, hors de la forme `${{…:?…}}`. La valeur se "
+        "déclare une seule fois, dans le `.env` — donc ni littéral ici, ni défaut d'interpolation. "
+        "Et seul le `:?` refuse aussi la valeur **vide** : `${{…?…}}`, sans les deux-points, "
+        "laisse passer la chaîne vide, que click ignore en silence. La borne se perdrait "
+        "sans un mot"
     )
 
 
@@ -183,10 +192,17 @@ def test_le_worker_ne_recoit_rien_de_plus_que_l_ancre() -> None:
     variable d'uvicorn recopiée en plus sur ce service. Elle y serait sans effet — ce point d'entrée
     n'exécute pas uvicorn — mais elle ferait mentir la règle que le compose énonce, et la prochaine
     variable ajoutée « par symétrie » n'aurait plus rien pour l'arrêter.
+
+    Avec le garde d'inclusion plus haut, ce sens ferme l'égalité : le `worker` reçoit **exactement**
+    l'ancre. `api` est le seul service autorisé à porter davantage, et l'asymétrie est le sujet —
+    c'est lui qui exécute uvicorn.
     """
     surplus = set(_services_du_paquet()["worker"]["environment"]) - set(_document()[ANCRE_PARTAGEE])
 
     assert not surplus, (
-        f"le `worker` reçoit {sorted(surplus)} en plus de l'ancre. Ce que lit le serveur qui "
-        "héberge l'api reste sur `api` seule : ce point d'entrée n'exécute pas uvicorn"
+        f"le `worker` reçoit {sorted(surplus)} en plus de l'ancre. Ce que lit ``Settings`` va dans "
+        "`x-env` ; ce que lit le serveur qui héberge l'api reste sur `api`, seul service à "
+        "exécuter uvicorn. Si l'une de ces variables est légitimement propre au worker, c'est "
+        "la règle de partition qu'il faut amender — dans le compose et ici —, pas ce garde "
+        "qu'il faut retirer"
     )
