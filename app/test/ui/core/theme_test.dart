@@ -1,4 +1,5 @@
 import 'package:arpendo/ui/core/theme/icones.dart';
+import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/mouvement.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/core/theme/typographie.dart';
@@ -99,6 +100,179 @@ void main() {
             'ThemeData compare ses extensions par == ; deux thèmes inégaux '
             "font notifier l'InheritedWidget Theme et reconstruire tout ce qui "
             'en dépend, pour rien',
+      );
+    });
+  });
+
+  group('thèmes de composant', () {
+    for (final brightness in Brightness.values) {
+      test('le fond d\'écran hors carte est surface-dim — $brightness', () {
+        final theme = themeArpendo(brightness);
+
+        expect(
+          theme.scaffoldBackgroundColor,
+          theme.colorScheme.surfaceDim,
+          reason:
+              'le §1.5 réserve `surface` aux modales et feuilles ; un écran '
+              'sans carte se pose sur `surface-dim` (report de #34 soldé)',
+        );
+      });
+
+      test(
+        'FilledButton : fond primary au repos, accentPressed à l\'appui — $brightness',
+        () {
+          final theme = themeArpendo(brightness);
+          final style = theme.filledButtonTheme.style!;
+
+          expect(style.backgroundColor!.resolve({}), theme.colorScheme.primary);
+          expect(
+            style.backgroundColor!.resolve({WidgetState.pressed}),
+            _chromeDe(theme).accentPressed,
+            reason:
+                "l'appui est le jeton `accent-pressed`, dont l'inversion "
+                'clair/sombre est déjà encodée — pas un voile Material',
+          );
+          expect(
+            style.overlayColor!.resolve({WidgetState.pressed}),
+            Colors.transparent,
+            reason:
+                'le state layer Material assombrirait par-dessus '
+                '`accent-pressed` : le jeton EST déjà l\'état pressé',
+          );
+        },
+      );
+
+      testWidgets(
+        'FilledButton désactivé : le thème s\'efface devant Material — $brightness',
+        (tester) async {
+          final theme = themeArpendo(brightness);
+          final style = theme.filledButtonTheme.style!;
+
+          expect(
+            style.backgroundColor!.resolve({WidgetState.disabled}),
+            isNull,
+            reason:
+                'la fusion widget ?? thème ?? défaut se fait sur la VALEUR '
+                'RÉSOLUE (button_style_button.dart) : une couleur répondue ici '
+                'masquerait le défaut Material, et un bouton désactivé '
+                'resterait visuellement actif',
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: theme,
+              home: const Scaffold(
+                body: Center(
+                  child: FilledButton(onPressed: null, child: Text('Go')),
+                ),
+              ),
+            ),
+          );
+          final materiau = tester.widget<Material>(
+            find
+                .descendant(
+                  of: find.byType(FilledButton),
+                  matching: find.byType(Material),
+                )
+                .first,
+          );
+          // Le défaut est demandé au bouton lui-même plutôt que recopié : le
+          // test prouve « le défaut s'applique », pas une valeur interne.
+          final bouton = tester.widget<FilledButton>(find.byType(FilledButton));
+          final contexte = tester.element(find.byType(FilledButton));
+          expect(
+            materiau.color,
+            bouton.defaultStyleOf(contexte).backgroundColor!.resolve({
+              WidgetState.disabled,
+            }),
+            reason: 'le défaut Material 3 d\'un bouton rempli désactivé',
+          );
+        },
+      );
+    }
+
+    testWidgets(
+      'FilledButton : le focus et le hover gardent leur state layer',
+      (tester) async {
+        final theme = themeArpendo(Brightness.light);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: theme,
+            home: Scaffold(
+              body: FilledButton(onPressed: () {}, child: const Text('Go')),
+            ),
+          ),
+        );
+        final style = theme.filledButtonTheme.style!;
+        final bouton = tester.widget<FilledButton>(find.byType(FilledButton));
+        final defaut = bouton.defaultStyleOf(
+          tester.element(find.byType(FilledButton)),
+        );
+
+        for (final etat in [WidgetState.focused, WidgetState.hovered]) {
+          expect(
+            style.overlayColor!.resolve({etat}),
+            isNull,
+            reason:
+                'un overlay transparent sur TOUS les états éteindrait aussi '
+                'l\'anneau de focus (filled_button.dart : « pressed/focused/'
+                'hovered highlights are effectively defeated ») — seule la '
+                'surbrillance d\'appui est remplacée par `accent-pressed`',
+          );
+          // Que le thème s'efface ne suffit pas : un défaut qui répondrait
+          // `null` à son tour laisserait l'état invisible. On prouve le relais.
+          expect(
+            defaut.overlayColor!.resolve({etat}),
+            isNotNull,
+            reason:
+                'le défaut Material fournit le state layer que le thème '
+                'laisse passer',
+          );
+        }
+      },
+    );
+
+    test('FilledButton : hauteur 56 dp et rayon md déclarés par le thème', () {
+      final style = themeArpendo(Brightness.light).filledButtonTheme.style!;
+
+      expect(style.minimumSize!.resolve({})!.height, 56);
+      expect(
+        style.shape!.resolve({}),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(Rayons.md)),
+        reason:
+            'vide de spec comblé au brief de #46 : un bouton pleine largeur '
+            'est une surface de contenu, pas « rond par nature » (§7.1) — '
+            'rayon à confirmer à l\'œil en HITL',
+      );
+    });
+
+    testWidgets('un FilledButton rend 56 dp de haut sous le thème', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: themeArpendo(Brightness.light),
+          home: Scaffold(
+            body: Center(
+              child: FilledButton(onPressed: () {}, child: const Text('Go')),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.getSize(find.byType(FilledButton)).height, 56);
+    });
+
+    test('TextButton : la cible tactile du §1.4 sur les deux axes', () {
+      final style = themeArpendo(Brightness.light).textButtonTheme.style!;
+
+      expect(
+        style.minimumSize!.resolve({}),
+        const Size.square(CiblesTactiles.min),
+        reason:
+            'le défaut Material vaut 64 × 40, trop plat ; la contrainte vit '
+            'dans le thème pour que les actions du bandeau (§2.4) comme tout '
+            'futur bouton texte la reçoivent sans style local',
       );
     });
   });

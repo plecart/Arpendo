@@ -100,7 +100,9 @@ Aucun texte sous 12 dp. Le rendu doit suivre le réglage de taille de police du 
   qui se met à jour en continu.
 - **Interlettrage `+0,01 em` sur `type-caption`** uniquement. Les petites tailles se referment au
   soleil ; c'est le seul endroit où l'espacement gagne de la lisibilité.
-- Le **logotype n'est pas composé en Roboto** : c'est un dessin, livré en SVG avec l'identité.
+- Le **logotype est composé en Roboto w500**, capitale initiale, interlettrage `+0,02 em` — hors
+  échelle : sa taille se fixe en **hauteur de capitale** (§4), jamais en corps. C'est la
+  composition de l'actif `logo-arpendo.svg`, livré avec l'identité (§1.5 de `03-identite-visuelle.md`).
 
 ### 1.3 Rayons et élévations
 
@@ -288,8 +290,10 @@ persistante en aura besoin, c'est cette règle qui s'applique, pas une nouvelle 
 un élément qui part aussi lentement qu'il arrive donne l'impression que l'application réfléchit.
 La règle remplace la courbe unique retenue initialement.
 
-**Le retour d'appui — `motion-press`.** Échelle **0,98** plus assombrissement de la surface de
-**6 %**. **Aucun changement d'élévation, aucune ombre, aucun enfoncement visible** : l'identité
+**Le retour d'appui — `motion-press`.** Échelle **0,98** plus le passage de la surface à son
+**état pressé** — `accent-pressed` (§1.5) sur une surface d'accent, qui **fonce en clair et
+éclaircit en sombre** ; state layer Material par défaut ailleurs.
+**Aucun changement d'élévation, aucune ombre, aucun enfoncement visible** : l'identité
 retenue exclut le relief. Un composant qui réclamerait vraiment une profondeur d'appui ne dépasse
 pas **1 dp**.
 
@@ -380,8 +384,8 @@ l'accompagne, ou elle est seule là où la convention Android l'autorise (Param�
 Remplacer l'un des trois par une variante de même contour annulerait la règle du §2.4.
 
 **Pas de jeu d'icônes secondaire.** Une seule famille, une seule graisse. Les seuls dessins hors
-Phosphor sont ceux de l'identité — le signe, le logotype, l'icône d'app, la silhouette de
-notification — livrés avec `03-identite-visuelle.md`.
+Phosphor sont ceux de l'identité — le signe, l'icône d'app, la silhouette de notification —
+livrés avec `03-identite-visuelle.md` ; le logotype, lui, est du texte Roboto (§1.2).
 
 ---
 

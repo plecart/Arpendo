@@ -1,6 +1,11 @@
 {
   "@@locale": "fr",
 
+  "marqueNom": "Arpendo",
+  "@marqueNom": {
+    "description": "Le nom — ne se traduit jamais. Le logotype le compose en Roboto w500, hauteur de capitale 24 dp (UX §4, amendement du 3 septembre 2026) ; il est dans l'ARB parce que le garde fr-XA exige que tout texte rendu en vienne."
+  },
+
   "marqueAccroche": "prends du terrain",
   "@marqueAccroche": {
     "description": "Cité — cadrage §1, ne pas modifier. Accroche du bloc marque (signe, nom, accroche), sous le logotype : écran d'attente (UX §2.1), Connexion (UX §4), Accueil (UX §5)."

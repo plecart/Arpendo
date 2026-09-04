@@ -10,6 +10,9 @@ dependencies:
   connectivity_plus: ^7.3.1
   flutter:
     sdk: flutter
+  # Rend le signe de la marque (`assets/signe-arpendo.svg`) teinté par le
+  # thème. Seul `lib/ui/core/marque/bloc_de_marque.dart` l'importe.
+  flutter_svg: ^2.2.0
   # Délégués `Global*Localizations` du SDK, montés par la classe générée depuis
   # `lib/l10n/app_fr.arb` (cadrage §12.6 : aucune chaîne en dur).
   flutter_localizations:
@@ -33,6 +36,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Les actifs de la marque, copiés tels quels depuis `documents/assets/`
+  # (source unique, README racine) — toute retouche se fait là-bas d'abord.
+  assets:
+    - assets/
   # Exigé par `flutter gen-l10n` : sans ce drapeau, l'outil refuse d'écrire la
   # classe. Il ne suffit pas pour autant — c'est `just l10n` qui dérive d'abord
   # la locale `fr-XA`, que la génération seule ignorerait.

@@ -71,7 +71,7 @@ en leur faveur.
 
 | Chemin | Contenu |
 |---|---|
-| `documents/assets/` | Les SVG définitifs de la marque : signe, logotype, icône d'app, marqueur vu de face. **Source unique.** La maquette en garde une copie à l'identique — elle est servie depuis son propre dossier et ne peut pas remonter d'un cran. Toute retouche de la marque se fait ici, puis se recopie ; un `md5sum` des deux fichiers détecte la divergence |
+| `documents/assets/` | Les SVG définitifs de la marque : signe, logotype, icône d'app, marqueur vu de face. **Source unique.** Deux copies à l'identique existent : la maquette (servie depuis son propre dossier, qui ne peut pas remonter d'un cran) et `app/assets/` (le signe, embarqué par l'app). Toute retouche de la marque se fait ici, puis se recopie ; un `md5sum` détecte la divergence côté maquette, et un test de l'app (`bloc_de_marque_test.dart`) garde sa copie alignée |
 | `documents/maquettes/claude-design-v2/` | La maquette de référence — 8 planches en HTML autonome. **Inspiration, pas norme : en cas de divergence, la spécification l'emporte.** `trace-maquette.md` résume ce qui a été demandé, obtenu, et les deux écarts tranchés en sa faveur |
 
 ### `documents/setup/` — comptes et services externes à ouvrir

@@ -103,9 +103,13 @@ directement : c'est ce passage obligé qui applique `MediaQuery.disableAnimation
    portent sur des *comportements* — l'inversion de l'état pressé, la coupure des animations, le
    rapport de sortie. Un test qui compare une constante à la spec ne prouve que la copie.
 
-**Le thème de composant n'existe pas encore.** `FilledButtonThemeData`, `InputDecorationTheme` et
-leurs semblables naissent avec le premier composant qui les réclame, écran sous les yeux — de même
-que `scaffoldBackgroundColor`, qui vaudra `surfaceDim` (« fond d'écran hors carte », §1.5).
+**Les thèmes de composant naissent avec le premier composant qui les réclame**, écran sous les
+yeux. Les deux premiers sont arrivés avec l'écran d'attente (#46) : `FilledButtonThemeData`
+(56 dp, fond `primary`, appui `accent-pressed` — state layer Material neutralisé, le jeton est
+déjà l'état pressé —, `radius-md`) et `TextButtonThemeData` (cible tactile 48 × 48 du §1.4, que
+les actions du bandeau reçoivent du thème, sans style local qui le masquerait).
+`scaffoldBackgroundColor` vaut `surfaceDim` (« fond d'écran hors carte », §1.5) — le report
+documenté ici depuis #34 est soldé. `InputDecorationTheme` et leurs semblables attendent le leur.
 
 ## Textes — l'ARB et la locale allongée
 
@@ -272,6 +276,26 @@ contrôleur qu'on rembobine applique un **second** miroir temporel, ce qui inver
   dépend du point d'appel, et c'est voulu : sous une `SafeArea` il ne rend que le clavier, parce
   que le rembourrage y a déjà été appliqué *et* retiré du `MediaQuery`. Une feuille s'affiche par
   le `Navigator`, donc hors de la pile, et reçoit bien les deux.
+
+### Le bloc de marque
+
+`ui/core/marque/bloc_de_marque.dart` — signe, logotype, accroche (§4), la même composition pour
+les trois écrans sans carte : attente (§2.1), Connexion (§4), Accueil (§5). Le signe est
+`assets/signe-arpendo.svg` (copié depuis `documents/assets/`, source unique), teinté
+`ColorFilter.mode(primary, srcIn)` — les opacités des courbes survivent, le mode sombre est
+gratuit. Le logotype est du **texte Roboto w500** (§1.2, amendé le 3 septembre 2026) : son corps
+se dérive de la hauteur de capitale de 24 dp du §4 par le ratio lu dans la fonte
+(`sCapHeight/unitsPerEm` = 1456/2048), il ne se pose pas. Le nom vit dans l'ARB (`marqueNom`,
+intraduisible) parce que le garde `fr-XA` exige que tout texte rendu en vienne.
+
+### Le bouton pleine largeur
+
+`ui/core/boutons/bouton_pleine_largeur.dart` est le bouton principal des écrans sans carte
+(§4, §11.2) : un `FilledButton` pleine largeur qui porte le retour d'appui `motion-press` du
+§1.6 — échelle 0,98 à l'appui, via `Mouvement.of`. L'échelle vit **dans ce widget et pas dans le
+thème** : `ButtonStyle` n'a aucune propriété d'échelle, et ses `ButtonLayerBuilder` sont clippés
+par la forme du `Material`. L'assombrissement d'appui, lui, vient du `FilledButtonThemeData`
+(`accent-pressed`). Les marges d'écran (`space-4`) restent à l'appelant.
 
 ## Icône de lancement
 
