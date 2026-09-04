@@ -20,9 +20,9 @@ import 'etat_demarrage.dart';
 /// [ConnectivityService.isOnline] — sur Android le flux n'émet pas de façon
 /// fiable l'état courant à l'abonnement, un modèle qui ne ferait que
 /// s'abonner aurait un état initial indéfini — puis suivi par
-/// [ConnectivityService.enLigne]. Hors ligne, [entreeBandeau] rend la ligne 5
-/// du §2.4 ; la ligne 12 (mise à jour recommandée) est câblée par le lot 2c
-/// de #46, sa condition est déjà exposée par [Pret.miseAJourRecommandee].
+/// [ConnectivityService.enLigne]. [entreeBandeau] rend les deux lignes du
+/// §2.4 que ce domaine possède — la 5 hors ligne, la 12 quand une mise à jour
+/// est recommandée et n'a pas été écartée — et [resoudre] arbitre entre elles.
 class DemarrageViewModel extends ChangeNotifier {
   /// Crée le modèle ; rien ne part vers le réseau avant [demarrer].
   DemarrageViewModel({
@@ -75,15 +75,24 @@ class DemarrageViewModel extends ChangeNotifier {
       ),
   ]);
 
-  /// Vrai quand le serveur recommande un build plus récent **et** que le
-  /// joueur n'a pas déjà fermé le bandeau pour ce build-là (§11.2).
+  /// Vrai quand la séquence a abouti sur un build sous le recommandé **et**
+  /// que le joueur n'a pas déjà fermé le bandeau pour ce build-là (§11.2).
+  ///
+  /// **L'état compte autant que les nombres.** La condition n'est vraie qu'en
+  /// [Pret] : proposer une mise à jour par-dessus « Le serveur ne répond
+  /// pas. » ferait cohabiter deux messages dont l'un est la cause de l'autre,
+  /// ce que la règle d'unicité du §2.4 refuse. C'est aussi ce qui empêche une
+  /// recommandation lue avant un « Réessayer » raté de survivre à l'échec.
   ///
   /// La comparaison est un `>` et non un `!=` : ce qui a été écarté, c'est un
   /// **seuil**, pas un identifiant. Un serveur qui redescendrait sa
   /// recommandation ne doit pas rouvrir un bandeau déjà refusé.
   bool get _miseAJourAProposer {
+    final etat = _etat;
     final recommande = _buildRecommande;
-    if (recommande == null || _buildActuel >= recommande) return false;
+    if (etat is! Pret || !etat.miseAJourRecommandee || recommande == null) {
+      return false;
+    }
     final ecarte = _preferences.buildRecommandeEcarte();
     return ecarte == null || recommande > ecarte;
   }

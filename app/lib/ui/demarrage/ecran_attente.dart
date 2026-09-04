@@ -20,11 +20,14 @@ import 'etat_demarrage.dart';
 /// Selon [etat], paraît **sous** le bloc, sans jamais le déplacer :
 /// - [Injoignable] — « Le serveur ne répond pas. » et « Réessayer », jamais
 ///   le Menu ;
-/// - [Verification], [Pret] et [MiseAJourRequise] — rien (l'écran bloquant
-///   de [MiseAJourRequise] est livré par le lot 2c de #46).
+/// - [Verification] et [Pret] — rien.
 ///
-/// Le bandeau (§2.4) occupe son calque : la ligne 5 quand le téléphone est
-/// hors ligne — c'est le [DemarrageViewModel] qui décide, l'écran affiche.
+/// [MiseAJourRequise] ne passe **pas** par cet écran : la racine y substitue
+/// l'écran bloquant du §11.2, qui remplace tout, bandeau compris.
+///
+/// Le bandeau (§2.4) occupe son calque — la ligne 5 hors ligne, la 12 quand
+/// une mise à jour est recommandée. C'est le [DemarrageViewModel] qui décide
+/// laquelle ; l'écran affiche ce qu'on lui donne.
 class EcranAttente extends StatelessWidget {
   /// Crée l'écran pour [etat], avec l'éventuelle ligne de bandeau active.
   const EcranAttente({

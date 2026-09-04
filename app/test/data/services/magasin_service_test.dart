@@ -40,7 +40,12 @@ void main() {
     );
   });
 
-  test('sans magasin installé, replie sur le lien web', () async {
+  test('un lien refusé sans exception replie sur le lien web', () async {
+    // Le cas d'une plateforme dont le lanceur **rend `false`**. Ce n'est pas
+    // Android : l'implémentation y lève `PlatformException` quand aucune
+    // activité ne répond (mesuré en relecture, `url_launcher_android.dart`),
+    // et c'est le test suivant qui couvre ce chemin-là. Celui-ci garde le
+    // contrat rendu par `LanceurUrl`, que d'autres plateformes honorent.
     final lanceur = _LanceurFeint([false, true]);
     final magasin = _magasin(lanceur);
 
@@ -52,9 +57,11 @@ void main() {
   test(
     'un refus de plateforme sur le premier lien n\'arrête pas le second',
     () async {
-      // `launchUrl` lève quand aucune activité ne répond au schéma — c'est le
-      // cas d'un émulateur sans Play Services, exactement celui que le repli
-      // existe pour couvrir. Une exception non rattrapée le rendrait inerte.
+      // **Le vrai cas Android** : `url_launcher_android` lève
+      // `PlatformException(ACTIVITY_NOT_FOUND)` quand rien ne répond au
+      // schéma `market://` — il ne rend jamais `false`. C'est donc ce test,
+      // et pas le précédent, qui couvre l'appareil sans magasin installé.
+      // Une exception non rattrapée rendrait le repli inerte.
       final lanceur = _LanceurFeint([Exception('aucune activité'), true]);
       final magasin = _magasin(lanceur);
 

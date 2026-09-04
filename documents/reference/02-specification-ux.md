@@ -2326,6 +2326,12 @@ Trois formes, et pas une de plus :
 Toute erreur récupérable porte **« Réessayer »**. Aucune erreur n'affiche de code technique ni de
 trace : ils partent à Sentry (§13.10), pas à l'écran.
 
+**Une exception, nommée : le magasin qui ne s'ouvre pas** (§11.2). L'écran bloquant de mise à jour
+ne montre alors ni message ni « Réessayer » — il n'y a rien à récupérer *dans* l'application, le
+seul geste utile se fait dehors. La règle ci-dessus vaut pour tout le reste, et toute exception
+nouvelle s'écrit ici **et** dans le § qui la porte : une exception inscrite d'un seul côté est
+invisible au lecteur qui arrive par l'autre.
+
 ### 13.4 Pagination
 
 Toutes les réponses d'API sont paginées et plafonnées (§12.4). Les trois listes concernées —

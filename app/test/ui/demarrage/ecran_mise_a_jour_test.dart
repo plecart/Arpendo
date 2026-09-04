@@ -1,5 +1,6 @@
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
+import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_mise_a_jour.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(ouvertures, 1);
+  });
+
+  testWidgets('le bouton respecte la barre de gestes Android', (tester) async {
+    // Même critère que sur l'écran d'attente, et pour la même raison : les
+    // deux écrans posent leur seule action en bande basse. Il est inscrit ici
+    // aussi pour que la population entière soit gardée, pas seulement le
+    // premier écran où le défaut a été mesuré.
+    const inset = 48.0;
+    // `FakeViewPadding` est en pixels PHYSIQUES : dpr à 1 pour que l'inset
+    // simulé vaille 48 dp logiques, comme sur l'appareil.
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(bottom: inset);
+    addTearDown(tester.view.reset);
+    await _monter(tester);
+
+    final basBouton = tester.getBottomLeft(find.byType(BoutonPleineLargeur)).dy;
+    final hauteurEcran = tester.getSize(find.byType(MaterialApp)).height;
+    expect(
+      hauteurEcran - basBouton,
+      greaterThanOrEqualTo(inset + Espacements.x4),
+      reason:
+          "sous la barre de gestes, la seule action d'un écran sans sortie "
+          'serait inatteignable',
+    );
   });
 
   testWidgets("le retour système ne quitte pas l'écran", (tester) async {

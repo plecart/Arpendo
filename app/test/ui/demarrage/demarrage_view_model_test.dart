@@ -265,6 +265,47 @@ void main() {
       );
     });
 
+    test(
+      'une recommandation redescendue ne rouvre pas un bandeau refusé',
+      () async {
+        // Ce qui a été écarté est un **seuil**, pas un identifiant : un `!=`
+        // rouvrirait le bandeau au moindre changement de valeur, y compris vers
+        // le bas. Test écrit par la relecture indépendante, qui a mesuré que la
+        // mutation `>` → `!=` restait verte sans lui.
+        await _preferences({'build_recommande_ecarte': 9});
+        final vm = _modele(
+          versions: const Versions(minBuild: 1, recommendedBuild: 8),
+        );
+
+        await vm.demarrer();
+
+        expect(vm.entreeBandeau, isNull);
+      },
+    );
+
+    test('un échec après une lecture réussie efface la proposition', () async {
+      // Sinon une recommandation lue avant un « Réessayer » raté continuerait
+      // de piloter le bandeau 12 par-dessus l'écran de panne — deux messages
+      // dont l'un est la cause de l'autre (§2.4).
+      final versions = _VersionsFigees(sousLeRecommande);
+      final vm = DemarrageViewModel(
+        versions: versions,
+        connectivite: _ConnectivitePilotee(),
+        buildActuel: 5,
+        preferences: prefs,
+        ouvrirMagasin: () {},
+      );
+      addTearDown(vm.dispose);
+      await vm.demarrer();
+      expect(vm.entreeBandeau?.priorite, 12);
+
+      versions.reponse = const ServeurInjoignable();
+      await vm.reessayer();
+
+      expect(vm.etat, const Injoignable());
+      expect(vm.entreeBandeau, isNull);
+    });
+
     test('un build recommandé plus élevé le réaffiche', () async {
       // Le joueur a fermé le bandeau du build 9 ; le serveur recommande
       // maintenant le 10 — c'est une nouvelle information, pas la même.
