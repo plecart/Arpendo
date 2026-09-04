@@ -15,8 +15,8 @@ from arpendo_api.core.settings import Settings
 VALKEY_URL_DU_COMPOSE = re.compile(r"VALKEY_URL:\s*(\S+)")
 """Chaque `VALKEY_URL` que le compose donne à un service.
 
-Lue au **texte** et non au YAML, parce que la valeur est un littéral et le reste : une ancre
-`x-env` qui factoriserait la ligne la déplacerait sans la réécrire.
+Lue au **texte** et non au YAML, parce que la valeur est un littéral et le reste : l'ancre
+`x-env` qui la factorise l'a déplacée sans la réécrire.
 
 Toute autre forme fait **échouer bruyamment**, jamais silencieusement : l'interpolation a son
 propre message, la disparition de la clé aussi, et `base_logique` lève sur le reste. Aucune ne

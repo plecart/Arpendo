@@ -42,6 +42,28 @@ la dépendance fautive marquée `"unreachable"` — le verdict pour un moniteur 
 pour la personne qui diagnostique. Un service absent se constate en quelques millisecondes : les
 clients échouent vite plutôt que d'épuiser le budget de la sonde.
 
+## Arrêter
+
+`docker compose stop` envoie un SIGTERM, puis tue au SIGKILL après un délai. Les 10 secondes par
+défaut de Docker ne suffisent pas (cadrage §13.7, §13.9 règle 6) : `api` et `worker` déclarent donc
+`stop_grace_period: 30s`.
+
+Ce délai seul ne suffirait pas non plus, parce qu'**uvicorn attend les connexions ouvertes sans
+borne** : une requête longue — une SSE, demain — tiendrait jusqu'au SIGKILL, et le délai n'aurait
+fait que retarder la mort brutale. `UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN=25`, dans le `.env`, lui
+donne cette borne. **25 sous 30, et l'ordre est tout le sujet** : uvicorn doit fermer le premier,
+sinon c'est encore Docker qui tranche. Changer l'une des deux valeurs demande de relire l'autre.
+
+Le worker n'a rien à borner : sa boucle s'arrête d'elle-même sur SIGTERM, il lui faut seulement le
+temps de finir le tour en cours.
+
+Ce qu'on doit observer : `docker compose stop api` rend la main **en moins de 30 secondes** avec le
+code de sortie **0**. Un `137` signifierait un SIGKILL — c'est-à-dire l'inverse de ce que cette
+configuration existe pour obtenir.
+
+La borne uvicorn est configurée, pas testée : aucune route de cette api ne tient assez longtemps
+pour l'exercer. Elle le sera par ce qui l'exercera vraiment.
+
 ## Tester et vérifier
 
 **`just test` exige `just up`.** Les tests parlent à un vrai PostgreSQL et à un vrai Valkey,

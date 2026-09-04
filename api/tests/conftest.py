@@ -43,13 +43,24 @@ def ddl(element: CreateTable | CreateIndex) -> str:
     return str(element.compile(dialect=postgresql.dialect()))
 
 
-COMPOSE = Path(__file__).resolve().parent.parent.parent / "infra" / "docker-compose.yml"
+RACINE = Path(__file__).resolve().parent.parent.parent
+"""La racine du dépôt : les fichiers de configuration gardés par la suite y vivent."""
+
+COMPOSE = RACINE / "infra" / "docker-compose.yml"
 """Le compose **local**, en chemin absolu — la suite peut être lancée d'ailleurs que d'`api/`.
 
-Celui-là et pas un autre : les deux invariants qui le lisent portent sur l'application qui tourne
+Celui-là et pas un autre : les invariants qui le lisent portent sur l'application qui tourne
 **sur le poste, pendant la suite** — la partition de sa configuration entre points d'entrée, et la
 séparation de sa base Valkey d'avec celle des tests. Un compose de production (#45) décrira une
 pile que personne ne lève ici.
+"""
+
+ENV_EXAMPLE = RACINE / ".env.example"
+"""Le modèle de `.env` — la seule déclaration des valeurs que le poste et le compose se partagent.
+
+Lu par les gardes qui portent sur un invariant **réparti** entre lui et `infra/docker-compose.yml` :
+une valeur proposée ici et relayée là-bas n'est cohérente nulle part ailleurs, et un commentaire de
+chaque côté ne la tient pas.
 """
 
 
