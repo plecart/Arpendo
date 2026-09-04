@@ -27,9 +27,10 @@ void main() {
   test('une fermeture survit au redémarrage', () async {
     // `setMockInitialValues` simule le stockage **déjà sur le disque** : c'est
     // le seul montage qui exerce la relecture au lancement suivant, celle dont
-    // dépend « le bandeau ne revient pas pour la même version » (§11.2). Le
-    // préfixe `flutter.` est celui que le plugin pose lui-même sur ses clés.
-    final prefs = await _service({'flutter.build_recommande_ecarte': 7});
+    // dépend « le bandeau ne revient pas pour la même version » (§11.2). La
+    // clé se donne **sans** le préfixe `flutter.` : le plugin le pose
+    // lui-même, et l'écrire ici couplerait le test à un `static` mutable.
+    final prefs = await _service({'build_recommande_ecarte': 7});
 
     expect(prefs.buildRecommandeEcarte(), 7);
   });

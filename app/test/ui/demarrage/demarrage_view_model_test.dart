@@ -268,7 +268,7 @@ void main() {
     test('un build recommandé plus élevé le réaffiche', () async {
       // Le joueur a fermé le bandeau du build 9 ; le serveur recommande
       // maintenant le 10 — c'est une nouvelle information, pas la même.
-      await _preferences({'flutter.build_recommande_ecarte': 9});
+      await _preferences({'build_recommande_ecarte': 9});
       final vm = _modele(
         versions: const Versions(minBuild: 1, recommendedBuild: 10),
       );

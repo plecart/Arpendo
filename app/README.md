@@ -399,7 +399,7 @@ plugin** — la règle qui vaut déjà pour `api_client.dart` et `connectivity_s
 | Fichier | Plugin | Ce qu'il fait |
 |---|---|---|
 | `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part au journal |
-| `data/services/preferences_service.dart` | `shared_preferences` | retient le **build recommandé** dont le bandeau a été fermé. Il stocke, il n'arbitre pas |
+| `data/services/preferences_service.dart` | `shared_preferences` | retient le **build recommandé** dont le bandeau a été fermé. Il stocke, il n'arbitre pas. Sa fabrique `ouvrir()` existe pour ça : si la racine appelait `SharedPreferences.getInstance()` elle-même, le plugin serait importé par deux fichiers |
 
 **La condition de la ligne 12 vit dans `DemarrageViewModel`, pas dans les services.** Elle vaut
 « recommandé non atteint **et** recommandé strictement supérieur à celui qu'on a écarté ». La

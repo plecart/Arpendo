@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'data/services/api_client.dart';
 import 'data/services/connectivity_service.dart';
@@ -25,13 +24,13 @@ import 'ui/demarrage/etat_demarrage.dart';
 /// `just run` et `just build` — et son absence arrête net, avant tout widget :
 /// une url par défaut en dur masquerait une configuration cassée.
 Future<void> main() async {
-  // `PackageInfo.fromPlatform` et `SharedPreferences.getInstance` parlent à la
+  // `PackageInfo.fromPlatform` et `PreferencesService.ouvrir` parlent à la
   // plateforme avant `runApp` : ce sont les deux seules attentes du démarrage,
   // et les faire ici rend toutes les lectures suivantes synchrones.
   WidgetsFlutterBinding.ensureInitialized();
   const baseUrl = String.fromEnvironment('API_BASE_URL');
   final info = await PackageInfo.fromPlatform();
-  final preferences = PreferencesService(await SharedPreferences.getInstance());
+  final preferences = await PreferencesService.ouvrir();
   final connectivite = ConnectivityService();
   runApp(
     ArpendoApp(
