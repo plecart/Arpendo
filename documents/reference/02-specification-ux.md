@@ -428,9 +428,14 @@ au-delà (téléchargement, migration locale) rouvre la question.
 
 **Le bloc de marque ne bouge pas.** Sa position est la même dans les trois états — attente,
 échec, prêt — et ce qui apparaît sous lui prend sa place **sans le déplacer** : un logo qui
-remonte à chaque changement d'état se lit comme une instabilité de l'application. Il est
-**centré verticalement**, et non en bande haute comme au §4 et au §5, parce que cet écran n'a ni
-action permanente ni contenu à dégager sous lui.
+remonte à chaque changement d'état se lit comme une instabilité de l'application.
+
+Il est **centré dans la zone utile**, et non en bande haute comme au §4 et au §5 : cet écran n'a
+rien à dégager en haut. La zone utile est la hauteur **moins la bande basse** — celle du bouton
+d'action et de sa marge —, et cette bande est **réservée en permanence**, y compris dans les états
+qui n'ont pas de bouton. C'est ce qui donne les deux garanties d'un coup : le bloc ne bouge pas
+quand une action paraît ou disparaît, et ce qui s'écrit sous lui ne peut pas venir recouvrir le
+bouton. Sans cette réservation, le recouvrement est mesuré à **31 dp** sur l'écran de référence.
 
 Serveur injoignable à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer » (réseau absent :
 bandeau priorité 5).
@@ -495,9 +500,19 @@ familles, parce qu'elles ont la même anatomie et le même emplacement.
 **Anatomie.** Largeur pleine moins `space-4` de chaque côté, `radius-md`, `elev-1`, rembourrage
 interne `space-4`. Icône 24 dp à gauche, **`space-3`** d'écart — et non `space-1`, qui vaut pour une
 icône accolée à son libellé dans un même contrôle (§1.1), là où l'icône et le message du bandeau
-sont deux éléments distincts —, puis le texte `type-body` ; **zéro à deux actions sur une seconde
-rangée**, alignées à droite, séparées du message par `space-2`. Les actions sont des boutons texte
-de **48 × 48 dp minimum** (§1.4, « aucune exception »).
+sont deux éléments distincts —, puis le texte `type-body`. Les actions sont des boutons texte de
+**48 × 48 dp minimum** (§1.4, « aucune exception »), et **c'est leur nombre qui décide de leur
+place** : une action **seule** partage la rangée du message, à sa droite, séparée de lui par
+`space-2` ; **deux** actions descendent sur une **seconde rangée**, alignées à droite et séparées
+du message par `space-2`.
+
+**Troisième forme : le message porte le geste.** Quand une entrée n'offre qu'une action et que
+cette action **est** ce que le message annonce, le bouton la répéterait — « Une nouvelle version
+est disponible. » suivi de « Mettre à jour » dit deux fois la même chose. Le message devient alors
+le lien : **graisse 500, sans changer de couleur**, la couleur seule ne portant jamais une
+information (§1.5). La cible tactile est alors le **bandeau entier**, pas la ligne de texte : 56 dp
+de haut sur toute la largeur, ce qui satisfait le §1.4 sans ajouter de hauteur. Un message tapable
+et des boutons **ne coexistent pas**.
 
 **La hauteur est un résultat, jamais une consigne** (§0 : les conteneurs grandissent, ils ne
 tronquent pas). Elle vaut `space-4` × 2 plus la hauteur du contenu, où une ligne de `type-body`
@@ -507,17 +522,34 @@ compte 24 dp (§1.2) et une rangée d'actions 48 + `space-2` (§1.4). D'où, pou
 |---|---|
 | une ligne, aucune action | **56 dp** |
 | deux lignes, aucune action | **80 dp** |
-| une ligne, avec action(s) | **112 dp** |
-| deux lignes, avec action(s) | **136 dp** |
+| une ligne, **une** action | **80 dp** — la cible tactile de 48 dp remplace la ligne de 24 sur la même rangée ; davantage dès que le message ou le libellé se replie |
+| une ligne, **deux** actions | **112 dp** |
+| deux lignes, **deux** actions | **136 dp** |
 
 Ce sont des **illustrations de la règle, pas une énumération** : un message plus long continue de
 grandir de 24 dp par ligne, et les tests mesurent, ils ne recopient pas.
 
-**Pourquoi les actions ne partagent pas la rangée du message.** Sur l'écran de référence de
-360 dp, il reste 260 dp une fois retirés les marges, le rembourrage, l'icône et son écart. Les
+**La largeur dont on dispose, une fois pour toutes.** Sur l'écran de référence de 360 dp :
+`360 − 2 × 16` de marges d'écran `− 2 × 16` de rembourrage interne = **296 dp** pour le contenu ;
+moins l'icône de 24 dp et son écart de 12 = **260 dp** pour le message ; moins `space-2` avant une
+action = **252 dp** à partager. Ces trois nombres reviennent plus bas et dans le code : ils se
+dérivent d'ici, ils ne se recalculent pas.
+
+**Pourquoi deux actions ne partagent pas la rangée du message.** Il reste 260 dp une fois retirés
+les marges, le rembourrage, l'icône et son écart. Les
 deux actions des priorités 10 et 11 — « Réglages » et « Masquer pour cette partie » — les
-consomment à elles seules. Le message garde donc toute la largeur, ce qui le rend insensible à la
-longueur des libellés comme à la tolérance de +30 % du §0.
+consomment à elles seules. Elles descendent donc, et le message garde toute la largeur, ce qui le
+rend insensible à la longueur des libellés comme à la tolérance de +30 % du §0.
+
+**Une action seule reste sur la rangée**, et le seuil est donc le **nombre**, pas la présence :
+la reléguer sous le message coûterait 32 dp de hauteur pour une rangée presque vide.
+
+**Ce qui se passe quand elle n'y tient pas.** Elle y tient rarement en entier : à 360 dp, le
+message de la ligne 12 et son libellé demandent ensemble plus que les 252 dp restants, et la
+locale allongée du §0 porte le seul bouton à **290 dp** — mesuré. La règle n'est donc pas « ils
+tiennent », c'est **« ils se replient »** : le message et le libellé passent sur autant de lignes
+qu'il faut, et la hauteur du bandeau suit. Aucun débordement, aucune troncature — le §0 est tenu
+par le repli, pas par un pari sur la longueur des textes.
 
 **Paramètres du composant :**
 
@@ -547,7 +579,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
 | 11 | Notifications refusées | avertissement | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
-| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · « Fermer » |
+| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | — *le message est lui-même le lien* |
 | 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
 Notes de comportement :
@@ -2189,15 +2221,34 @@ ne sort jamais de l'application.
 ### 11.2 Mise à jour (§14.1)
 
 **Version minimale — écran bloquant.** `z 500`, plein écran, pas de bouton retour, pas de
-fermeture. Titre « Mise à jour nécessaire ». Corps « Cette version d'Arpendo n'est plus compatible
+fermeture. Il porte le **bloc de marque du §4 — signe, nom, accroche — centré dans la zone utile**,
+exactement comme l'écran d'attente et **à la même place que lui** : c'est le seul écran qui
+remplace l'attente en cours de séquence, et le logo ne doit pas sauter en le faisant. Même
+définition de la zone utile qu'au §2.1 — hauteur moins la bande basse du bouton. Le reste s'écrit
+**sous** le bloc, sans le déplacer.
+Titre « Mise à jour nécessaire ». Corps « Cette version d'Arpendo n'est plus compatible
 avec le serveur. Installe la dernière version pour continuer à jouer. » Bouton « Mettre à jour »
-(56 dp, bande basse) → Play Store. Corps 2, `type-caption` : « Ta partie et ta progression sont
-conservées. » — sans quoi le joueur croit tout perdre et hésite.
+(56 dp, bande basse) → Play Store.
+
+**Pas de réassurance sur les données.** L'écran ne dit **pas** que la partie et la progression sont
+conservées : une mise à jour ne fait perdre les données de personne, et l'écrire attire l'attention
+sur un risque qui n'existe pas — on rassure sur une peur qu'on vient de créer.
+
+**Si le magasin ne s'ouvre pas** — ni l'application du magasin ni un navigateur ne répond au lien —
+**l'écran ne change pas** : aucun message, aucun état d'erreur, et le bouton reste tapable. C'est
+l'exception à la règle du §13.3 (« toute erreur récupérable porte "Réessayer" »), et elle est
+motivée : il n'y a **rien à récupérer dans l'application**. Le seul geste utile — installer la
+mise à jour — se fait dehors, et un message qui ne propose aucune action n'ajouterait que de
+l'inquiétude à un écran déjà bloquant.
 
 Cet écran s'affiche **avant** tout appel authentifié (§2.1).
 
-**Version recommandée — bandeau.** Priorité 12 du bandeau unique (§2.4), fermable. Une fois fermé,
-il ne réapparaît **pas** pour la même version ; il réapparaît à la version suivante.
+**Version recommandée — bandeau.** Priorité 12 du bandeau unique (§2.4), **aucune action** : le
+message est lui-même le lien vers le magasin, et c'est le **bandeau entier** qui est tapable. Un
+bouton « Mettre à jour » à côté de « Une nouvelle version est disponible. » dirait deux fois la
+même chose. Le bandeau **n'est pas fermable** : il reste tant que la recommandation vaut, et
+disparaît quand le joueur a mis à jour. Le rendre fermable — et la persistance par version que
+cela suppose — est **repoussé après le MVP** (cadrage §20).
 
 ---
 
@@ -2318,6 +2369,12 @@ Trois formes, et pas une de plus :
 
 Toute erreur récupérable porte **« Réessayer »**. Aucune erreur n'affiche de code technique ni de
 trace : ils partent à Sentry (§13.10), pas à l'écran.
+
+**Une exception, nommée : le magasin qui ne s'ouvre pas** (§11.2). L'écran bloquant de mise à jour
+ne montre alors ni message ni « Réessayer » — il n'y a rien à récupérer *dans* l'application, le
+seul geste utile se fait dehors. La règle ci-dessus vaut pour tout le reste, et toute exception
+nouvelle s'écrit ici **et** dans le § qui la porte : une exception inscrite d'un seul côté est
+invisible au lecteur qui arrive par l'autre.
 
 ### 13.4 Pagination
 

@@ -6,7 +6,10 @@ transcrits dans le thème, ses écrans arrivent avec leur domaine. Aujourd'hui l
 l'écran d'attente de la séquence de démarrage (UX §2.1) : contrôle de version contre
 `GET /version` avant tout autre appel, puis état terminal `Pret` — que le domaine Compte
 prolongera. Cet écran ne porte **aucun indicateur de progression** : le bloc de marque tient ce
-rôle, et le délai du client HTTP borne l'attente.
+rôle, et le délai du client HTTP borne l'attente. Si le build installé est sous le minimum publié
+par le serveur, l'écran d'attente est **remplacé** par l'écran bloquant de mise à jour (UX §11.2),
+dont on ne sort pas ; s'il est seulement sous le recommandé, le bandeau 12 s'ajoute par-dessus,
+fermable une fois par version.
 
 ## Lancer
 
@@ -26,12 +29,22 @@ just run
 ## Structure
 
 La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation
-et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `ApiClient`) ;
+et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `ApiClient`,
+`MagasinService`) — c'est aussi le **seul endroit qui attende** la plateforme ;
 `ArpendoApp` les reçoit et les expose par `provider` — `Provider<ApiClient>` (le `dispose`
 appelle `close()`) et le premier ViewModel, `DemarrageViewModel` (`ChangeNotifier`), dont l'état
 scellé `EtatDemarrage` pilote un `switch` exhaustif → écran. Les écrans vivent dans
 `lib/ui/<feature>/`, les services dans `lib/data/services/`, les règles pures dans
 `lib/domain/`.
+
+Le thème s'applique dans les deux modes, en `ThemeMode.system`. Les couches UI (vues + ViewModels)
+et Data (repositories + services) naissent **avec leur premier contenu** — aucun dossier n'est créé
+avant : `lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP,
+`lib/l10n/` depuis les textes, `lib/domain/` depuis les règles du bandeau.
+
+`lib/domain/` porte les règles **qui ne dépendent ni d'un écran ni d'un transport** : elles
+n'importent rien de `lib/ui/`, et c'est ce qui permet de les rejouer ailleurs qu'à l'écran — la
+notification permanente d'Android (UX §10.2) applique la même règle de bandeau sans widget.
 
 ## Tester et vérifier
 
@@ -55,19 +68,6 @@ déclenche avant de compiler ; `dart format` ne résout aucun import — il anal
 `fmt-check-app` passe même sans le généré. Attention, `just build` ne lance que `gen-l10n`, jamais
 le script : sur un clone neuf, où `app_fr_XA.arb` n'existe pas encore, il produit un bundle avec
 la seule locale `fr`.
-
-## Structure
-
-`lib/main.dart` porte `ArpendoApp`, racine pilotée par l'état (UX §2.1) : l'écran affiché
-dépendra de la séquence de démarrage. Elle applique le thème dans les deux modes, en
-`ThemeMode.system`. Les couches UI (vues + ViewModels) et Data (repositories + services) naissent
-avec leur premier contenu, sous `lib/ui/` et `lib/data/` — aucun dossier n'est créé avant :
-`lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP,
-`lib/l10n/` depuis les textes, `lib/domain/` depuis les règles du bandeau.
-
-`lib/domain/` porte les règles **qui ne dépendent ni d'un écran ni d'un transport** : elles
-n'importent rien de `lib/ui/`, et c'est ce qui permet de les rejouer ailleurs qu'à l'écran — la
-notification permanente d'Android (UX §10.2) applique la même règle de bandeau sans widget.
 
 ## Thème — les jetons de conception
 
@@ -297,6 +297,22 @@ contrôleur qu'on rembobine applique un **second** miroir temporel, ce qui inver
 
 ### Le bloc de marque
 
+`ui/core/marque/marque_centree.dart` — `MarqueCentree(sous: …)` compose le bloc **centré** et ce
+qui s'écrit dessous. Elle existe pour tenir **un invariant, pas pour éviter de retaper dix
+lignes** : le logo occupe la même place sur tous les écrans qui l'emploient — attente (§2.1) et
+mise à jour obligatoire (§11.2) aujourd'hui, Connexion (§4) et Accueil (§5) demain — donc il ne
+saute jamais quand l'un remplace l'autre. `sous` est peint par un `Align(heightFactor: 0)` : il ne
+compte pas dans la hauteur, sans quoi le bloc remonterait de la moitié de ce qui paraît (52 dp
+mesurés avant #98).
+
+**La bande basse est réservée en permanence**, remplie ou non — `bandeBasse` reçoit le bouton
+quand il y en a un. Les deux effets sont indissociables : réserver *toujours* empêche le bloc de
+bouger quand une action paraît ou disparaît, et réserver *tout court* empêche `sous` de recouvrir
+le bouton (31 dp de recouvrement mesurés sur 360 × 800 sans la réservation). Comme `sous` est hors
+du flux, **aucun défilement ne peut le sauver** : c'est la place qu'on lui laisse, ou rien — d'où
+le test de non-recouvrement que chaque écran garde en propre.
+
+
 `ui/core/marque/bloc_de_marque.dart` — signe, logotype, accroche (§4), la même composition pour
 les trois écrans sans carte : attente (§2.1), Connexion (§4), Accueil (§5). Le signe est
 `assets/signe-arpendo.svg` (copié depuis `documents/assets/`, source unique), teinté
@@ -381,3 +397,33 @@ C'est `enLigne()` qui alimente la ligne 5 du bandeau (UX §2.4) — voir « Comp
 
 > `connectivity_plus` fusionne la permission Android `ACCESS_NETWORK_STATE` dans le manifeste.
 > Elle est normale et n'affiche aucune invite, mais elle apparaît dans l'APK.
+
+## Mise à jour du client — deux niveaux, deux services
+
+La séquence de démarrage compare le build installé aux deux seuils de `GET /version` (UX §11.2) :
+
+| Verdict | Ce qui s'affiche |
+|---|---|
+| build < **minimal** | `EcranMiseAJour` **remplace** l'écran d'attente — `Calque.bloquant` (z 500), `PopScope(canPop: false)`, aucune sortie, pas même le geste de retour. Il reprend le **bloc de marque centré** et la mécanique de l'écran d'attente (`Align(heightFactor: 0)`), donc le logo ne bouge pas d'un écran à l'autre. Il ne porte **aucune réassurance sur les données** : une mise à jour n'en fait perdre à personne, et le dire créerait la peur qu'on prétend calmer |
+| build < **recommandé** | l'écran d'attente reste, la **ligne 12** du bandeau s'ajoute sur son calque. **Aucun bouton** : le message est lui-même le lien (graisse 500, même couleur), et c'est le bandeau entier qui est tapable |
+| sinon | rien de plus |
+
+Un service de la couche Data sert les deux niveaux, et il est **le seul à importer son plugin** —
+la règle qui vaut déjà pour `api_client.dart` et `connectivity_service.dart` :
+
+| Fichier | Plugin | Ce qu'il fait |
+|---|---|---|
+| `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part au journal |
+
+**La condition de la ligne 12 vit dans `DemarrageViewModel`, pas ailleurs** : elle n'est vraie
+qu'en état `Pret` et sous le build recommandé. La borner à `Pret` n'est pas cosmétique — sans
+ça, une recommandation lue avant un « Réessayer » raté continuerait de piloter le bandeau
+par-dessus l'écran de panne, deux messages dont l'un est la cause de l'autre (§2.4).
+
+**Le bandeau n'est pas fermable.** La fermeture — et la persistance par version qu'elle suppose —
+sont repoussées après le MVP (cadrage §20) ; c'est pourquoi l'application n'a **aucun** stockage
+local aujourd'hui.
+
+`main()` reçoit l'`applicationId` de `PackageInfo` et le passe au service du magasin : c'est
+l'application **réellement installée** dont on ouvre la fiche, jamais une constante qui
+divergerait d'une saveur de build.

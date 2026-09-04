@@ -13,7 +13,7 @@ final fr = AppLocalizationsFr();
 void main() {
   test('la ligne réseau prend le pas sur la mise à jour', () {
     final actives = [
-      ligneMiseAJourRecommandee(onMettreAJour: () {}, onFermer: () {}),
+      ligneMiseAJourRecommandee(onMettreAJour: () {}),
       ligneReseauAbsent(),
     ];
 
@@ -30,31 +30,38 @@ void main() {
   });
 
   test('la ligne de mise à jour porte le texte et la sévérité du §2.4', () {
-    final ligne = ligneMiseAJourRecommandee(
-      onMettreAJour: () {},
-      onFermer: () {},
-    );
+    final ligne = ligneMiseAJourRecommandee(onMettreAJour: () {});
 
     expect(ligne.texte(fr), 'Une nouvelle version est disponible.');
     expect(ligne.severite, Severite.info);
     expect(ligne.bloquant, isFalse);
   });
 
-  test('la mise à jour offre « Mettre à jour » puis « Fermer »', () {
+  test('la mise à jour porte son geste sur son message, sans bouton', () {
+    // « Une nouvelle version est disponible. » et « Mettre à jour » disaient
+    // la même chose deux fois. Le message est le lien (§2.4).
     var miseAJour = 0;
-    var fermeture = 0;
-    final ligne = ligneMiseAJourRecommandee(
-      onMettreAJour: () => miseAJour++,
-      onFermer: () => fermeture++,
-    );
+    final ligne = ligneMiseAJourRecommandee(onMettreAJour: () => miseAJour++);
 
-    expect(ligne.actions.map((action) => action.libelle(fr)), [
-      'Mettre à jour',
-      'Fermer',
-    ]);
-    for (final action in ligne.actions) {
-      action.onPressed();
-    }
-    expect([miseAJour, fermeture], [1, 1]);
+    expect(ligne.actions, isEmpty);
+    expect(ligne.onTexteTape, isNotNull);
+
+    ligne.onTexteTape!();
+    expect(miseAJour, 1);
+  });
+
+  test('un message tapable et des boutons ne coexistent pas', () {
+    // Les deux offriraient le même geste deux fois, et doubleraient la cible
+    // tactile à tenir. L'`assert` du modèle le refuse en debug.
+    expect(
+      () => EntreeBandeau(
+        priorite: 99,
+        severite: Severite.info,
+        texte: (_) => 'peu importe',
+        actions: [ActionBandeau(libelle: (_) => 'Agir', onPressed: () {})],
+        onTexteTape: () {},
+      ),
+      throwsA(isA<AssertionError>()),
+    );
   });
 }

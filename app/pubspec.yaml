@@ -31,6 +31,9 @@ dependencies:
   # Injection des services depuis la racine de composition (brief #46 :
   # `provider` entre avec le premier ViewModel). Seul `main.dart` l'importe.
   provider: ^6.1.2
+  # Ouvre la fiche du magasin depuis l'écran bloquant et le bandeau 12
+  # (UX §11.2). Seul `lib/data/services/magasin_service.dart` l'importe.
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   # Déjà dans l'arbre en transitive de `connectivity_plus` ; déclarée ici pour

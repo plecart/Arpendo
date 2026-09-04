@@ -6,11 +6,13 @@ import 'package:provider/provider.dart';
 
 import 'data/services/api_client.dart';
 import 'data/services/connectivity_service.dart';
+import 'data/services/magasin_service.dart';
 import 'data/services/version_client.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'ui/core/theme/theme.dart';
 import 'ui/demarrage/demarrage_view_model.dart';
 import 'ui/demarrage/ecran_attente.dart';
+import 'ui/demarrage/ecran_mise_a_jour.dart';
 import 'ui/demarrage/etat_demarrage.dart';
 
 /// Construit les services et lance l'application — racine de composition.
@@ -21,7 +23,8 @@ import 'ui/demarrage/etat_demarrage.dart';
 /// `just run` et `just build` — et son absence arrête net, avant tout widget :
 /// une url par défaut en dur masquerait une configuration cassée.
 Future<void> main() async {
-  // `PackageInfo.fromPlatform` parle à la plateforme avant `runApp`.
+  // `PackageInfo.fromPlatform` parle à la plateforme avant `runApp` : c'est
+  // la seule attente du démarrage.
   WidgetsFlutterBinding.ensureInitialized();
   const baseUrl = String.fromEnvironment('API_BASE_URL');
   final info = await PackageInfo.fromPlatform();
@@ -37,6 +40,9 @@ Future<void> main() async {
       ),
       connectivite: connectivite,
       buildActuel: numeroDeBuildValide(info.buildNumber),
+      // L'identifiant vient de la plateforme, jamais d'une constante : c'est
+      // l'application réellement installée dont il faut ouvrir la fiche.
+      magasin: MagasinService(identifiantApplication: info.packageName),
     ),
   );
 }
@@ -92,6 +98,7 @@ class ArpendoApp extends StatelessWidget {
     required this.client,
     required this.connectivite,
     required this.buildActuel,
+    required this.magasin,
     super.key,
   });
 
@@ -104,6 +111,10 @@ class ArpendoApp extends StatelessWidget {
 
   /// Le numéro de build installé, comparé aux seuils de `/version`.
   final int buildActuel;
+
+  /// L'accès à la fiche du magasin, partagé par l'écran bloquant et la ligne
+  /// 12 : un seul chemin vers le magasin, une seule paire de liens à tenir.
+  final MagasinService magasin;
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +130,7 @@ class ArpendoApp extends StatelessWidget {
               versions: VersionClient(contexte.read<ApiClient>()),
               connectivite: connectivite,
               buildActuel: buildActuel,
+              ouvrirMagasin: magasin.ouvrirFiche,
             );
             unawaited(modele.demarrer());
             return modele;
@@ -140,13 +152,15 @@ class ArpendoApp extends StatelessWidget {
         themeMode: ThemeMode.system,
         home: Consumer<DemarrageViewModel>(
           builder: (_, modele, _) => switch (modele.etat) {
-            // L'écran bloquant (calque z 500) est livré par le lot 2c de
-            // #46 ; d'ici là l'attente neutre reste affichée — jamais un
-            // Menu mensonger (§2.1).
-            MiseAJourRequise() ||
-            Verification() ||
-            Injoignable() ||
-            Pret() => EcranAttente(
+            // Le seul écran dont on ne sort pas (§11.2) : il remplace tout,
+            // bandeau compris — un client qui ne parle plus à l'api n'a rien
+            // d'utile à dire de son réseau.
+            MiseAJourRequise() => EcranMiseAJour(
+              onMettreAJour: magasin.ouvrirFiche,
+            ),
+            // Jamais un Menu mensonger (§2.1) : l'attente neutre tient les
+            // trois autres états, et le bandeau vit sur son calque.
+            Verification() || Injoignable() || Pret() => EcranAttente(
               etat: modele.etat,
               entreeBandeau: modele.entreeBandeau,
               onReessayer: modele.reessayer,
