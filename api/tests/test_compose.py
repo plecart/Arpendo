@@ -1,9 +1,13 @@
-"""Le compose local donne-t-il à chaque point d'entrée la configuration qu'il exige ?
+"""Le compose donne-t-il à chaque point d'entrée ce qu'il exige — pour tourner, et pour s'arrêter ?
 
-Seul fichier de la suite qui lise `infra/`. Il ne teste pas Docker — il teste une **partition** que
-rien d'autre ne peut voir : les tests parlent aux services depuis l'hôte, jamais depuis les
-conteneurs `api` et `worker`, si bien qu'un bloc `environment` amputé laisse la suite entièrement
-verte et fait partir le conteneur en boucle de redémarrage. Mesuré.
+Seul fichier de la suite qui lise `infra/`. Il ne teste pas Docker : il garde ce que **rien
+d'autre** ne peut voir, parce que les tests parlent aux services depuis l'hôte et jamais depuis les
+conteneurs `api` et `worker`.
+
+- **Pour tourner** : un bloc `environment` amputé laisse la suite entièrement verte et fait partir
+  le conteneur en boucle de redémarrage. Mesuré.
+- **Pour s'arrêter** : les deux délais qui doivent s'ordonner vivent l'un ici, l'autre dans
+  `.env.example` ; aucune ligne de code ne les rapproche, donc aucun test de code ne les compare.
 """
 
 import re
