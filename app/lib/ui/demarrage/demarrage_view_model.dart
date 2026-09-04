@@ -53,6 +53,14 @@ class DemarrageViewModel extends ChangeNotifier {
   /// Lance la séquence : état réseau initial, abonnement au flux, contrôle
   /// de version. À appeler une fois, par la racine de composition.
   Future<void> demarrer() async {
+    assert(
+      _abonnementReseau == null,
+      "demarrer() ne se lance qu'une fois — un second appel fuirait le "
+      'premier abonnement au flux réseau.',
+    );
+    // La lecture initiale PRÉCÈDE l'abonnement, et l'ordre est un invariant :
+    // inversé, une lecture lente écraserait un événement du flux plus récent
+    // — l'état réseau reculerait dans le temps (garde dans les tests).
     _enLigne = await _connectivite.isOnline();
     _abonnementReseau = _connectivite.enLigne().listen((enLigne) {
       if (enLigne == _enLigne) return;

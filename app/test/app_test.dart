@@ -127,6 +127,24 @@ void main() {
     expect(baseUrlValidee('https://exemple.test'), 'https://exemple.test');
   });
 
+  test('un buildNumber non entier est refusé avec un message explicite', () {
+    // Sur Android, `buildNumber` est `versionCode`, toujours entier ; sur iOS
+    // (phase 2), package_info_plus peut y mettre la VERSION (`1.2.3`) quand
+    // aucun build n'est déclaré. Même traitement que `API_BASE_URL` : une
+    // frontière de plateforme se valide, elle ne se suppose pas.
+    expect(
+      () => numeroDeBuildValide('1.2.3'),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('buildNumber'),
+        ),
+      ),
+    );
+    expect(numeroDeBuildValide('7'), 7);
+  });
+
   testWidgets('les couleurs de chrome sont lisibles depuis un écran', (
     tester,
   ) async {

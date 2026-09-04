@@ -36,9 +36,28 @@ Future<void> main() async {
         connectivite: connectivite,
       ),
       connectivite: connectivite,
-      buildActuel: int.parse(info.buildNumber),
+      buildActuel: numeroDeBuildValide(info.buildNumber),
     ),
   );
+}
+
+/// Refuse un `buildNumber` non entier, avec la cause probable.
+///
+/// Sur Android, `package_info_plus` y met `versionCode` — toujours un
+/// entier ; sur iOS (phase 2), il peut valoir la **version** (`1.2.3`) quand
+/// aucun build n'est déclaré. Une frontière de plateforme se valide comme
+/// `API_BASE_URL` : échouer ici donne un message, échouer dans `int.parse`
+/// donnait un écran noir avant `runApp`.
+int numeroDeBuildValide(String brut) {
+  final numero = int.tryParse(brut);
+  if (numero == null) {
+    throw StateError(
+      'buildNumber « $brut » n\'est pas un entier. Vérifier le champ '
+      '`version: x.y.z+N` du pubspec — et, sur iOS, que le build est bien '
+      'déclaré (package_info_plus y met sinon la version).',
+    );
+  }
+  return numero;
 }
 
 /// Refuse une `API_BASE_URL` absente, avec la marche à suivre.

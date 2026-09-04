@@ -41,6 +41,22 @@ class _ConnectivitePilotee implements ConnectivityService {
   Stream<bool> enLigne() => controleur.stream;
 }
 
+/// Lecture initiale lente et périmée, flux rapide et frais — l'ordre compte.
+class _ConnectiviteRetardee implements ConnectivityService {
+  @override
+  Future<bool> isOnline() =>
+      Future.delayed(const Duration(milliseconds: 20), () => true);
+
+  @override
+  Stream<bool> enLigne() {
+    final controleur = StreamController<bool>();
+    controleur.onListen = () {
+      Timer(const Duration(milliseconds: 5), () => controleur.add(false));
+    };
+    return controleur.stream;
+  }
+}
+
 DemarrageViewModel _modele({
   Object? versions,
   _ConnectivitePilotee? connectivite,
@@ -157,6 +173,27 @@ void main() {
 
     expect(vm.entreeBandeau, isNull);
     expect(notifications, 1);
+  });
+
+  test("un événement du flux arrivé pendant demarrer() n'est pas écrasé par isOnline()", () async {
+    // isOnline() lent rendant un état PÉRIMÉ (« en ligne »), flux émettant
+    // l'état frais (« hors ligne ») juste après l'abonnement : si demarrer()
+    // s'abonnait AVANT de lire isOnline(), la lecture initiale, plus
+    // ancienne, écraserait l'événement plus récent — bandeau absent alors
+    // que le téléphone est hors ligne.
+    final vm = DemarrageViewModel(
+      versions: _VersionsFigees(
+        const Versions(minBuild: 1, recommendedBuild: 1),
+      ),
+      connectivite: _ConnectiviteRetardee(),
+      buildActuel: 5,
+    );
+    addTearDown(vm.dispose);
+
+    await vm.demarrer();
+    await Future<void>.delayed(const Duration(milliseconds: 40));
+
+    expect(vm.entreeBandeau?.priorite, 5);
   });
 
   test("dispose ferme l'abonnement au flux réseau", () async {

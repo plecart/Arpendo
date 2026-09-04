@@ -141,7 +141,10 @@ class _EcranAttenteState extends State<EcranAttente> {
         ),
         textAlign: TextAlign.center,
       ),
-      _ => const SizedBox.shrink(),
+      // Explicites, jamais un `_` : un état ajouté à `EtatDemarrage` doit
+      // forcer CE point de décision à se prononcer aussi (promesse de la
+      // docstring du scellé).
+      Verification() || MiseAJourRequise() || Pret() => const SizedBox.shrink(),
     };
   }
 }
