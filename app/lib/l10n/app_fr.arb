@@ -11,6 +11,16 @@
     "description": "Cité — cadrage §1, ne pas modifier. Accroche du bloc marque (signe, nom, accroche), sous le logotype : écran d'attente (UX §2.1), Connexion (UX §4), Accueil (UX §5)."
   },
 
+  "attenteServeurInjoignable": "Le serveur ne répond pas.",
+  "@attenteServeurInjoignable": {
+    "description": "Cité — spec UX §2.1, ne pas modifier. Écran d'attente du démarrage, échec de la lecture de /version, avec le bouton « Réessayer » — jamais le Menu."
+  },
+
+  "attenteActionReessayer": "Réessayer",
+  "@attenteActionReessayer": {
+    "description": "Écran d'attente (UX §2.1) : relance le contrôle de version."
+  },
+
   "bandeauPasDeReseau": "Pas de réseau. La reprise est automatique.",
   "@bandeauPasDeReseau": {
     "description": "Bandeau, priorité 5 de la table UX §2.4 : le téléphone n'a aucune interface réseau active, coupure de moins de 5 min. Sans action."
