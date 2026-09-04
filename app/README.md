@@ -2,18 +2,35 @@
 
 Application Flutter, Android d'abord (`applicationId` `com.arpendo.game`). La spécification
 d'interface est `documents/reference/02-specification-ux.md` ; ses jetons de conception (§1) sont
-transcrits dans le thème, ses écrans arrivent avec leur domaine. Aujourd'hui l'app démarre sur un
-écran vide, habillé du thème.
+transcrits dans le thème, ses écrans arrivent avec leur domaine. Aujourd'hui l'app démarre sur
+l'écran d'attente de la séquence de démarrage (UX §2.1) : contrôle de version contre
+`GET /version` avant tout autre appel, puis état terminal `Pret` — que le domaine Compte
+prolongera.
 
 ## Lancer
 
 Prérequis : `fvm install` une fois après le clone (voir le README racine), une chaîne Android
-(`fvm flutter doctor`), un appareil ou un émulateur.
+(`fvm flutter doctor`), un appareil ou un émulateur, et un `.env` à la racine (copié de
+`.env.example`, section « Application »).
 
 ```
 just install-app
-cd app && ../.fvm/flutter_sdk/bin/flutter run
+just run
 ```
+
+`just run` injecte `API_BASE_URL` en `--dart-define` depuis le `.env` de la racine — l'app
+**refuse de démarrer** sans elle, avec la marche à suivre dans le message. Un `flutter run` nu
+échoue donc exprès : aucune url par défaut n'est écrite en dur.
+
+## Structure
+
+La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation
+et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `ApiClient`) ;
+`ArpendoApp` les reçoit et les expose par `provider` — `Provider<ApiClient>` (le `dispose`
+appelle `close()`) et le premier ViewModel, `DemarrageViewModel` (`ChangeNotifier`), dont l'état
+scellé `EtatDemarrage` pilote un `switch` exhaustif → écran. Les écrans vivent dans
+`lib/ui/<feature>/`, les services dans `lib/data/services/`, les règles pures dans
+`lib/domain/`.
 
 ## Tester et vérifier
 
@@ -335,6 +352,8 @@ le délai borne **chaque tentative** de transport et non la séquence, de sorte 
 d'espacement progressif passée au paramètre `client` du constructeur puisse durer plus longtemps
 que lui ; `close()` libère le client détenu, créé ou injecté — l'injecter, c'est le céder.
 L'étendre, c'est l'envelopper, pas le modifier : un verbe de plus naît avec son premier appelant.
+Son premier appelant réel est `lib/data/services/version_client.dart`, qui lit `GET /version` et
+décode les deux seuils de build — la séquence de démarrage compare, lui ne fait que lire.
 
 `ConnectivityService` répond de deux façons, et la bonne dépend de la question posée :
 
