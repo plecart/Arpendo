@@ -41,18 +41,19 @@ class _ConnectivitePilotee implements ConnectivityService {
   Stream<bool> enLigne() => controleur.stream;
 }
 
-/// Lecture initiale lente et périmée, flux rapide et frais — l'ordre compte.
+/// Lecture initiale périmée (« en ligne ») ; flux émettant l'état frais
+/// (« hors ligne ») **synchroniquement à l'abonnement** — aucune horloge,
+/// donc aucun ordonnanceur chargé ne peut inverser la course : dans l'ordre
+/// livré l'événement arrive après la lecture et la corrige ; dans l'ordre
+/// inversé la lecture, résolue après, écrase l'événement.
 class _ConnectiviteRetardee implements ConnectivityService {
   @override
-  Future<bool> isOnline() =>
-      Future.delayed(const Duration(milliseconds: 20), () => true);
+  Future<bool> isOnline() async => true;
 
   @override
   Stream<bool> enLigne() {
-    final controleur = StreamController<bool>();
-    controleur.onListen = () {
-      Timer(const Duration(milliseconds: 5), () => controleur.add(false));
-    };
+    final controleur = StreamController<bool>(sync: true);
+    controleur.onListen = () => controleur.add(false);
     return controleur.stream;
   }
 }
@@ -176,11 +177,11 @@ void main() {
   });
 
   test("un événement du flux arrivé pendant demarrer() n'est pas écrasé par isOnline()", () async {
-    // isOnline() lent rendant un état PÉRIMÉ (« en ligne »), flux émettant
-    // l'état frais (« hors ligne ») juste après l'abonnement : si demarrer()
-    // s'abonnait AVANT de lire isOnline(), la lecture initiale, plus
-    // ancienne, écraserait l'événement plus récent — bandeau absent alors
-    // que le téléphone est hors ligne.
+    // Si demarrer() s'abonnait AVANT d'attendre isOnline(), la lecture
+    // initiale, plus ancienne, écraserait l'événement plus récent — bandeau
+    // absent alors que le téléphone est hors ligne. La doublure émet à
+    // l'abonnement même : la course est jouée sans horloge, le verdict ne
+    // dépend pas de la charge de la machine.
     final vm = DemarrageViewModel(
       versions: _VersionsFigees(
         const Versions(minBuild: 1, recommendedBuild: 1),
@@ -191,7 +192,6 @@ void main() {
     addTearDown(vm.dispose);
 
     await vm.demarrer();
-    await Future<void>.delayed(const Duration(milliseconds: 40));
 
     expect(vm.entreeBandeau?.priorite, 5);
   });

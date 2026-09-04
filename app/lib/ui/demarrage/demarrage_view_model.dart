@@ -38,6 +38,7 @@ class DemarrageViewModel extends ChangeNotifier {
 
   EtatDemarrage _etat = const Verification();
   bool _enLigne = true;
+  bool _demarre = false;
   StreamSubscription<bool>? _abonnementReseau;
 
   /// L'état courant de la séquence.
@@ -53,11 +54,15 @@ class DemarrageViewModel extends ChangeNotifier {
   /// Lance la séquence : état réseau initial, abonnement au flux, contrôle
   /// de version. À appeler une fois, par la racine de composition.
   Future<void> demarrer() async {
+    // Drapeau posé AVANT le premier `await` : deux appels concurrents
+    // verraient tous deux un `_abonnementReseau` encore nul et fuiraient un
+    // abonnement — l'assert doit fermer aussi ce chemin-là.
     assert(
-      _abonnementReseau == null,
+      !_demarre,
       "demarrer() ne se lance qu'une fois — un second appel fuirait le "
       'premier abonnement au flux réseau.',
     );
+    _demarre = true;
     // La lecture initiale PRÉCÈDE l'abonnement, et l'ordre est un invariant :
     // inversé, une lecture lente écraserait un événement du flux plus récent
     // — l'état réseau reculerait dans le temps (garde dans les tests).
