@@ -757,3 +757,25 @@ paragraphe d'exception nommée). §2.1 inchangé (le différé de 600 ms y étai
 de rang 1 ni de rang 3 ne mentionne le réglage : cascade nulle, mesurée sur les ancres
 `disableAnimations`, « aucune exception », « indicateur » dans `01-cadrage.md` et
 `03-identite-visuelle.md`. Hors documents : rien — `mouvement.dart` ne parle que des jetons.
+
+## 18.11 Alignement des actifs du signe du 4 septembre 2026 — un seul dessin, celui de l'icône
+
+**Le constat, au HITL du lot 2b de #46.** Le signe affiché à l'écran (`signe-arpendo.svg` : deux
+courbes organiques emboîtées) ne correspondait pas à l'icône de lancement (variante A″2 : œuf
+calculé, cercle parfait, hexagone), et le mainteneur a tranché : **un seul dessin, celui de
+l'icône**. Ce n'était pas une contradiction à arbitrer : la prose du §1.5 décrivait DÉJÀ l'œuf et
+le cercle parfait depuis l'amendement de #50 (PR #70) — les actifs `signe-arpendo.svg`,
+`logo-arpendo.svg` et les deux blocs SVG inline du §1.5 n'avaient jamais été rattrapés. Le
+document gagne, les actifs s'alignent.
+
+**Appliqué :** `documents/assets/signe-arpendo.svg` réécrit (géométrie A″2 sans fond, cadrée
+`viewBox="24.3 22.3 62 62"`, stroke 3, opacités 0,26/0,52 — celles de l'icône) ; copies
+recopiées à l'identique (`app/assets/`, `documents/maquettes/claude-design-v2/` — md5 égaux, la
+copie app est en outre gardée par test) ; `logo-arpendo.svg` : groupe signe remplacé (échelle
+0,897 sur l'emprise de l'ancien) ; blocs inline du §1.5 mis à jour (œuf abrégé, les fichiers
+font foi) ; opacités corrigées dans la doc du composant `BlocDeMarque`. Le rendu app est
+inchangé dans son mécanisme : `ColorFilter.mode(primary, srcIn)` conserve les nouvelles opacités
+comme les anciennes.
+
+**Aucun § de prose amendé** — la prose était la cible. Spec §4 (« courbes de niveau refermées
+sur un hexagone ») tient pour la nouvelle géométrie. Cadrage muet sur la géométrie du signe.
