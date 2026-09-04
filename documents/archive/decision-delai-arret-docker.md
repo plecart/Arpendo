@@ -53,10 +53,11 @@ en annonce 10 — les deux valeurs étant de toute façon trop courtes pour des 
 
 **Cascade mesurée à quatre emplacements, et pas davantage.** Balayage par ancre lexicale
 (`10 secondes`, `dix secondes`, `délai d'arrêt`, `stop_grace`, `StopTimeout`, `SIGKILL`,
-`arrêt gracieux`, `graceful`) et par affirmation, sur : les quatre documents de
+`arrêt gracieux`, `graceful`, `137`) et par affirmation, sur : les quatre documents de
 `documents/reference/`, `documents/archive/`, `documents/setup/`, `documents/maquettes/`,
-`.claude/pipeline.config.md`, `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, et les quinze issues
-ouvertes — corps **et** tous commentaires. Le §13.9 règle 6, que le § amendé référence, énonce la
+`.claude/` — règles, skills et `pipeline.config.md` —, `CLAUDE.md`, `README.md`,
+`CONTRIBUTING.md`, `.github/`, le `justfile`, et les quinze issues ouvertes — corps **et** tous
+commentaires. Le §13.9 règle 6, que le § amendé référence, énonce la
 règle sans avancer de chiffre : rien à y changer.
 
 Le code de la PR #97, lui, n'écrit plus aucun chiffre pour le défaut de Docker : sa prose nomme

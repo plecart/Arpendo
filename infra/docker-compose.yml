@@ -15,7 +15,8 @@
 # entière au démarrage quel que soit le point d'entrée — un `worker` à qui manque un seuil du
 # limiteur, qu'il n'utilise pourtant jamais, refuse de démarrer et redémarre en boucle. Ce que lit
 # le serveur qui héberge l'api — `UVICORN_*`, `FORWARDED_ALLOW_IPS` — reste sur `api` seule, seul
-# service à exécuter uvicorn. `api/tests/test_compose.py` tient les deux sens de cette règle.
+# service à exécuter uvicorn. `api/tests/test_compose.py` tient cette règle dans les deux sens,
+# et refuse aussi bien un service à qui il manque une variable qu'un service qui en porte de trop.
 x-env: &env
   # Les conteneurs se joignent par nom de service, jamais par `localhost` — d'où des URL
   # différentes de celles du `.env`, qui sont le point de vue de l'hôte. Seul le mot de passe est
