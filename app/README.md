@@ -29,9 +29,8 @@ just run
 ## Structure
 
 La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation
-et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `SharedPreferences`,
-`ApiClient`, `PreferencesService`, `MagasinService`) — c'est aussi le **seul endroit qui attende**
-la plateforme, ce qui rend synchrones toutes les lectures de préférences qui suivent ;
+et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `ApiClient`,
+`MagasinService`) — c'est aussi le **seul endroit qui attende** la plateforme ;
 `ArpendoApp` les reçoit et les expose par `provider` — `Provider<ApiClient>` (le `dispose`
 appelle `close()`) et le premier ViewModel, `DemarrageViewModel` (`ChangeNotifier`), dont l'état
 scellé `EtatDemarrage` pilote un `switch` exhaustif → écran. Les écrans vivent dans
@@ -390,24 +389,24 @@ La séquence de démarrage compare le build installé aux deux seuils de `GET /v
 | Verdict | Ce qui s'affiche |
 |---|---|
 | build < **minimal** | `EcranMiseAJour` **remplace** l'écran d'attente — `Calque.bloquant` (z 500), `PopScope(canPop: false)`, aucune sortie, pas même le geste de retour |
-| build < **recommandé** | l'écran d'attente reste, la **ligne 12** du bandeau s'ajoute sur son calque, avec « Mettre à jour » et « Fermer » |
+| build < **recommandé** | l'écran d'attente reste, la **ligne 12** du bandeau s'ajoute sur son calque, avec « Mettre à jour » pour seule action |
 | sinon | rien de plus |
 
-Deux services de la couche Data servent ces deux niveaux, et **chacun est le seul à importer son
-plugin** — la règle qui vaut déjà pour `api_client.dart` et `connectivity_service.dart` :
+Un service de la couche Data sert les deux niveaux, et il est **le seul à importer son plugin** —
+la règle qui vaut déjà pour `api_client.dart` et `connectivity_service.dart` :
 
 | Fichier | Plugin | Ce qu'il fait |
 |---|---|---|
 | `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part au journal |
-| `data/services/preferences_service.dart` | `shared_preferences` | retient le **build recommandé** dont le bandeau a été fermé. Il stocke, il n'arbitre pas. Sa fabrique `ouvrir()` existe pour ça : si la racine appelait `SharedPreferences.getInstance()` elle-même, le plugin serait importé par deux fichiers |
 
-**La condition de la ligne 12 vit dans `DemarrageViewModel`, pas dans les services.** Elle vaut
-« recommandé non atteint **et** recommandé strictement supérieur à celui qu'on a écarté ». La
-comparaison est un `>` et non un `!=` : ce qui a été écarté est un **seuil**, pas un identifiant —
-un serveur qui redescendrait sa recommandation ne doit pas rouvrir un bandeau déjà refusé.
+**La condition de la ligne 12 vit dans `DemarrageViewModel`, pas ailleurs** : elle n'est vraie
+qu'en état `Pret` et sous le build recommandé. La borner à `Pret` n'est pas cosmétique — sans
+ça, une recommandation lue avant un « Réessayer » raté continuerait de piloter le bandeau
+par-dessus l'écran de panne, deux messages dont l'un est la cause de l'autre (§2.4).
 
-Le service de préférences ne garde **rien de sensible** : ni jeton, ni identifiant, ni coordonnée.
-Le stockage d'Android n'est pas chiffré et une sauvegarde système le recopie ailleurs.
+**Le bandeau n'est pas fermable.** La fermeture — et la persistance par version qu'elle suppose —
+sont repoussées après le MVP (cadrage §20) ; c'est pourquoi l'application n'a **aucun** stockage
+local aujourd'hui.
 
 `main()` reçoit l'`applicationId` de `PackageInfo` et le passe au service du magasin : c'est
 l'application **réellement installée** dont on ouvre la fiche, jamais une constante qui

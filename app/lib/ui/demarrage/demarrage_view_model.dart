@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 
 import '../../data/services/api_exception.dart';
 import '../../data/services/connectivity_service.dart';
-import '../../data/services/preferences_service.dart';
 import '../../data/services/version_client.dart';
 import '../../domain/bandeau/entree_bandeau.dart';
 import '../../domain/bandeau/lignes.dart';
@@ -22,20 +21,18 @@ import 'etat_demarrage.dart';
 /// s'abonner aurait un état initial indéfini — puis suivi par
 /// [ConnectivityService.enLigne]. [entreeBandeau] rend les deux lignes du
 /// §2.4 que ce domaine possède — la 5 hors ligne, la 12 quand une mise à jour
-/// est recommandée et n'a pas été écartée — et [resoudre] arbitre entre elles.
+/// est recommandée — et [resoudre] arbitre entre elles.
 class DemarrageViewModel extends ChangeNotifier {
   /// Crée le modèle ; rien ne part vers le réseau avant [demarrer].
   DemarrageViewModel({
     required this._versions,
     required this._connectivite,
     required this._buildActuel,
-    required this._preferences,
     required this._ouvrirMagasin,
   });
 
   final VersionClient _versions;
   final ConnectivityService _connectivite;
-  final PreferencesService _preferences;
 
   /// Emmène le joueur vers la fiche du magasin — l'action « Mettre à jour »
   /// de la ligne 12. Le modèle ne sait pas comment : la racine branche le
@@ -44,13 +41,6 @@ class DemarrageViewModel extends ChangeNotifier {
 
   /// Le numéro de build installé — l'entier de `version: x.y.z+N` du pubspec.
   final int _buildActuel;
-
-  /// Le seuil recommandé publié par le serveur, dès qu'il a été lu.
-  ///
-  /// Nul tant que `/version` n'a pas répondu — et c'est ce qui rend la
-  /// condition de la ligne 12 fausse pendant la vérification, sans avoir à
-  /// interroger l'état.
-  int? _buildRecommande;
 
   EtatDemarrage _etat = const Verification();
   bool _enLigne = true;
@@ -63,50 +53,25 @@ class DemarrageViewModel extends ChangeNotifier {
   /// La ligne de bandeau à afficher, ou `null` si aucune n'est active.
   ///
   /// Deux conditions à ce stade — hors ligne (ligne 5) et mise à jour
-  /// recommandée non fermée (ligne 12) ; [resoudre] arbitre, et c'est lui qui
-  /// fait gagner la 5 quand les deux sont vraies. Toute ligne future s'ajoute
-  /// à la liste, sans toucher à ce `get`.
+  /// recommandée (ligne 12) ; [resoudre] arbitre, et c'est lui qui fait gagner
+  /// la 5 quand les deux sont vraies. Toute ligne future s'ajoute à la liste,
+  /// sans toucher à ce `get`.
   EntreeBandeau? get entreeBandeau => resoudre([
     if (!_enLigne) ligneReseauAbsent(),
     if (_miseAJourAProposer)
-      ligneMiseAJourRecommandee(
-        onMettreAJour: _ouvrirMagasin,
-        onFermer: fermerMiseAJour,
-      ),
+      ligneMiseAJourRecommandee(onMettreAJour: _ouvrirMagasin),
   ]);
 
-  /// Vrai quand la séquence a abouti sur un build sous le recommandé **et**
-  /// que le joueur n'a pas déjà fermé le bandeau pour ce build-là (§11.2).
+  /// Vrai quand la séquence a abouti sur un build sous le recommandé (§11.2).
   ///
   /// **L'état compte autant que les nombres.** La condition n'est vraie qu'en
   /// [Pret] : proposer une mise à jour par-dessus « Le serveur ne répond
   /// pas. » ferait cohabiter deux messages dont l'un est la cause de l'autre,
   /// ce que la règle d'unicité du §2.4 refuse. C'est aussi ce qui empêche une
   /// recommandation lue avant un « Réessayer » raté de survivre à l'échec.
-  ///
-  /// La comparaison est un `>` et non un `!=` : ce qui a été écarté, c'est un
-  /// **seuil**, pas un identifiant. Un serveur qui redescendrait sa
-  /// recommandation ne doit pas rouvrir un bandeau déjà refusé.
   bool get _miseAJourAProposer {
     final etat = _etat;
-    final recommande = _buildRecommande;
-    if (etat is! Pret || !etat.miseAJourRecommandee || recommande == null) {
-      return false;
-    }
-    final ecarte = _preferences.buildRecommandeEcarte();
-    return ecarte == null || recommande > ecarte;
-  }
-
-  /// Masque le bandeau 12 jusqu'à une recommandation plus récente.
-  ///
-  /// La fermeture est **persistée avant** la notification : un redémarrage
-  /// entre les deux laisserait le joueur avec un bandeau qu'il croit avoir
-  /// fermé.
-  Future<void> fermerMiseAJour() async {
-    final recommande = _buildRecommande;
-    if (recommande == null) return;
-    await _preferences.ecarterBuildRecommande(recommande);
-    notifyListeners();
+    return etat is Pret && etat.miseAJourRecommandee;
   }
 
   /// Lance la séquence : état réseau initial, abonnement au flux, contrôle
@@ -151,7 +116,6 @@ class DemarrageViewModel extends ChangeNotifier {
       _changer(const Injoignable());
       return;
     }
-    _buildRecommande = versions.recommendedBuild;
     if (_buildActuel < versions.minBuild) {
       _changer(const MiseAJourRequise());
     } else {

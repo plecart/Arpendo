@@ -509,7 +509,7 @@ compte 24 dp (§1.2) et une rangée d'actions 48 + `space-2` (§1.4). D'où, pou
 |---|---|
 | une ligne, aucune action | **56 dp** |
 | deux lignes, aucune action | **80 dp** |
-| une ligne, **une** action | **80 dp** — la cible tactile de 48 dp remplace la ligne de 24 sur la même rangée |
+| une ligne, **une** action | **80 dp** — la cible tactile de 48 dp remplace la ligne de 24 sur la même rangée ; davantage dès que le message ou le libellé se replie |
 | une ligne, **deux** actions | **112 dp** |
 | deux lignes, **deux** actions | **136 dp** |
 
@@ -522,9 +522,15 @@ deux actions des priorités 10 et 11 — « Réglages » et « Masquer pour cett
 consomment à elles seules. Elles descendent donc, et le message garde toute la largeur, ce qui le
 rend insensible à la longueur des libellés comme à la tolérance de +30 % du §0.
 
-**Une action seule reste sur la rangée**, parce que la mesure ci-dessus ne la condamne pas : un
-libellé unique laisse au message de quoi respirer, et le reléguer sous lui coûterait 32 dp de
-hauteur pour une rangée presque vide. Le seuil est donc le **nombre**, pas la présence.
+**Une action seule reste sur la rangée**, et le seuil est donc le **nombre**, pas la présence :
+la reléguer sous le message coûterait 32 dp de hauteur pour une rangée presque vide.
+
+**Ce qui se passe quand elle n'y tient pas.** Elle y tient rarement en entier : à 360 dp, le
+message de la ligne 12 et son libellé demandent ensemble plus que les 252 dp restants, et la
+locale allongée du §0 porte le seul bouton à **290 dp** — mesuré. La règle n'est donc pas « ils
+tiennent », c'est **« ils se replient »** : le message et le libellé passent sur autant de lignes
+qu'il faut, et la hauteur du bandeau suit. Aucun débordement, aucune troncature — le §0 est tenu
+par le repli, pas par un pari sur la longueur des textes.
 
 **Paramètres du composant :**
 
@@ -554,7 +560,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
 | 11 | Notifications refusées | avertissement | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
-| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » · « Fermer » |
+| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » |
 | 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
 Notes de comportement :
@@ -2210,8 +2216,10 @@ l'inquiétude à un écran déjà bloquant.
 
 Cet écran s'affiche **avant** tout appel authentifié (§2.1).
 
-**Version recommandée — bandeau.** Priorité 12 du bandeau unique (§2.4), fermable. Une fois fermé,
-il ne réapparaît **pas** pour la même version ; il réapparaît à la version suivante.
+**Version recommandée — bandeau.** Priorité 12 du bandeau unique (§2.4), **une seule action** —
+« Mettre à jour », sur la rangée du message. Le bandeau **n'est pas fermable** : il reste tant que
+la recommandation vaut, et disparaît quand le joueur a mis à jour. Le rendre fermable — et la
+persistance par version que cela suppose — est **repoussé après le MVP** (cadrage §20).
 
 ---
 

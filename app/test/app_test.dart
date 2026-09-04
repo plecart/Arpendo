@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:arpendo/data/services/api_client.dart';
 import 'package:arpendo/data/services/connectivity_service.dart';
 import 'package:arpendo/data/services/magasin_service.dart';
-import 'package:arpendo/data/services/preferences_service.dart';
 import 'package:arpendo/main.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_attente.dart';
@@ -12,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Réseau toujours présent, flux muet : la racine n'en teste pas plus ici.
 class _ConnectiviteFigee implements ConnectivityService {
@@ -42,9 +40,6 @@ http.Client _serveurNominal() => MockClient(
   (_) async => http.Response('{"min_build":1,"recommended_build":1}', 200),
 );
 
-/// Les préférences du test, reposées vides avant chaque cas.
-late PreferencesService prefs;
-
 /// Les liens que la racine a réellement demandé d'ouvrir.
 late List<Uri> liensOuverts;
 
@@ -69,7 +64,6 @@ ArpendoApp _app({http.Client? transport, int buildActuel = 4}) {
     ),
     connectivite: connectivite,
     buildActuel: buildActuel,
-    preferences: prefs,
     // Le lanceur enregistre au lieu d'ouvrir : c'est lui qui prouve que le
     // fil bouton → service est réellement branché par la racine.
     magasin: MagasinService(
@@ -83,11 +77,7 @@ ArpendoApp _app({http.Client? transport, int buildActuel = 4}) {
 }
 
 void main() {
-  setUp(() async {
-    SharedPreferences.setMockInitialValues({});
-    prefs = PreferencesService(await SharedPreferences.getInstance());
-    liensOuverts = [];
-  });
+  setUp(() => liensOuverts = []);
   testWidgets("l'application démarre sur l'écran d'attente", (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
@@ -144,10 +134,16 @@ void main() {
     expect(find.byType(EcranAttente), findsOneWidget);
     expect(find.text('Une nouvelle version est disponible.'), findsOneWidget);
     expect(find.text('Mettre à jour'), findsOneWidget);
-    expect(find.text('Fermer'), findsOneWidget);
+    expect(
+      find.text('Fermer'),
+      findsNothing,
+      reason:
+          'le bandeau 12 n\'est pas fermable : la fermeture et la persistance '
+          'qu\'elle suppose sont repoussées après le MVP (cadrage §20)',
+    );
   });
 
-  testWidgets('bandeau 12 : les deux actions sont branchées', (tester) async {
+  testWidgets('bandeau 12 : son action unique est branchée', (tester) async {
     await tester.pumpWidget(
       _app(transport: _serveurQuiPublie(min: 1, recommande: 9)),
     );
@@ -155,21 +151,8 @@ void main() {
 
     await tester.tap(find.text('Mettre à jour'));
     await tester.pumpAndSettle();
-    expect(liensOuverts, hasLength(1), reason: 'action « Mettre à jour »');
 
-    await tester.tap(find.text('Fermer'));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Une nouvelle version est disponible.'),
-      findsNothing,
-      reason: 'fermé, le bandeau disparaît sans quitter l\'écran (§11.2)',
-    );
-    expect(
-      prefs.buildRecommandeEcarte(),
-      9,
-      reason: 'et la fermeture est persistée, sinon il revient au lancement suivant',
-    );
+    expect(liensOuverts, [Uri.parse('market://details?id=com.arpendo.game')]);
   });
 
   testWidgets('la première requête est GET /version, seule et versionnée', (

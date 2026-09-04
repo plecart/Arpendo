@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'data/services/api_client.dart';
 import 'data/services/connectivity_service.dart';
 import 'data/services/magasin_service.dart';
-import 'data/services/preferences_service.dart';
 import 'data/services/version_client.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'ui/core/theme/theme.dart';
@@ -24,13 +23,11 @@ import 'ui/demarrage/etat_demarrage.dart';
 /// `just run` et `just build` — et son absence arrête net, avant tout widget :
 /// une url par défaut en dur masquerait une configuration cassée.
 Future<void> main() async {
-  // `PackageInfo.fromPlatform` et `PreferencesService.ouvrir` parlent à la
-  // plateforme avant `runApp` : ce sont les deux seules attentes du démarrage,
-  // et les faire ici rend toutes les lectures suivantes synchrones.
+  // `PackageInfo.fromPlatform` parle à la plateforme avant `runApp` : c'est
+  // la seule attente du démarrage.
   WidgetsFlutterBinding.ensureInitialized();
   const baseUrl = String.fromEnvironment('API_BASE_URL');
   final info = await PackageInfo.fromPlatform();
-  final preferences = await PreferencesService.ouvrir();
   final connectivite = ConnectivityService();
   runApp(
     ArpendoApp(
@@ -43,7 +40,6 @@ Future<void> main() async {
       ),
       connectivite: connectivite,
       buildActuel: numeroDeBuildValide(info.buildNumber),
-      preferences: preferences,
       // L'identifiant vient de la plateforme, jamais d'une constante : c'est
       // l'application réellement installée dont il faut ouvrir la fiche.
       magasin: MagasinService(identifiantApplication: info.packageName),
@@ -102,7 +98,6 @@ class ArpendoApp extends StatelessWidget {
     required this.client,
     required this.connectivite,
     required this.buildActuel,
-    required this.preferences,
     required this.magasin,
     super.key,
   });
@@ -116,9 +111,6 @@ class ArpendoApp extends StatelessWidget {
 
   /// Le numéro de build installé, comparé aux seuils de `/version`.
   final int buildActuel;
-
-  /// Les préférences locales — ici, la fermeture du bandeau 12 (§11.2).
-  final PreferencesService preferences;
 
   /// L'accès à la fiche du magasin, partagé par l'écran bloquant et la ligne
   /// 12 : un seul chemin vers le magasin, une seule paire de liens à tenir.
@@ -138,7 +130,6 @@ class ArpendoApp extends StatelessWidget {
               versions: VersionClient(contexte.read<ApiClient>()),
               connectivite: connectivite,
               buildActuel: buildActuel,
-              preferences: preferences,
               ouvrirMagasin: magasin.ouvrirFiche,
             );
             unawaited(modele.demarrer());

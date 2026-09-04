@@ -32,14 +32,14 @@ final composants = <String, WidgetBuilder>{
   // Le bloc entier — signe, logotype, accroche — plutôt que l'accroche seule
   // qu'il remplace ici : c'est en composition que la largeur contraint.
   'le bloc de marque': (_) => const BlocDeMarque(),
-  // Les deux lignes que #43 livre, et les deux formes du bandeau : sans action,
-  // puis avec ses deux boutons — c'est la seconde qui est contrainte, puisque
-  // les libellés s'allongent de 30 % eux aussi.
+  // Les deux lignes que #43 livre, et les deux formes du bandeau : sans
+  // action, puis avec son action sur la rangée du message — c'est la seconde
+  // qui est contrainte, puisque le libellé s'allonge de 30 % lui aussi et
+  // qu'il partage sa largeur avec le message (§2.4).
   'le bandeau sans action (ligne 5)': (_) =>
       Bandeau(entree: ligneReseauAbsent()),
-  'le bandeau à deux actions (ligne 12)': (_) => Bandeau(
-    entree: ligneMiseAJourRecommandee(onMettreAJour: () {}, onFermer: () {}),
-  ),
+  'le bandeau à une action (ligne 12)': (_) =>
+      Bandeau(entree: ligneMiseAJourRecommandee(onMettreAJour: () {})),
   // Son libellé vient de l'appelant : n'importe quelle valeur d'ARB prouve le
   // chemin de rendu sous la locale allongée — celle-ci est la première livrée.
   // Les libellés réels (« Réessayer », « Mettre à jour ») arrivent avec leurs

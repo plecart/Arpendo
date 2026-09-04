@@ -2,12 +2,10 @@ import 'dart:async';
 
 import 'package:arpendo/data/services/api_exception.dart';
 import 'package:arpendo/data/services/connectivity_service.dart';
-import 'package:arpendo/data/services/preferences_service.dart';
 import 'package:arpendo/data/services/version_client.dart';
 import 'package:arpendo/ui/demarrage/demarrage_view_model.dart';
 import 'package:arpendo/ui/demarrage/etat_demarrage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Client de version qui rend [reponse] — ou lève, si c'est une erreur.
 class _VersionsFigees implements VersionClient {
@@ -60,9 +58,6 @@ class _ConnectiviteRetardee implements ConnectivityService {
   }
 }
 
-/// Les préférences du test — vides par défaut, réinitialisées à chaque test.
-late PreferencesService prefs;
-
 /// Nombre d'ouvertures du magasin demandées par le modèle.
 late int ouverturesMagasin;
 
@@ -77,24 +72,14 @@ DemarrageViewModel _modele({
     ),
     connectivite: connectivite ?? _ConnectivitePilotee(),
     buildActuel: build,
-    preferences: prefs,
     ouvrirMagasin: () => ouverturesMagasin++,
   );
   addTearDown(vm.dispose);
   return vm;
 }
 
-/// Repose les préférences avec [initiales] déjà « sur le disque ».
-Future<void> _preferences([Map<String, Object> initiales = const {}]) async {
-  SharedPreferences.setMockInitialValues(initiales);
-  prefs = PreferencesService(await SharedPreferences.getInstance());
-}
-
 void main() {
-  setUp(() async {
-    ouverturesMagasin = 0;
-    await _preferences();
-  });
+  setUp(() => ouverturesMagasin = 0);
 
   test('build au niveau : Pret sans mise à jour recommandée', () async {
     final vm = _modele(
@@ -153,7 +138,6 @@ void main() {
       versions: versions,
       connectivite: _ConnectivitePilotee(),
       buildActuel: 5,
-      preferences: prefs,
       ouvrirMagasin: () {},
     );
     addTearDown(vm.dispose);
@@ -211,7 +195,6 @@ void main() {
       ),
       connectivite: _ConnectiviteRetardee(),
       buildActuel: 5,
-      preferences: prefs,
       ouvrirMagasin: () {},
     );
     addTearDown(vm.dispose);
@@ -229,7 +212,6 @@ void main() {
       ),
       connectivite: connectivite,
       buildActuel: 5,
-      preferences: prefs,
       ouvrirMagasin: () {},
     );
     await vm.demarrer();
@@ -251,37 +233,17 @@ void main() {
       expect(vm.entreeBandeau?.priorite, 12);
     });
 
-    test('fermé, il ne revient pas pour le même build recommandé', () async {
+    test('le bandeau 12 porte une seule action, sans « Fermer »', () async {
+      // La fermeture — et la persistance qu'elle suppose — sont repoussées
+      // après le MVP (cadrage §20). Une action unique tient sur la rangée du
+      // message (§2.4), ce qui est aussi ce que la ligne 12 veut dire : la
+      // mise à jour est recommandée, pas imposée.
       final vm = _modele(versions: sousLeRecommande);
+
       await vm.demarrer();
 
-      await vm.fermerMiseAJour();
-
-      expect(vm.entreeBandeau, isNull);
-      expect(
-        prefs.buildRecommandeEcarte(),
-        9,
-        reason: 'la fermeture doit survivre au redémarrage (§11.2)',
-      );
+      expect(vm.entreeBandeau!.actions, hasLength(1));
     });
-
-    test(
-      'une recommandation redescendue ne rouvre pas un bandeau refusé',
-      () async {
-        // Ce qui a été écarté est un **seuil**, pas un identifiant : un `!=`
-        // rouvrirait le bandeau au moindre changement de valeur, y compris vers
-        // le bas. Test écrit par la relecture indépendante, qui a mesuré que la
-        // mutation `>` → `!=` restait verte sans lui.
-        await _preferences({'build_recommande_ecarte': 9});
-        final vm = _modele(
-          versions: const Versions(minBuild: 1, recommendedBuild: 8),
-        );
-
-        await vm.demarrer();
-
-        expect(vm.entreeBandeau, isNull);
-      },
-    );
 
     test('un échec après une lecture réussie efface la proposition', () async {
       // Sinon une recommandation lue avant un « Réessayer » raté continuerait
@@ -292,7 +254,6 @@ void main() {
         versions: versions,
         connectivite: _ConnectivitePilotee(),
         buildActuel: 5,
-        preferences: prefs,
         ouvrirMagasin: () {},
       );
       addTearDown(vm.dispose);
@@ -304,19 +265,6 @@ void main() {
 
       expect(vm.etat, const Injoignable());
       expect(vm.entreeBandeau, isNull);
-    });
-
-    test('un build recommandé plus élevé le réaffiche', () async {
-      // Le joueur a fermé le bandeau du build 9 ; le serveur recommande
-      // maintenant le 10 — c'est une nouvelle information, pas la même.
-      await _preferences({'build_recommande_ecarte': 9});
-      final vm = _modele(
-        versions: const Versions(minBuild: 1, recommendedBuild: 10),
-      );
-
-      await vm.demarrer();
-
-      expect(vm.entreeBandeau?.priorite, 12);
     });
 
     test('hors ligne, la ligne 5 masque la 12', () async {

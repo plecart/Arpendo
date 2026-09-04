@@ -28,17 +28,12 @@
 
   "bandeauMiseAJourDisponible": "Une nouvelle version est disponible.",
   "@bandeauMiseAJourDisponible": {
-    "description": "Bandeau, priorité 12 de la table UX §2.4 : version recommandée non atteinte et non fermée pour cette version (UX §11.2)."
+    "description": "Bandeau, priorité 12 de la table UX §2.4 : version recommandée non atteinte (UX §11.2). Le bandeau n'est pas fermable — la fermeture est repoussée après le MVP, cadrage §20."
   },
 
   "bandeauActionMettreAJour": "Mettre à jour",
   "@bandeauActionMettreAJour": {
     "description": "Bandeau, action de la priorité 12 (UX §2.4) : ouvre la fiche Play Store."
-  },
-
-  "bandeauActionFermer": "Fermer",
-  "@bandeauActionFermer": {
-    "description": "Bandeau, action de la priorité 12 (UX §2.4) : masque le bandeau jusqu'à la version suivante (UX §11.2)."
   },
 
   "miseAJourTitre": "Mise à jour nécessaire",

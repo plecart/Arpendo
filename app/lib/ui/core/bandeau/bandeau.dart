@@ -28,12 +28,17 @@ import '../theme/typographie.dart';
 /// tests les mesurent, le code ne les pose nulle part.
 ///
 /// **C'est le nombre d'actions qui décide de la rangée**, pas leur présence.
-/// Une action **seule** partage la rangée du message ; **deux** descendent. Ce
-/// n'est pas un choix de style : sur l'écran de référence de 360 dp, il ne
-/// reste que 260 dp après les marges, le rembourrage et l'icône, et les deux
-/// actions des priorités 10 et 11 les consomment à elles seules — un libellé
-/// unique, lui, y tient sans serrer le message. La règle garde donc le message
-/// insensible à la longueur des libellés comme à la tolérance de +30 % du §0
+/// Une action **seule** partage la rangée du message ; **deux** descendent —
+/// sur l'écran de référence de 360 dp, il ne reste que 252 dp après les marges,
+/// le rembourrage et l'icône, et les deux actions des priorités 10 et 11 les
+/// consomment à elles seules.
+///
+/// L'action partagée **se replie plutôt que de déborder** : elle est bornée à
+/// sa part de la rangée, et son libellé passe sur deux lignes quand il ne tient
+/// pas. Ce n'est pas une précaution théorique — la locale allongée du garde
+/// `fr-XA` porte « Mettre à jour » à **290 dp** pour 252 disponibles, et un
+/// bouton incompressible débordait de 38 px (mesuré). Le §0 est tenu par le
+/// repli, jamais par un pari sur la longueur des textes
 /// (§2.4, amendé le 30 août 2026 puis le 4 septembre 2026 — archive §18.7).
 class Bandeau extends StatelessWidget {
   /// Crée le bandeau qui rend [entree].
@@ -102,14 +107,24 @@ class Bandeau extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Une action **seule** tient sur la rangée du message : la
+                  // Une action **seule** partage la rangée du message : la
                   // mesure du §2.4 qui les en chasse porte sur **deux**
                   // libellés, qui consomment à eux seuls les 260 dp restants.
+                  //
+                  // `Flexible` et non un enfant nu : à 360 dp, la locale
+                  // allongée du garde `fr-XA` porte ce libellé à **290 dp**
+                  // pour 296 disponibles — mesuré —, et un bouton
+                  // incompressible déborderait de 38 px. Borné, il rend son
+                  // libellé sur deux lignes plutôt que de déborder ou de
+                  // tronquer, ce que le §0 impose. En français il reprend sa
+                  // largeur naturelle : la rangée reste unique.
                   if (actionSeule != null) ...[
                     const SizedBox(width: Espacements.x2),
-                    TextButton(
-                      onPressed: actionSeule.onPressed,
-                      child: Text(actionSeule.libelle(textes)),
+                    Flexible(
+                      child: TextButton(
+                        onPressed: actionSeule.onPressed,
+                        child: Text(actionSeule.libelle(textes)),
+                      ),
                     ),
                   ],
                 ],
