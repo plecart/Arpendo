@@ -301,7 +301,8 @@ Toutes les durées passent à **0 ms** si `MediaQuery.disableAnimations` est vra
 d'accessibilité). Une animation ne porte jamais seule une information — chaque transition
 ci-dessous a un état final lisible à l'arrêt.
 
-**Aucune exception.** Le réglage désactive les animations, il les désactive toutes — y compris le
+**Aucune exception, hormis celle nommée ci-dessous.** Le réglage désactive les animations, il
+les désactive toutes — y compris le
 vol de caméra du §7.4, qui devient un saut instantané, et la transition d'élément partagé qui
 l'accompagne. Un joueur qui a demandé zéro mouvement obtient zéro mouvement ; lui en concéder
 « juste un peu » quelque part, c'est ne pas respecter le réglage tout en compliquant le code.

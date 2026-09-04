@@ -48,16 +48,16 @@ Toujours par `just`, jamais par `flutter` nu (c'est le SDK global qui répondrai
 Sur un poste qui n'a pas encore lancé `just install-app`, **`just lint-app` et `just test-app`**
 échouent sur `lib/l10n/generated/app_localizations.dart` introuvable — ni `flutter test` ni
 `flutter analyze` ne le régénèrent — et `just test-one-app` échoue sur toute cible qui l'importe, fût-ce indirectement.
-`just l10n` suffit à réparer.
-
-Autre piège de test : l'état `Verification` de l'écran d'attente rend, passé 600 ms, un
-`CircularProgressIndicator` qui anime en continu — **`pumpAndSettle` expire dessus**. Tout test
-qui atteint cet état pilote le temps par `pump(durée)`, jamais par `pumpAndSettle`. Les deux autres s'en tirent seules, pour des raisons opposées :
+`just l10n` suffit à réparer. Les deux autres s'en tirent seules, pour des raisons opposées :
 `just build` fait dépendre son instantané de noyau de la génération des localisations, donc la
 déclenche avant de compiler ; `dart format` ne résout aucun import — il analyse la syntaxe — donc
 `fmt-check-app` passe même sans le généré. Attention, `just build` ne lance que `gen-l10n`, jamais
 le script : sur un clone neuf, où `app_fr_XA.arb` n'existe pas encore, il produit un bundle avec
 la seule locale `fr`.
+
+Autre piège de test : l'état `Verification` de l'écran d'attente rend, passé 600 ms, un
+`CircularProgressIndicator` qui anime en continu — **`pumpAndSettle` expire dessus**. Tout test
+qui atteint cet état pilote le temps par `pump(durée)`, jamais par `pumpAndSettle`.
 
 ## Structure
 
