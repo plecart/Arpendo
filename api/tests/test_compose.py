@@ -83,6 +83,40 @@ def test_le_compose_declare_les_points_d_entree_attendus() -> None:
     assert set(_services_du_paquet()) == {"api", "worker"}
 
 
+def _declare(fragment: dict[str, Any], cle: str, dans: str) -> Any:
+    """La valeur d'une clé du compose, ou un échec qui nomme ce qui manque.
+
+    Un accès direct lèverait un ``KeyError``. pytest le compte parmi les **échecs** et non parmi les
+    erreurs — qu'il réserve au montage —, si bien qu'aucun compteur ne le distingue d'une
+    assertion ; mais il ne dit rien de ce qu'on cherchait, et une exception nue se lit comme une
+    panne de l'outil plutôt que comme un défaut du fichier lu. On la remplace donc par une
+    assertion, qui nomme la clé et le fragment.
+
+    **À n'appeler que depuis un corps de test.** Poser la même garde dans ``_document`` ou
+    ``_services_du_paquet`` la ferait tomber à la **collecte** — les décorateurs de
+    paramétrisation les appellent à l'import — et avorterait le module entier, ce qui est pire que
+    le ``KeyError`` qu'on remplace.
+
+    La clé **présente mais vide** est traitée comme absente, et c'est le cas qui compte : YAML rend
+    ``environment:`` sans contenu par ``None``, qu'une garde de simple présence laisse passer avant
+    d'exploser plus loin sur un ``TypeError`` — mesuré. Un bloc vidé est la forme que prend la
+    suppression d'une ligne de fusion, donc la plus probable des deux.
+
+    Args:
+        fragment: le fragment de compose interrogé.
+        cle: la clé attendue.
+        dans: comment nommer ce fragment dans le message d'échec.
+
+    Returns:
+        La valeur associée à ``cle``.
+    """
+    valeur = fragment.get(cle)
+
+    assert valeur is not None, f"le compose ne déclare plus `{cle}` dans {dans}"
+
+    return valeur
+
+
 @pytest.mark.parametrize("service", sorted(_services_du_paquet()))
 def test_chaque_point_d_entree_recoit_tout_ce_que_lisent_les_reglages(service: str) -> None:
     """Toute variable que lit ``Settings`` est présente dans l'environnement de chaque service.
@@ -102,7 +136,8 @@ def test_chaque_point_d_entree_recoit_tout_ce_que_lisent_les_reglages(service: s
     ``FORWARDED_ALLOW_IPS``, que lit uvicorn et non ``Settings`` ; ce que le `worker` a le droit de
     porter en plus est borné plus bas.
     """
-    declarees = set(_services_du_paquet()[service]["environment"])
+    bloc = _services_du_paquet()[service]
+    declarees = set(_declare(bloc, "environment", f"le service `{service}`"))
 
     assert variables_des_reglages() <= declarees
 
@@ -119,7 +154,9 @@ def test_l_ancre_partagee_porte_exactement_ce_que_lisent_les_reglages() -> None:
     L'attendu est **dérivé du modèle** (``variables_des_reglages``) : ajouter un champ à
     ``Settings`` fait rougir ici tant que l'ancre ne le porte pas.
     """
-    assert set(_document()[ANCRE_PARTAGEE]) == variables_des_reglages()
+    ancre = _declare(_document(), ANCRE_PARTAGEE, "le compose")
+
+    assert set(ancre) == variables_des_reglages()
 
 
 def _secondes(duree: str) -> int:
@@ -185,12 +222,14 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
     services = _services_du_paquet()
 
     assert SERVICE_D_UVICORN in services, (
-        f"aucun service `{SERVICE_D_UVICORN}` dans le compose. Si le point d'entrée qui exécute "
-        "uvicorn a changé de nom, c'est la constante qu'il faut suivre — toute la partition s'y "
-        "adosse. Dit par une assertion, et non par le `KeyError` qu'un accès direct lèverait : une "
-        "erreur ne se distingue pas d'une panne de l'outil"
+        f"aucun service `{SERVICE_D_UVICORN}` **parmi les points d'entrée du paquet** : soit il a "
+        f"été renommé, soit il n'est plus bâti sur `{IMAGE_DU_PAQUET}`. C'est `SERVICE_D_UVICORN` "
+        "qui désigne le service exécutant uvicorn, et toute la partition s'y adosse"
     )
-    relais = services[SERVICE_D_UVICORN]["environment"].get(BORNE_UVICORN)
+    environnement = _declare(
+        services[SERVICE_D_UVICORN], "environment", f"le service `{SERVICE_D_UVICORN}`"
+    )
+    relais = environnement.get(BORNE_UVICORN)
 
     assert relais, (
         f"le service `{SERVICE_D_UVICORN}` ne reçoit plus {BORNE_UVICORN} : uvicorn attendrait "
@@ -219,7 +258,9 @@ def test_un_point_d_entree_sans_uvicorn_ne_recoit_rien_de_plus_que_l_ancre(servi
     davantage, et l'asymétrie est le sujet — l'exception est nommée par ``SERVICE_D_UVICORN``, tout
     le reste est dérivé de l'image.
     """
-    surplus = set(_services_du_paquet()[service]["environment"]) - set(_document()[ANCRE_PARTAGEE])
+    bloc = _services_du_paquet()[service]
+    declarees = set(_declare(bloc, "environment", f"le service `{service}`"))
+    surplus = declarees - set(_declare(_document(), ANCRE_PARTAGEE, "le compose"))
 
     assert not surplus, (
         f"`{service}` reçoit {sorted(surplus)} en plus de l'ancre. Ce que lit ``Settings`` va dans "
