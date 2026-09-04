@@ -182,11 +182,19 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
     injecter la chaîne vide avec un simple avertissement sur stderr, et la borne disparaît sans que
     rien n'échoue. La forme brute est lisible ici parce que ``yaml.safe_load`` n'interpole pas.
     """
-    relais = _services_du_paquet()["api"]["environment"].get(BORNE_UVICORN)
+    services = _services_du_paquet()
+
+    assert SERVICE_D_UVICORN in services, (
+        f"aucun service `{SERVICE_D_UVICORN}` dans le compose. Si le point d'entrée qui exécute "
+        "uvicorn a changé de nom, c'est la constante qu'il faut suivre — toute la partition s'y "
+        "adosse. Dit par une assertion, et non par le `KeyError` qu'un accès direct lèverait : une "
+        "erreur ne se distingue pas d'une panne de l'outil"
+    )
+    relais = services[SERVICE_D_UVICORN]["environment"].get(BORNE_UVICORN)
 
     assert relais, (
-        f"le service `api` ne reçoit plus {BORNE_UVICORN} : uvicorn attendrait les connexions "
-        "ouvertes sans limite, et Docker le tuerait au SIGKILL"
+        f"le service `{SERVICE_D_UVICORN}` ne reçoit plus {BORNE_UVICORN} : uvicorn attendrait "
+        "les connexions ouvertes sans limite, et Docker le tuerait au SIGKILL"
     )
     assert relais.startswith(f"${{{BORNE_UVICORN}:?"), (
         f"{BORNE_UVICORN} est relayée par {relais!r}, hors de la seule forme sûre. La valeur se "
