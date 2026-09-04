@@ -5,6 +5,7 @@ import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
 import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_attente.dart';
+import 'package:arpendo/ui/demarrage/ecran_mise_a_jour.dart';
 import 'package:arpendo/ui/demarrage/etat_demarrage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -54,6 +55,11 @@ final composants = <String, WidgetBuilder>{
     entreeBandeau: ligneReseauAbsent(),
     onReessayer: () {},
   ),
+  // Quatre textes empilés sans carte pour absorber l'allongement — titre,
+  // corps de deux lignes, réassurance et bouton (§11.2). C'est l'écran du
+  // projet où la tolérance de +30 % du §0 est la plus contrainte.
+  "l'écran de mise à jour obligatoire": (_) =>
+      EcranMiseAJour(onMettreAJour: () {}),
 };
 
 /// Vrai si [texte] est **une seule** valeur venue de l'ARB.

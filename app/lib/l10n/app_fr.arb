@@ -39,5 +39,25 @@
   "bandeauActionFermer": "Fermer",
   "@bandeauActionFermer": {
     "description": "Bandeau, action de la priorité 12 (UX §2.4) : masque le bandeau jusqu'à la version suivante (UX §11.2)."
+  },
+
+  "miseAJourTitre": "Mise à jour nécessaire",
+  "@miseAJourTitre": {
+    "description": "Cité — spec UX §11.2, ne pas modifier. Titre de l'écran bloquant de version minimale. Préfixe `miseAJour*` et non `bandeau*` : ce dernier est réservé au composant Bandeau."
+  },
+
+  "miseAJourCorps": "Cette version d'Arpendo n'est plus compatible avec le serveur. Installe la dernière version pour continuer à jouer.",
+  "@miseAJourCorps": {
+    "description": "Cité — spec UX §11.2, ne pas modifier. Corps de l'écran bloquant : dit la cause et le geste, sans jargon de version."
+  },
+
+  "miseAJourProgressionConservee": "Ta partie et ta progression sont conservées.",
+  "@miseAJourProgressionConservee": {
+    "description": "Cité — spec UX §11.2, ne pas modifier. Réassurance en `type-caption` : sans elle le joueur croit tout perdre et hésite à mettre à jour."
+  },
+
+  "miseAJourAction": "Mettre à jour",
+  "@miseAJourAction": {
+    "description": "Cité — spec UX §11.2, ne pas modifier. Action unique de l'écran bloquant : ouvre la fiche du magasin. Clé distincte de `bandeauActionMettreAJour` malgré le même libellé — deux composants, deux cycles de vie."
   }
 }
