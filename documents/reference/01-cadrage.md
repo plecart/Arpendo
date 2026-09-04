@@ -1630,6 +1630,7 @@ moins de 8 h/semaine.
 | CI/CD | **GitHub Actions** |
 | Versioning | **Versioning sémantique automatique** (commits conventionnels → changelog, tag et release GitHub) |
 | Publication | Automatisée vers la **piste de test interne Google Play** à chaque tag |
+| Url du serveur dans le bundle | **`API_BASE_URL` est injectée au build**, en `--dart-define` — aucune url par défaut n'est écrite en dur. `just build` échoue si la variable est absente, et l'app **refuse de démarrer** sans elle : un bundle construit sans cette variable ne démarre pas. Le workflow de tag doit donc la fournir ; sa **valeur de production** naît avec le déploiement, qui fait exister le domaine (§13.11). Déclarée dans `.env.example`, section « Application » |
 | Déploiement backend | Déclenché par la CI : **SSH → `compose pull` → migration en conteneur éphémère → `compose up -d`** (§13.9, règle 3) |
 | Monitoring | **Sentry** + logs structurés et métriques + alertes automatiques. **Plus un moniteur d'uptime dès le jour 1** : Sentry ne voit pas une machine morte (§13.11) |
 | Analytics produit | Repoussé après le MVP |
@@ -1976,6 +1977,10 @@ et #47.
 6. **Reprendre ensuite au §17 — la rédaction du PDF de spécification complète.**
 7. Le chiffrage détaillé, ses sources et ses réserves vivent dans `04-chiffrage.md`.
    Les tarifs y sont datés du 10 août 2026 et relevés à la source.
+8. **Le §20 est le registre des sujets reportés après le MVP.** Y regarder avant d'ouvrir une
+   issue sur un manque apparent : ce qui y figure est un report **décidé**, pas un oubli, et sa
+   ligne dit ce qu'il faudra rouvrir. Un report qui n'y est pas inscrit finira par ne dépendre
+   que d'une issue ouverte, et se perdra avec elle.
 
 **Vérifications manuelles restant à la charge du porteur :**
 
@@ -1983,3 +1988,35 @@ et #47.
   sont réservés
 - Raccordement de l'instance PostgreSQL managée au Private Network, à valider à la création
 - Revérification des tarifs avant tout engagement pluriannuel
+
+## 20. Post-MVP — décidé, repoussé, à reprendre
+
+Ce que le MVP ne livre **pas**, alors que la décision de le faire un jour est déjà prise. Un sujet
+n'entre ici que s'il a été **explicitement reporté** au cours d'un arbitrage : ce n'est ni une
+liste d'idées, ni le hors-périmètre définitif (§16, §18), qui lui ne sera jamais construit.
+
+Cette table est **le registre de ces reports**, et elle existe pour qu'ils ne dépendent pas d'une
+issue ouverte : une issue se ferme, se renomme ou se perd dans un backlog, une ligne de cadrage
+non. Quand un sujet est repris, sa ligne part d'ici vers le § qui le spécifie.
+
+| Sujet | Reporté le | Ce qu'il faudra rouvrir |
+|---|---|---|
+| **Animation du logo pendant le chargement** — pulsation ou illumination lente du bloc de marque sur l'écran d'attente du démarrage | 4 septembre 2026 | Spec UX **§1.6** : son exception au réglage d'accessibilité est **nommée et unique**, et interdit d'en ajouter une par analogie — une pulsation perpétuelle en est une. Deux points à instruire d'abord, écrits dans l'archive UX §18.12 : le sort de l'animation sous `disableAnimations` (le bloc de marque est une surface bien plus large qu'un indicateur de 48 dp), et le sens du délai de 600 ms sur un élément **déjà affiché**. Aucun jeton ne définit période ni amplitude |
+| **Animation de transition entre les écrans** | 4 septembre 2026 | Spec UX **§1.6** : les jetons de mouvement couvrent les composants, aucun ne couvre un changement d'écran. Cas concret qui attend : **attente → Connexion**, où le bloc de marque change de place — le §2.1 le centre verticalement, le §4 et le §5 le posent en bande haute. C'est le domaine Compte qui rencontrera ce saut le premier |
+| **Bandeau de mise à jour recommandée fermable** — l'action « Fermer » de la ligne 12, et la mémoire de cette fermeture | 4 septembre 2026 | Spec UX **§2.4** (table des priorités, ligne 12) et **§11.2**, qui disent aujourd'hui « une seule action, non fermable ». Le mécanisme a été **construit puis retiré** au HITL du lot 2c de #46 : il demandait un stockage local (`shared_preferences`, un service de la couche Data) que plus rien d'autre ne réclame au MVP, et la règle de rappel — ne pas revenir pour la **même** version, revenir à la suivante — est une comparaison de **seuils**, jamais d'identifiants. Le rouvrir, c'est rouvrir les deux |
+
+**Pourquoi les deux animations vont ensemble.** Elles ont été reportées d'un même geste, au HITL du
+lot 2b de #46, avec ce motif : *« pour un MVP c'est très bien, ici on y ajoutera de l'animation et
+une transition animée à la prochaine page : en attendant on fait sobre »*. Les traiter séparément
+produirait deux vocabulaires de mouvement sur le même écran.
+
+**Ce que la troisième ligne coûte déjà.** Le bandeau fermable a été **écrit, relu et supprimé**
+dans la même journée — c'est le seul report de cette table dont le code a existé. Le prix du
+report est donc connu, et c'est un argument pour le reprendre entier plutôt que par morceaux : le
+jour où la fermeture revient, elle ramène avec elle le stockage local que le MVP n'a nulle part
+ailleurs. **Une décision de produit, pas un reliquat technique.**
+
+**Condition de réouverture déjà écrite.** L'écran d'attente se passe d'indicateur **parce que** le
+délai du client HTTP borne l'attente (spec UX §2.1). Si un flux l'allonge au-delà — téléchargement
+d'actifs, migration de base locale —, l'écran statique redevient un gel apparent et la première
+ligne cesse d'être du confort.
