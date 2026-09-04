@@ -2003,11 +2003,18 @@ non. Quand un sujet est repris, sa ligne part d'ici vers le § qui le spécifie.
 |---|---|---|
 | **Animation du logo pendant le chargement** — pulsation ou illumination lente du bloc de marque sur l'écran d'attente du démarrage | 4 septembre 2026 | Spec UX **§1.6** : son exception au réglage d'accessibilité est **nommée et unique**, et interdit d'en ajouter une par analogie — une pulsation perpétuelle en est une. Deux points à instruire d'abord, écrits dans l'archive UX §18.12 : le sort de l'animation sous `disableAnimations` (le bloc de marque est une surface bien plus large qu'un indicateur de 48 dp), et le sens du délai de 600 ms sur un élément **déjà affiché**. Aucun jeton ne définit période ni amplitude |
 | **Animation de transition entre les écrans** | 4 septembre 2026 | Spec UX **§1.6** : les jetons de mouvement couvrent les composants, aucun ne couvre un changement d'écran. Cas concret qui attend : **attente → Connexion**, où le bloc de marque change de place — le §2.1 le centre verticalement, le §4 et le §5 le posent en bande haute. C'est le domaine Compte qui rencontrera ce saut le premier |
+| **Bandeau de mise à jour recommandée fermable** — l'action « Fermer » de la ligne 12, et la mémoire de cette fermeture | 4 septembre 2026 | Spec UX **§2.4** (table des priorités, ligne 12) et **§11.2**, qui disent aujourd'hui « une seule action, non fermable ». Le mécanisme a été **construit puis retiré** au HITL du lot 2c de #46 : il demandait un stockage local (`shared_preferences`, un service de la couche Data) que plus rien d'autre ne réclame au MVP, et la règle de rappel — ne pas revenir pour la **même** version, revenir à la suivante — est une comparaison de **seuils**, jamais d'identifiants. Le rouvrir, c'est rouvrir les deux |
 
-**Pourquoi ces deux-là ensemble.** Ils ont été reportés d'un même geste, au HITL du lot 2b de #46,
-avec ce motif : *« pour un MVP c'est très bien, ici on y ajoutera de l'animation et une transition
-animée à la prochaine page : en attendant on fait sobre »*. Les traiter séparément produirait deux
-vocabulaires de mouvement sur le même écran.
+**Pourquoi les deux animations vont ensemble.** Elles ont été reportées d'un même geste, au HITL du
+lot 2b de #46, avec ce motif : *« pour un MVP c'est très bien, ici on y ajoutera de l'animation et
+une transition animée à la prochaine page : en attendant on fait sobre »*. Les traiter séparément
+produirait deux vocabulaires de mouvement sur le même écran.
+
+**Ce que la troisième ligne coûte déjà.** Le bandeau fermable a été **écrit, relu et supprimé**
+dans la même journée — c'est le seul report de cette table dont le code a existé. Le prix du
+report est donc connu, et c'est un argument pour le reprendre entier plutôt que par morceaux : le
+jour où la fermeture revient, elle ramène avec elle le stockage local que le MVP n'a nulle part
+ailleurs. **Une décision de produit, pas un reliquat technique.**
 
 **Condition de réouverture déjà écrite.** L'écran d'attente se passe d'indicateur **parce que** le
 délai du client HTTP borne l'attente (spec UX §2.1). Si un flux l'allonge au-delà — téléchargement
