@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../core/boutons/bouton_pleine_largeur.dart';
+import '../core/marque/bloc_de_marque.dart';
 import '../core/mise_en_page/pile_de_calques.dart';
 import '../core/theme/mesures.dart';
 import '../core/theme/typographie.dart';
@@ -33,7 +34,6 @@ class EcranMiseAJour extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textes = AppLocalizations.of(context);
-    final couleurs = Theme.of(context).colorScheme;
     return Scaffold(
       // `canPop: false` refuse le geste de retour ET le bouton système : le
       // §11.2 dit « pas de bouton retour, pas de fermeture », et sur Android
@@ -47,39 +47,19 @@ class EcranMiseAJour extends StatelessWidget {
                 horizontal: Espacements.x4,
                 vertical: Espacements.x6,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              // Deux plans indépendants, comme sur l'écran d'attente : le bloc
+              // de marque est centré seul, le bouton est ancré en bas. Ni
+              // l'un ni l'autre ne peut donc déplacer le bloc, et le logo ne
+              // saute pas au passage attente → bloquant.
+              child: Stack(
                 children: [
-                  const Spacer(),
-                  Text(
-                    textes.miseAJourTitre,
-                    style: Typographie.title.copyWith(
-                      color: couleurs.onSurface,
+                  Center(child: _blocEtMessage(context, textes)),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: BoutonPleineLargeur(
+                      libelle: textes.miseAJourAction,
+                      onPressed: onMettreAJour,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: Espacements.x4),
-                  Text(
-                    textes.miseAJourCorps,
-                    style: Typographie.body.copyWith(color: couleurs.onSurface),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: Espacements.x3),
-                  // La réassurance suit le corps plutôt que le bouton : elle
-                  // répond à l'inquiétude que le corps vient de créer, et le
-                  // §11.2 la motive par l'hésitation qu'elle évite — donc elle
-                  // doit être lue AVANT la décision de taper.
-                  Text(
-                    textes.miseAJourProgressionConservee,
-                    style: Typographie.caption.copyWith(
-                      color: couleurs.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const Spacer(),
-                  BoutonPleineLargeur(
-                    libelle: textes.miseAJourAction,
-                    onPressed: onMettreAJour,
                   ),
                 ],
               ),
@@ -87,6 +67,56 @@ class EcranMiseAJour extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  /// Le bloc de marque, et sous lui les trois textes du §11.2 — **peints sans
+  /// compter dans la hauteur** du groupe.
+  ///
+  /// Même mécanique que l'écran d'attente, et pour la même raison : le
+  /// [Center] ne mesure que le bloc, donc le logo occupe exactement la place
+  /// qu'il occupe là-bas. Passer de l'un à l'autre ne le déplace pas.
+  Widget _blocEtMessage(BuildContext context, AppLocalizations textes) {
+    final couleurs = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const BlocDeMarque(),
+        Align(
+          alignment: Alignment.topCenter,
+          heightFactor: 0,
+          child: Padding(
+            padding: const EdgeInsets.only(top: Espacements.x6),
+            child: Column(
+              children: [
+                Text(
+                  textes.miseAJourTitre,
+                  style: Typographie.title.copyWith(color: couleurs.onSurface),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: Espacements.x3),
+                Text(
+                  textes.miseAJourCorps,
+                  style: Typographie.body.copyWith(color: couleurs.onSurface),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: Espacements.x3),
+                // La réassurance suit le corps plutôt que le bouton : elle
+                // répond à l'inquiétude que le corps vient de créer, et le
+                // §11.2 la motive par l'hésitation qu'elle évite — donc elle
+                // doit être lue AVANT la décision de taper.
+                Text(
+                  textes.miseAJourProgressionConservee,
+                  style: Typographie.caption.copyWith(
+                    color: couleurs.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

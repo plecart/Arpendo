@@ -388,7 +388,7 @@ La séquence de démarrage compare le build installé aux deux seuils de `GET /v
 
 | Verdict | Ce qui s'affiche |
 |---|---|
-| build < **minimal** | `EcranMiseAJour` **remplace** l'écran d'attente — `Calque.bloquant` (z 500), `PopScope(canPop: false)`, aucune sortie, pas même le geste de retour |
+| build < **minimal** | `EcranMiseAJour` **remplace** l'écran d'attente — `Calque.bloquant` (z 500), `PopScope(canPop: false)`, aucune sortie, pas même le geste de retour. Il reprend le **bloc de marque centré** et la mécanique de l'écran d'attente (`Align(heightFactor: 0)`), donc le logo ne bouge pas d'un écran à l'autre |
 | build < **recommandé** | l'écran d'attente reste, la **ligne 12** du bandeau s'ajoute sur son calque, avec « Mettre à jour » pour seule action |
 | sinon | rien de plus |
 

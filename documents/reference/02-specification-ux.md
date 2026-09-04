@@ -2202,7 +2202,11 @@ ne sort jamais de l'application.
 ### 11.2 Mise à jour (§14.1)
 
 **Version minimale — écran bloquant.** `z 500`, plein écran, pas de bouton retour, pas de
-fermeture. Titre « Mise à jour nécessaire ». Corps « Cette version d'Arpendo n'est plus compatible
+fermeture. Il porte le **bloc de marque du §4 — signe, nom, accroche — centré verticalement**,
+comme l'écran d'attente et **à la même place que lui** : c'est le seul écran qui remplace l'attente
+en cours de séquence, et le logo ne doit pas sauter en le faisant. Le reste s'écrit **sous** le
+bloc, sans le déplacer.
+Titre « Mise à jour nécessaire ». Corps « Cette version d'Arpendo n'est plus compatible
 avec le serveur. Installe la dernière version pour continuer à jouer. » Bouton « Mettre à jour »
 (56 dp, bande basse) → Play Store. Corps 2, `type-caption` : « Ta partie et ta progression sont
 conservées. » — sans quoi le joueur croit tout perdre et hésite.

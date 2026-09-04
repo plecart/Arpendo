@@ -1,5 +1,6 @@
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
+import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
 import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_mise_a_jour.dart';
@@ -19,6 +20,19 @@ Future<void> _monter(WidgetTester tester, {VoidCallback? onMettreAJour}) {
 }
 
 void main() {
+  testWidgets('le bloc de marque est centré, comme sur l\'attente', (
+    tester,
+  ) async {
+    // Même composant et même mécanique que l'écran d'attente : le bloc est
+    // centré et ce qui paraît dessous ne le déplace pas. C'est ce qui évite
+    // au logo de sauter au passage attente → bloquant.
+    await _monter(tester);
+
+    final bloc = tester.getRect(find.byType(BlocDeMarque));
+    final ecran = tester.getRect(find.byType(MaterialApp));
+    expect(bloc.center.dy, moreOrLessEquals(ecran.center.dy, epsilon: 0.5));
+  });
+
   testWidgets('porte les quatre textes du §11.2', (tester) async {
     await _monter(tester);
 
