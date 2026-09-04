@@ -94,25 +94,32 @@ class _EcranAttenteState extends State<EcranAttente> {
     return Scaffold(
       body: PileDeCalques(
         children: {
-          Calque.carte: SizedBox.expand(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Espacements.x4),
-              child: Column(
-                children: [
-                  const Spacer(),
-                  const BlocDeMarque(),
-                  const SizedBox(height: Espacements.x6),
-                  _zoneEtat(context, textes),
-                  const Spacer(),
-                  if (widget.etat is Injoignable)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: Espacements.x6),
-                      child: BoutonPleineLargeur(
-                        libelle: textes.attenteActionReessayer,
-                        onPressed: widget.onReessayer,
+          // Le calque de base est le seul que `PileDeCalques` laisse hors
+          // safe area — une exemption écrite pour une carte qui court sous
+          // l'encoche (§2.3), pas pour du contenu : cet écran n'a pas de
+          // carte, la `SafeArea` est donc rétablie ici, sans quoi le bouton
+          // « Réessayer » passerait sous la barre de gestes (§1.4).
+          Calque.carte: SafeArea(
+            child: SizedBox.expand(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Espacements.x4),
+                child: Column(
+                  children: [
+                    const Spacer(),
+                    const BlocDeMarque(),
+                    const SizedBox(height: Espacements.x6),
+                    _zoneEtat(context, textes),
+                    const Spacer(),
+                    if (widget.etat is Injoignable)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: Espacements.x6),
+                        child: BoutonPleineLargeur(
+                          libelle: textes.attenteActionReessayer,
+                          onPressed: widget.onReessayer,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
