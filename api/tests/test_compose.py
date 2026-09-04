@@ -117,6 +117,35 @@ def _declare(fragment: dict[str, Any], cle: str, dans: str) -> Any:
     return valeur
 
 
+def _ancre() -> dict[str, Any]:
+    """L'environnement partagé, lu **avant** sa fusion — la seule vue de la partition.
+
+    **À n'appeler que depuis un corps de test**, comme ``_environnement_de``.
+
+    Returns:
+        Le contenu de l'ancre.
+    """
+    return _declare(_document(), ANCRE_PARTAGEE, "son en-tête")
+
+
+def _environnement_de(service: str) -> dict[str, Any]:
+    """Le bloc ``environment`` d'un service du paquet, ancres développées.
+
+    Le trajet « service → bloc → environnement » se faisait sur trois sites, étiquette de message
+    recopiée à chaque fois. Une seule formulation, donc une seule à corriger.
+
+    **À n'appeler que depuis un corps de test** : elle passe par ``_declare``, dont la garde
+    tomberait à la collecte si elle remontait dans une aide appelée à l'import.
+
+    Args:
+        service: le nom d'un service rendu par ``_services_du_paquet``.
+
+    Returns:
+        Le bloc ``environment``, tel que le conteneur le recevra.
+    """
+    return _declare(_services_du_paquet()[service], "environment", f"le service `{service}`")
+
+
 @pytest.mark.parametrize("service", sorted(_services_du_paquet()))
 def test_chaque_point_d_entree_recoit_tout_ce_que_lisent_les_reglages(service: str) -> None:
     """Toute variable que lit ``Settings`` est présente dans l'environnement de chaque service.
@@ -136,8 +165,7 @@ def test_chaque_point_d_entree_recoit_tout_ce_que_lisent_les_reglages(service: s
     ``FORWARDED_ALLOW_IPS``, que lit uvicorn et non ``Settings`` ; ce que le `worker` a le droit de
     porter en plus est borné plus bas.
     """
-    bloc = _services_du_paquet()[service]
-    declarees = set(_declare(bloc, "environment", f"le service `{service}`"))
+    declarees = set(_environnement_de(service))
 
     assert variables_des_reglages() <= declarees
 
@@ -154,9 +182,7 @@ def test_l_ancre_partagee_porte_exactement_ce_que_lisent_les_reglages() -> None:
     L'attendu est **dérivé du modèle** (``variables_des_reglages``) : ajouter un champ à
     ``Settings`` fait rougir ici tant que l'ancre ne le porte pas.
     """
-    ancre = _declare(_document(), ANCRE_PARTAGEE, "le compose")
-
-    assert set(ancre) == variables_des_reglages()
+    assert set(_ancre()) == variables_des_reglages()
 
 
 def _secondes(duree: str) -> int:
@@ -218,6 +244,11 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
     ignorée en silence par click, qui retombe sur « sans borne ». Un `${…}` nu laisse Compose
     injecter la chaîne vide avec un simple avertissement sur stderr, et la borne disparaît sans que
     rien n'échoue. La forme brute est lisible ici parce que ``yaml.safe_load`` n'interpole pas.
+
+    Le **type** fait partie de la forme : une borne écrite en entier non quoté (``: 25``) est un
+    compose valide — Compose la normalise en chaîne, mesuré — que YAML rend en ``int``. Sans le
+    contrôle de type, la vérification de forme lèverait un ``AttributeError`` nu au lieu de dire
+    laquelle des formes fautives a été employée.
     """
     services = _services_du_paquet()
 
@@ -226,16 +257,13 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
         f"été renommé, soit il n'est plus bâti sur `{IMAGE_DU_PAQUET}`. C'est `SERVICE_D_UVICORN` "
         "qui désigne le service exécutant uvicorn, et toute la partition s'y adosse"
     )
-    environnement = _declare(
-        services[SERVICE_D_UVICORN], "environment", f"le service `{SERVICE_D_UVICORN}`"
-    )
-    relais = environnement.get(BORNE_UVICORN)
+    relais = _environnement_de(SERVICE_D_UVICORN).get(BORNE_UVICORN)
 
     assert relais, (
         f"le service `{SERVICE_D_UVICORN}` ne reçoit plus {BORNE_UVICORN} : uvicorn attendrait "
         "les connexions ouvertes sans limite, et Docker le tuerait au SIGKILL"
     )
-    assert relais.startswith(f"${{{BORNE_UVICORN}:?"), (
+    assert isinstance(relais, str) and relais.startswith(f"${{{BORNE_UVICORN}:?"), (
         f"{BORNE_UVICORN} est relayée par {relais!r}, hors de la seule forme sûre. La valeur se "
         "déclare une fois, dans le `.env` : ni littéral ici, ni défaut d'interpolation. Et seul "
         "le `:?` refuse aussi la valeur **vide** — une interpolation nue `${…}` comme un "
@@ -258,9 +286,7 @@ def test_un_point_d_entree_sans_uvicorn_ne_recoit_rien_de_plus_que_l_ancre(servi
     davantage, et l'asymétrie est le sujet — l'exception est nommée par ``SERVICE_D_UVICORN``, tout
     le reste est dérivé de l'image.
     """
-    bloc = _services_du_paquet()[service]
-    declarees = set(_declare(bloc, "environment", f"le service `{service}`"))
-    surplus = declarees - set(_declare(_document(), ANCRE_PARTAGEE, "le compose"))
+    surplus = set(_environnement_de(service)) - set(_ancre())
 
     assert not surplus, (
         f"`{service}` reçoit {sorted(surplus)} en plus de l'ancre. Ce que lit ``Settings`` va dans "
