@@ -61,6 +61,11 @@ s'inverse ou si un maillon disparaît. Ne pas recopier ces chiffres ailleurs : l
 Le worker n'a rien à borner : sa boucle s'arrête d'elle-même sur SIGTERM, il lui faut seulement le
 temps de finir le tour en cours.
 
+**Sur un `.env` plus ancien que ce réglage, toute commande `docker compose` échoue** — `just up` et
+`just test` compris — avec un message qui nomme la variable manquante. C'est délibéré : Compose
+n'aurait sinon transmis qu'une chaîne vide, qu'uvicorn ignore, et la borne aurait disparu sans que
+rien ne le signale. Recopier la ligne depuis `.env.example` suffit.
+
 Ce qu'on doit observer : `docker compose stop api` rend la main **dans le délai déclaré** avec le
 code de sortie **0**. Un `137` signifierait un SIGKILL — c'est-à-dire l'inverse de ce que cette
 configuration existe pour obtenir.
