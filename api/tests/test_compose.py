@@ -83,7 +83,7 @@ def test_le_compose_declare_les_points_d_entree_attendus() -> None:
     assert set(_services_du_paquet()) == {"api", "worker"}
 
 
-def _declare(fragment: dict[str, Any], cle: str, dans: str) -> Any:
+def _declare(fragment: dict[str, Any], cle: str, dans: str) -> dict[str, Any]:
     """La valeur d'une clé du compose, ou un échec qui nomme ce qui manque.
 
     Un accès direct lèverait un ``KeyError``. pytest le compte parmi les **échecs** et non parmi les
@@ -92,15 +92,18 @@ def _declare(fragment: dict[str, Any], cle: str, dans: str) -> Any:
     panne de l'outil plutôt que comme un défaut du fichier lu. On la remplace donc par une
     assertion, qui nomme la clé et le fragment.
 
-    **À n'appeler que depuis un corps de test.** Poser la même garde dans ``_document`` ou
-    ``_services_du_paquet`` la ferait tomber à la **collecte** — les décorateurs de
-    paramétrisation les appellent à l'import — et avorterait le module entier, ce qui est pire que
-    le ``KeyError`` qu'on remplace.
+    **Jamais depuis une aide appelée à l'import.** ``_document`` et ``_services_du_paquet`` le
+    sont, par les décorateurs de paramétrisation : une assertion qui remonterait jusqu'à elles
+    tomberait à la **collecte** et avorterait le module entier — pire que le ``KeyError`` qu'on
+    remplace. Le caveat vaut par transitivité pour toute aide qui appelle celle-ci.
 
-    La clé **présente mais vide** est traitée comme absente, et c'est le cas qui compte : YAML rend
-    ``environment:`` sans contenu par ``None``, qu'une garde de simple présence laisse passer avant
-    d'exploser plus loin sur un ``TypeError`` — mesuré. Un bloc vidé est la forme que prend la
-    suppression d'une ligne de fusion, donc la plus probable des deux.
+    Deux formes valides du compose échouent ici plutôt que plus loin, et c'est le point :
+
+    - la clé **présente mais vide** — YAML rend ``environment:`` sans contenu par ``None``, qu'une
+      garde de simple présence laisse passer avant d'exploser sur un ``TypeError`` (mesuré). Un
+      bloc vidé est la forme que prend la suppression d'une ligne de fusion ;
+    - le bloc écrit **en liste** (``- CLE=valeur``), que Compose accepte : les clés deviendraient
+      des chaînes ``"CLE=valeur"``, et la comparaison rougirait sur un écart illisible.
 
     Args:
         fragment: le fragment de compose interrogé.
@@ -108,19 +111,21 @@ def _declare(fragment: dict[str, Any], cle: str, dans: str) -> Any:
         dans: comment nommer ce fragment dans le message d'échec.
 
     Returns:
-        La valeur associée à ``cle``.
+        Le bloc de clés associé à ``cle``.
     """
     valeur = fragment.get(cle)
 
     assert valeur is not None, f"le compose ne déclare plus `{cle}` dans {dans}"
+    assert isinstance(valeur, dict), (
+        f"`{cle}` dans {dans} n'est pas un bloc de clés mais un {type(valeur).__name__} : la forme "
+        "en liste est un compose valide, mais ses clés sont alors des chaînes `CLE=valeur`"
+    )
 
     return valeur
 
 
 def _ancre() -> dict[str, Any]:
     """L'environnement partagé, lu **avant** sa fusion — la seule vue de la partition.
-
-    **À n'appeler que depuis un corps de test**, comme ``_environnement_de``.
 
     Returns:
         Le contenu de l'ancre.
@@ -134,16 +139,19 @@ def _environnement_de(service: str) -> dict[str, Any]:
     Le trajet « service → bloc → environnement » se faisait sur trois sites, étiquette de message
     recopiée à chaque fois. Une seule formulation, donc une seule à corriger.
 
-    **À n'appeler que depuis un corps de test** : elle passe par ``_declare``, dont la garde
-    tomberait à la collecte si elle remontait dans une aide appelée à l'import.
+    Les **deux** pas passent par ``_declare`` : un service absent de la collection est aussi
+    lisible qu'un bloc absent du service, et l'aide bâtie pour supprimer les accès directs n'en
+    garde pas un pour elle-même.
 
     Args:
-        service: le nom d'un service rendu par ``_services_du_paquet``.
+        service: le nom d'un service du paquet.
 
     Returns:
         Le bloc ``environment``, tel que le conteneur le recevra.
     """
-    return _declare(_services_du_paquet()[service], "environment", f"le service `{service}`")
+    bloc = _declare(_services_du_paquet(), service, "les points d'entrée du paquet")
+
+    return _declare(bloc, "environment", f"le service `{service}`")
 
 
 @pytest.mark.parametrize("service", sorted(_services_du_paquet()))
@@ -250,9 +258,7 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
     contrôle de type, la vérification de forme lèverait un ``AttributeError`` nu au lieu de dire
     laquelle des formes fautives a été employée.
     """
-    services = _services_du_paquet()
-
-    assert SERVICE_D_UVICORN in services, (
+    assert SERVICE_D_UVICORN in _services_du_paquet(), (
         f"aucun service `{SERVICE_D_UVICORN}` **parmi les points d'entrée du paquet** : soit il a "
         f"été renommé, soit il n'est plus bâti sur `{IMAGE_DU_PAQUET}`. C'est `SERVICE_D_UVICORN` "
         "qui désigne le service exécutant uvicorn, et toute la partition s'y adosse"
