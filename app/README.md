@@ -5,7 +5,8 @@ d'interface est `documents/reference/02-specification-ux.md` ; ses jetons de con
 transcrits dans le thème, ses écrans arrivent avec leur domaine. Aujourd'hui l'app démarre sur
 l'écran d'attente de la séquence de démarrage (UX §2.1) : contrôle de version contre
 `GET /version` avant tout autre appel, puis état terminal `Pret` — que le domaine Compte
-prolongera.
+prolongera. Cet écran ne porte **aucun indicateur de progression** : le bloc de marque tient ce
+rôle, et le délai du client HTTP borne l'attente.
 
 ## Lancer
 
@@ -54,10 +55,6 @@ déclenche avant de compiler ; `dart format` ne résout aucun import — il anal
 `fmt-check-app` passe même sans le généré. Attention, `just build` ne lance que `gen-l10n`, jamais
 le script : sur un clone neuf, où `app_fr_XA.arb` n'existe pas encore, il produit un bundle avec
 la seule locale `fr`.
-
-Autre piège de test : l'état `Verification` de l'écran d'attente rend, passé 600 ms, un
-`CircularProgressIndicator` qui anime en continu — **`pumpAndSettle` expire dessus**. Tout test
-qui atteint cet état pilote le temps par `pump(durée)`, jamais par `pumpAndSettle`.
 
 ## Structure
 

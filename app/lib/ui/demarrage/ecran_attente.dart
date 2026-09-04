@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../domain/bandeau/entree_bandeau.dart';
@@ -14,18 +12,20 @@ import 'etat_demarrage.dart';
 
 /// L'écran d'attente neutre de la séquence de démarrage — spec UX §2.1.
 ///
-/// Bloc de marque au centre, et selon [etat] :
-/// - [Verification] — un indicateur de progression, **après 600 ms
-///   seulement** : en dessous, il clignote et donne une impression de lenteur
-///   là où il n'y en a pas ;
+/// Le bloc de marque, centré, **et rien d'autre** : aucun indicateur de
+/// progression. Le bloc affiché est déjà le signe que l'application démarre,
+/// et l'attente est bornée par le délai du client HTTP — l'écran ne peut pas
+/// rester statique plus longtemps que ça avant de basculer.
+///
+/// Selon [etat], paraît **sous** le bloc, sans jamais le déplacer :
 /// - [Injoignable] — « Le serveur ne répond pas. » et « Réessayer », jamais
 ///   le Menu ;
-/// - [Pret] et [MiseAJourRequise] — l'écran reste, neutre (l'écran bloquant
+/// - [Verification], [Pret] et [MiseAJourRequise] — rien (l'écran bloquant
 ///   de [MiseAJourRequise] est livré par le lot 2c de #46).
 ///
 /// Le bandeau (§2.4) occupe son calque : la ligne 5 quand le téléphone est
 /// hors ligne — c'est le [DemarrageViewModel] qui décide, l'écran affiche.
-class EcranAttente extends StatefulWidget {
+class EcranAttente extends StatelessWidget {
   /// Crée l'écran pour [etat], avec l'éventuelle ligne de bandeau active.
   const EcranAttente({
     required this.etat,
@@ -43,51 +43,6 @@ class EcranAttente extends StatefulWidget {
   /// Relance le contrôle de version — l'action de « Réessayer ».
   final VoidCallback onReessayer;
 
-  /// L'attente silencieuse avant l'indicateur de progression (§2.1).
-  static const delaiIndicateur = Duration(milliseconds: 600);
-
-  @override
-  State<EcranAttente> createState() => _EcranAttenteState();
-}
-
-class _EcranAttenteState extends State<EcranAttente> {
-  Timer? _minuteur;
-  bool _indicateurVisible = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _armer();
-  }
-
-  @override
-  void didUpdateWidget(EcranAttente ancien) {
-    super.didUpdateWidget(ancien);
-    if (ancien.etat != widget.etat) {
-      _armer();
-    }
-  }
-
-  @override
-  void dispose() {
-    _minuteur?.cancel();
-    super.dispose();
-  }
-
-  /// (Ré)arme le délai de l'indicateur pour l'état courant.
-  ///
-  /// Chaque retour en [Verification] repart de zéro : un « Réessayer » qui
-  /// répond vite ne doit pas montrer d'indicateur du tout.
-  void _armer() {
-    _minuteur?.cancel();
-    _indicateurVisible = false;
-    if (widget.etat is Verification) {
-      _minuteur = Timer(EcranAttente.delaiIndicateur, () {
-        setState(() => _indicateurVisible = true);
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final textes = AppLocalizations.of(context);
@@ -103,19 +58,23 @@ class _EcranAttenteState extends State<EcranAttente> {
             child: SizedBox.expand(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Espacements.x4),
-                child: Column(
+                // Deux plans indépendants, et c'est ce qui tient l'invariant
+                // du §2.1 : le bloc est centré seul, le bouton est ancré en
+                // bas. Ni l'un ni l'autre ne peut donc déplacer le bloc.
+                child: Stack(
                   children: [
-                    const Spacer(),
-                    const BlocDeMarque(),
-                    const SizedBox(height: Espacements.x6),
-                    _zoneEtat(context, textes),
-                    const Spacer(),
-                    if (widget.etat is Injoignable)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: Espacements.x6),
-                        child: BoutonPleineLargeur(
-                          libelle: textes.attenteActionReessayer,
-                          onPressed: widget.onReessayer,
+                    Center(child: _blocEtZoneEtat(context, textes)),
+                    if (etat is Injoignable)
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: Espacements.x6,
+                          ),
+                          child: BoutonPleineLargeur(
+                            libelle: textes.attenteActionReessayer,
+                            onPressed: onReessayer,
+                          ),
                         ),
                       ),
                   ],
@@ -123,17 +82,40 @@ class _EcranAttenteState extends State<EcranAttente> {
               ),
             ),
           ),
-          Calque.bandeau: EmplacementBandeau(entree: widget.entreeBandeau),
+          Calque.bandeau: EmplacementBandeau(entree: entreeBandeau),
         },
       ),
     );
   }
 
-  /// Ce qui vit sous le bloc de marque : indicateur, message d'échec, ou rien.
+  /// Le bloc de marque, et sous lui la zone d'état — qui est **peinte sans
+  /// compter dans la hauteur** du groupe.
+  ///
+  /// C'est `heightFactor: 0` qui tient l'invariant : la colonne mesure le
+  /// seul bloc, donc le [Center] le centre et il **reste immobile** quel que
+  /// soit ce qui s'affiche dessous. Compter la zone d'état dans la hauteur,
+  /// comme le faisait la version précédente, faisait remonter le bloc de la
+  /// moitié de ce qui paraissait — 52 dp mesurés entre attente et échec.
+  Widget _blocEtZoneEtat(BuildContext context, AppLocalizations textes) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const BlocDeMarque(),
+        Align(
+          alignment: Alignment.topCenter,
+          heightFactor: 0,
+          child: Padding(
+            padding: const EdgeInsets.only(top: Espacements.x6),
+            child: _zoneEtat(context, textes),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Ce qui vit sous le bloc de marque : le message d'échec, ou rien.
   Widget _zoneEtat(BuildContext context, AppLocalizations textes) {
-    return switch (widget.etat) {
-      Verification() when _indicateurVisible =>
-        const CircularProgressIndicator(),
+    return switch (etat) {
       Injoignable() => Text(
         textes.attenteServeurInjoignable,
         style: Typographie.body.copyWith(

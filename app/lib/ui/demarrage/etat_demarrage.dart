@@ -57,8 +57,8 @@ class Injoignable extends EtatDemarrage {
   int get hashCode => (Injoignable).hashCode;
 }
 
-/// Le contrôle de version est passé ; l'écran d'attente reste, indicateur
-/// éteint, jusqu'à ce que le domaine Compte prolonge la séquence (étape 2).
+/// Le contrôle de version est passé ; l'écran d'attente reste, inchangé,
+/// jusqu'à ce que le domaine Compte prolonge la séquence (étape 2).
 @immutable
 class Pret extends EtatDemarrage {
   /// Crée l'état terminal du lot.

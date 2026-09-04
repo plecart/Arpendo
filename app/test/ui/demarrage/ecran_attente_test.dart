@@ -1,6 +1,7 @@
 import 'package:arpendo/domain/bandeau/lignes.dart';
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
+import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
 import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_attente.dart';
@@ -30,61 +31,91 @@ Future<void> _monter(
 }
 
 void main() {
-  testWidgets("l'indicateur est absent à 599 ms et présent à 600 ms", (
-    tester,
-  ) async {
-    await _monter(tester, const Verification());
+  testWidgets(
+    'le bloc de marque occupe la même position dans les trois états',
+    (tester) async {
+      // L'invariant du §2.1 : ce qui paraît sous le bloc — message, bouton —
+      // prend sa place SANS le déplacer. Le défaut corrigé ici valait 52 dp de
+      // dérive entre l'attente et l'échec.
+      final positions = <String, Rect>{};
+      for (final (nom, etat) in const <(String, EtatDemarrage)>[
+        ('Verification', Verification()),
+        ('Pret', Pret(miseAJourRecommandee: false)),
+        ('Injoignable', Injoignable()),
+      ]) {
+        await _monter(tester, etat);
+        positions[nom] = tester.getRect(find.byType(BlocDeMarque));
+      }
 
-    await tester.pump(const Duration(milliseconds: 599));
+      expect(
+        positions.values.toSet(),
+        hasLength(1),
+        reason:
+            'un logo qui remonte à chaque changement d\'état se lit comme une '
+            'instabilité de l\'application (§2.1) — mesuré : $positions',
+      );
+    },
+  );
+
+  testWidgets('le bloc de marque est centré verticalement', (tester) async {
+    await _monter(tester, const Injoignable());
+
+    final bloc = tester.getRect(find.byType(BlocDeMarque));
+    final ecran = tester.getRect(find.byType(MaterialApp));
     expect(
-      find.byType(CircularProgressIndicator),
-      findsNothing,
+      bloc.center.dy,
+      // Un demi-pixel de tolérance : un bloc de hauteur impaire ne peut pas
+      // tomber sur un centre entier. Au-delà, ce n'est plus un arrondi.
+      moreOrLessEquals(ecran.center.dy, epsilon: 0.5),
       reason:
-          'en dessous de 600 ms, l\'indicateur clignote et donne une '
-          'impression de lenteur là où il n\'y en a pas (§2.1)',
+          'le §2.1 centre le bloc verticalement, et non en bande haute comme '
+          'au §4 : cet écran n\'a ni action permanente ni contenu à dégager',
     );
-
-    await tester.pump(const Duration(milliseconds: 1));
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('Pret : écran neutre, aucun indicateur même après 600 ms', (
+  testWidgets('aucun indicateur de progression, quel que soit l\'état', (
     tester,
   ) async {
-    await _monter(tester, const Pret(miseAJourRecommandee: false));
-
-    await tester.pump(const Duration(seconds: 1));
-
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    // Le bloc de marque tient ce rôle, et le délai du client HTTP borne
+    // l'attente (§2.1, §13.2). Garde de non-régression de la décision.
+    for (final etat in const <EtatDemarrage>[
+      Verification(),
+      Pret(miseAJourRecommandee: false),
+      MiseAJourRequise(),
+      Injoignable(),
+    ]) {
+      await _monter(tester, etat);
+      await tester.pump(const Duration(seconds: 10));
+      expect(
+        // `bySubtype` et non `byType` : ce dernier compare le type exact et
+        // laisserait passer n'importe quelle sous-classe de `ProgressIndicator`.
+        find.bySubtype<ProgressIndicator>(),
+        findsNothing,
+        reason: 'état $etat',
+      );
+    }
     expect(find.text('Arpendo'), findsOneWidget);
   });
 
-  testWidgets('Injoignable : message, Réessayer, pas d\'indicateur', (
+  testWidgets('Injoignable : message et Réessayer, qui relance', (
     tester,
   ) async {
     var relances = 0;
     await _monter(tester, const Injoignable(), onReessayer: () => relances++);
-    await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Le serveur ne répond pas.'), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    // La zone d'état est peinte hors du flux (`heightFactor: 0`), donc aucun
+    // débordement ne sera plus signalé par le framework : ce garde remplace
+    // celui qu'on perd en sortant du flux.
+    expect(
+      tester.getRect(find.text('Le serveur ne répond pas.')).bottom,
+      lessThan(tester.getRect(find.byType(BoutonPleineLargeur)).top),
+      reason: 'le message ne doit pas recouvrir la seule action de l\'écran',
+    );
 
     await tester.tap(find.text('Réessayer'));
     await tester.pumpAndSettle();
     expect(relances, 1);
-  });
-
-  testWidgets('revenir en Verification réarme le délai de 600 ms', (
-    tester,
-  ) async {
-    await _monter(tester, const Injoignable());
-    await tester.pump(const Duration(seconds: 1));
-
-    await _monter(tester, const Verification());
-    await tester.pump(const Duration(milliseconds: 599));
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-    await tester.pump(const Duration(milliseconds: 1));
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
   testWidgets('une entrée de bandeau est rendue sur son calque', (
@@ -103,7 +134,6 @@ void main() {
     tester,
   ) async {
     await _monter(tester, const Injoignable());
-    await tester.pump(const Duration(seconds: 1));
 
     expect(find.byType(BoutonPleineLargeur), findsOneWidget);
   });
@@ -122,7 +152,6 @@ void main() {
     tester.view.padding = const FakeViewPadding(bottom: inset);
     addTearDown(tester.view.reset);
     await _monter(tester, const Injoignable());
-    await tester.pump(const Duration(seconds: 1));
 
     final basBouton = tester.getBottomLeft(find.byType(BoutonPleineLargeur)).dy;
     final hauteurEcran = tester.getSize(find.byType(MaterialApp)).height;
