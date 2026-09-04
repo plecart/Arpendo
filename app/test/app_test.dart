@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:arpendo/data/services/api_client.dart';
 import 'package:arpendo/data/services/connectivity_service.dart';
+import 'package:arpendo/data/services/magasin_service.dart';
+import 'package:arpendo/data/services/preferences_service.dart';
 import 'package:arpendo/main.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_attente.dart';
+import 'package:arpendo/ui/demarrage/ecran_mise_a_jour.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Réseau toujours présent, flux muet : la racine n'en teste pas plus ici.
 class _ConnectiviteFigee implements ConnectivityService {
@@ -38,8 +42,11 @@ http.Client _serveurNominal() => MockClient(
   (_) async => http.Response('{"min_build":1,"recommended_build":1}', 200),
 );
 
+/// Les préférences du test, reposées vides avant chaque cas.
+late PreferencesService prefs;
+
 /// La racine telle que `main()` la construit, transport et réseau de test.
-ArpendoApp _app({http.Client? transport}) {
+ArpendoApp _app({http.Client? transport, int buildActuel = 4}) {
   final connectivite = _ConnectiviteFigee();
   return ArpendoApp(
     client: ApiClient(
@@ -49,16 +56,51 @@ ArpendoApp _app({http.Client? transport}) {
       client: transport ?? _serveurNominal(),
     ),
     connectivite: connectivite,
-    buildActuel: 4,
+    buildActuel: buildActuel,
+    preferences: prefs,
+    // Lanceur inerte : la racine ne doit ouvrir aucun lien, seulement
+    // brancher celui qui le fera.
+    magasin: MagasinService(
+      identifiantApplication: 'com.arpendo.game',
+      lancer: (_) async => true,
+    ),
   );
 }
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = PreferencesService(await SharedPreferences.getInstance());
+  });
   testWidgets("l'application démarre sur l'écran d'attente", (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
     expect(find.byType(EcranAttente), findsOneWidget);
+  });
+
+  testWidgets('build sous le minimal : la racine bascule sur le bloquant', (
+    tester,
+  ) async {
+    // Le seul état qui **remplace** l'écran d'attente au lieu de l'habiller
+    // (§11.2). C'est ici que ça se vérifie, et pas dans le test de l'écran :
+    // l'écran ne sait pas quand il s'affiche, le `switch` de la racine si.
+    await tester.pumpWidget(
+      _app(
+        transport: MockClient(
+          (_) async =>
+              http.Response('{"min_build":9,"recommended_build":9}', 200),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EcranMiseAJour), findsOneWidget);
+    expect(
+      find.byType(EcranAttente),
+      findsNothing,
+      reason: 'les deux à l\'écran laisseraient une sortie au joueur',
+    );
   });
 
   testWidgets('la première requête est GET /version, seule et versionnée', (

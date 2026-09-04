@@ -6,7 +6,10 @@ transcrits dans le thème, ses écrans arrivent avec leur domaine. Aujourd'hui l
 l'écran d'attente de la séquence de démarrage (UX §2.1) : contrôle de version contre
 `GET /version` avant tout autre appel, puis état terminal `Pret` — que le domaine Compte
 prolongera. Cet écran ne porte **aucun indicateur de progression** : le bloc de marque tient ce
-rôle, et le délai du client HTTP borne l'attente.
+rôle, et le délai du client HTTP borne l'attente. Si le build installé est sous le minimum publié
+par le serveur, l'écran d'attente est **remplacé** par l'écran bloquant de mise à jour (UX §11.2),
+dont on ne sort pas ; s'il est seulement sous le recommandé, le bandeau 12 s'ajoute par-dessus,
+fermable une fois par version.
 
 ## Lancer
 
@@ -26,12 +29,23 @@ just run
 ## Structure
 
 La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation
-et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `ApiClient`) ;
+et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `SharedPreferences`,
+`ApiClient`, `PreferencesService`, `MagasinService`) — c'est aussi le **seul endroit qui attende**
+la plateforme, ce qui rend synchrones toutes les lectures de préférences qui suivent ;
 `ArpendoApp` les reçoit et les expose par `provider` — `Provider<ApiClient>` (le `dispose`
 appelle `close()`) et le premier ViewModel, `DemarrageViewModel` (`ChangeNotifier`), dont l'état
 scellé `EtatDemarrage` pilote un `switch` exhaustif → écran. Les écrans vivent dans
 `lib/ui/<feature>/`, les services dans `lib/data/services/`, les règles pures dans
 `lib/domain/`.
+
+Le thème s'applique dans les deux modes, en `ThemeMode.system`. Les couches UI (vues + ViewModels)
+et Data (repositories + services) naissent **avec leur premier contenu** — aucun dossier n'est créé
+avant : `lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP,
+`lib/l10n/` depuis les textes, `lib/domain/` depuis les règles du bandeau.
+
+`lib/domain/` porte les règles **qui ne dépendent ni d'un écran ni d'un transport** : elles
+n'importent rien de `lib/ui/`, et c'est ce qui permet de les rejouer ailleurs qu'à l'écran — la
+notification permanente d'Android (UX §10.2) applique la même règle de bandeau sans widget.
 
 ## Tester et vérifier
 
@@ -55,19 +69,6 @@ déclenche avant de compiler ; `dart format` ne résout aucun import — il anal
 `fmt-check-app` passe même sans le généré. Attention, `just build` ne lance que `gen-l10n`, jamais
 le script : sur un clone neuf, où `app_fr_XA.arb` n'existe pas encore, il produit un bundle avec
 la seule locale `fr`.
-
-## Structure
-
-`lib/main.dart` porte `ArpendoApp`, racine pilotée par l'état (UX §2.1) : l'écran affiché
-dépendra de la séquence de démarrage. Elle applique le thème dans les deux modes, en
-`ThemeMode.system`. Les couches UI (vues + ViewModels) et Data (repositories + services) naissent
-avec leur premier contenu, sous `lib/ui/` et `lib/data/` — aucun dossier n'est créé avant :
-`lib/ui/core/theme/` existe depuis le thème, `lib/data/services/` depuis le client HTTP,
-`lib/l10n/` depuis les textes, `lib/domain/` depuis les règles du bandeau.
-
-`lib/domain/` porte les règles **qui ne dépendent ni d'un écran ni d'un transport** : elles
-n'importent rien de `lib/ui/`, et c'est ce qui permet de les rejouer ailleurs qu'à l'écran — la
-notification permanente d'Android (UX §10.2) applique la même règle de bandeau sans widget.
 
 ## Thème — les jetons de conception
 
@@ -381,3 +382,33 @@ C'est `enLigne()` qui alimente la ligne 5 du bandeau (UX §2.4) — voir « Comp
 
 > `connectivity_plus` fusionne la permission Android `ACCESS_NETWORK_STATE` dans le manifeste.
 > Elle est normale et n'affiche aucune invite, mais elle apparaît dans l'APK.
+
+## Mise à jour du client — deux niveaux, deux services
+
+La séquence de démarrage compare le build installé aux deux seuils de `GET /version` (UX §11.2) :
+
+| Verdict | Ce qui s'affiche |
+|---|---|
+| build < **minimal** | `EcranMiseAJour` **remplace** l'écran d'attente — `Calque.bloquant` (z 500), `PopScope(canPop: false)`, aucune sortie, pas même le geste de retour |
+| build < **recommandé** | l'écran d'attente reste, la **ligne 12** du bandeau s'ajoute sur son calque, avec « Mettre à jour » et « Fermer » |
+| sinon | rien de plus |
+
+Deux services de la couche Data servent ces deux niveaux, et **chacun est le seul à importer son
+plugin** — la règle qui vaut déjà pour `api_client.dart` et `connectivity_service.dart` :
+
+| Fichier | Plugin | Ce qu'il fait |
+|---|---|---|
+| `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part au journal |
+| `data/services/preferences_service.dart` | `shared_preferences` | retient le **build recommandé** dont le bandeau a été fermé. Il stocke, il n'arbitre pas |
+
+**La condition de la ligne 12 vit dans `DemarrageViewModel`, pas dans les services.** Elle vaut
+« recommandé non atteint **et** recommandé strictement supérieur à celui qu'on a écarté ». La
+comparaison est un `>` et non un `!=` : ce qui a été écarté est un **seuil**, pas un identifiant —
+un serveur qui redescendrait sa recommandation ne doit pas rouvrir un bandeau déjà refusé.
+
+Le service de préférences ne garde **rien de sensible** : ni jeton, ni identifiant, ni coordonnée.
+Le stockage d'Android n'est pas chiffré et une sauvegarde système le recopie ailleurs.
+
+`main()` reçoit l'`applicationId` de `PackageInfo` et le passe au service du magasin : c'est
+l'application **réellement installée** dont on ouvre la fiche, jamais une constante qui
+divergerait d'une saveur de build.
