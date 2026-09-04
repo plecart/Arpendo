@@ -2194,6 +2194,13 @@ avec le serveur. Installe la dernière version pour continuer à jouer. » Bouto
 (56 dp, bande basse) → Play Store. Corps 2, `type-caption` : « Ta partie et ta progression sont
 conservées. » — sans quoi le joueur croit tout perdre et hésite.
 
+**Si le magasin ne s'ouvre pas** — ni l'application du magasin ni un navigateur ne répond au lien —
+**l'écran ne change pas** : aucun message, aucun état d'erreur, et le bouton reste tapable. C'est
+l'exception à la règle du §13.3 (« toute erreur récupérable porte "Réessayer" »), et elle est
+motivée : il n'y a **rien à récupérer dans l'application**. Le seul geste utile — installer la
+mise à jour — se fait dehors, et un message qui ne propose aucune action n'ajouterait que de
+l'inquiétude à un écran déjà bloquant.
+
 Cet écran s'affiche **avant** tout appel authentifié (§2.1).
 
 **Version recommandée — bandeau.** Priorité 12 du bandeau unique (§2.4), fermable. Une fois fermé,

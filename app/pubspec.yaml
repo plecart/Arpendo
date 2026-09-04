@@ -35,6 +35,9 @@ dependencies:
   # sensible (le stockage Android n'est pas chiffré). Seul
   # `lib/data/services/preferences_service.dart` l'importe.
   shared_preferences: ^2.5.5
+  # Ouvre la fiche du magasin depuis l'écran bloquant et le bandeau 12
+  # (UX §11.2). Seul `lib/data/services/magasin_service.dart` l'importe.
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   # Déjà dans l'arbre en transitive de `connectivity_plus` ; déclarée ici pour
