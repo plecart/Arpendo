@@ -495,9 +495,11 @@ familles, parce qu'elles ont la même anatomie et le même emplacement.
 **Anatomie.** Largeur pleine moins `space-4` de chaque côté, `radius-md`, `elev-1`, rembourrage
 interne `space-4`. Icône 24 dp à gauche, **`space-3`** d'écart — et non `space-1`, qui vaut pour une
 icône accolée à son libellé dans un même contrôle (§1.1), là où l'icône et le message du bandeau
-sont deux éléments distincts —, puis le texte `type-body` ; **zéro à deux actions sur une seconde
-rangée**, alignées à droite, séparées du message par `space-2`. Les actions sont des boutons texte
-de **48 × 48 dp minimum** (§1.4, « aucune exception »).
+sont deux éléments distincts —, puis le texte `type-body`. Les actions sont des boutons texte de
+**48 × 48 dp minimum** (§1.4, « aucune exception »), et **c'est leur nombre qui décide de leur
+place** : une action **seule** partage la rangée du message, à sa droite, séparée de lui par
+`space-2` ; **deux** actions descendent sur une **seconde rangée**, alignées à droite et séparées
+du message par `space-2`.
 
 **La hauteur est un résultat, jamais une consigne** (§0 : les conteneurs grandissent, ils ne
 tronquent pas). Elle vaut `space-4` × 2 plus la hauteur du contenu, où une ligne de `type-body`
@@ -507,17 +509,22 @@ compte 24 dp (§1.2) et une rangée d'actions 48 + `space-2` (§1.4). D'où, pou
 |---|---|
 | une ligne, aucune action | **56 dp** |
 | deux lignes, aucune action | **80 dp** |
-| une ligne, avec action(s) | **112 dp** |
-| deux lignes, avec action(s) | **136 dp** |
+| une ligne, **une** action | **80 dp** — la cible tactile de 48 dp remplace la ligne de 24 sur la même rangée |
+| une ligne, **deux** actions | **112 dp** |
+| deux lignes, **deux** actions | **136 dp** |
 
 Ce sont des **illustrations de la règle, pas une énumération** : un message plus long continue de
 grandir de 24 dp par ligne, et les tests mesurent, ils ne recopient pas.
 
-**Pourquoi les actions ne partagent pas la rangée du message.** Sur l'écran de référence de
+**Pourquoi deux actions ne partagent pas la rangée du message.** Sur l'écran de référence de
 360 dp, il reste 260 dp une fois retirés les marges, le rembourrage, l'icône et son écart. Les
 deux actions des priorités 10 et 11 — « Réglages » et « Masquer pour cette partie » — les
-consomment à elles seules. Le message garde donc toute la largeur, ce qui le rend insensible à la
-longueur des libellés comme à la tolérance de +30 % du §0.
+consomment à elles seules. Elles descendent donc, et le message garde toute la largeur, ce qui le
+rend insensible à la longueur des libellés comme à la tolérance de +30 % du §0.
+
+**Une action seule reste sur la rangée**, parce que la mesure ci-dessus ne la condamne pas : un
+libellé unique laisse au message de quoi respirer, et le reléguer sous lui coûterait 32 dp de
+hauteur pour une rangée presque vide. Le seuil est donc le **nombre**, pas la présence.
 
 **Paramètres du composant :**
 

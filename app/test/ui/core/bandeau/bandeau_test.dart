@@ -199,17 +199,30 @@ void main() {
     expect(_hauteur(tester), 80);
   });
 
-  testWidgets('les actions descendent sur une seconde rangée', (tester) async {
+  testWidgets('une action unique partage la rangée du message', (tester) async {
     await _monter(tester, _entree(actions: 1));
 
     expect(tester.getSize(find.byType(TextButton)).height, CiblesTactiles.min);
+    // 16 + 48 (la cible tactile, plus haute que la ligne de 24) + 16.
+    expect(_hauteur(tester), 80);
+    // Sur la même rangée : le bouton commence avant que l'icône ne finisse.
+    expect(
+      tester.getTopLeft(find.byType(TextButton)).dy,
+      lessThan(tester.getBottomLeft(find.byType(Icon)).dy),
+    );
+  });
+
+  testWidgets('deux actions descendent sur une seconde rangée', (tester) async {
+    await _monter(tester, _entree(actions: 2));
+
     // 16 + 24 (une ligne) + 8 (écart) + 48 (cible tactile) + 16.
     expect(_hauteur(tester), 112);
     // La seconde rangée existe pour que le message garde toute la largeur :
-    // sur l'écran de référence, deux libellés longs et un message ne tiennent
-    // pas côte à côte, et le garde `fr-XA` les allonge encore de 30 %.
+    // sur l'écran de référence, **deux** libellés longs et un message ne
+    // tiennent pas côte à côte, et le garde `fr-XA` les allonge de 30 %. Un
+    // libellé seul, lui, y tient — d'où la règle à deux cas.
     expect(
-      tester.getTopLeft(find.byType(TextButton)).dy,
+      tester.getTopLeft(find.byType(TextButton).first).dy,
       greaterThan(tester.getBottomLeft(find.byType(Icon)).dy),
     );
   });

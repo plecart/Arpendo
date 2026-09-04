@@ -21,18 +21,20 @@ import '../theme/typographie.dart';
 ///
 /// **Sa hauteur est dictée par son contenu**, jamais fixée (§0 : les
 /// conteneurs grandissent, ils ne tronquent pas) : 56 dp sur une ligne sans
-/// action, 80 dp dès que le message passe sur deux lignes, 112 dp dès qu'une
-/// action est présente. Ce sont des **résultats** du rembourrage
-/// [Espacements.x4] appliqué à une ligne de `type-body` (24 dp) ou à une cible
-/// tactile ([CiblesTactiles.min]) ; les tests les mesurent, le code ne les
-/// pose nulle part.
+/// action, 80 dp dès que le message passe sur deux lignes **ou** qu'une action
+/// unique partage sa rangée, 112 dp quand deux actions descendent. Ce sont des
+/// **résultats** du rembourrage [Espacements.x4] appliqué à une ligne de
+/// `type-body` (24 dp) ou à une cible tactile ([CiblesTactiles.min]) ; les
+/// tests les mesurent, le code ne les pose nulle part.
 ///
-/// **Les actions descendent sur une seconde rangée**, et ce n'est pas un choix
-/// de style : sur l'écran de référence de 360 dp, il ne reste que 260 dp après
-/// les marges, le rembourrage et l'icône, et les deux actions des priorités 10
-/// et 11 les consomment à elles seules. Le message garde donc toute la
-/// largeur, ce qui le rend insensible à la longueur des libellés comme à la
-/// tolérance de +30 % du §0 (§2.4, amendé le 30 août 2026 — archive §18.7).
+/// **C'est le nombre d'actions qui décide de la rangée**, pas leur présence.
+/// Une action **seule** partage la rangée du message ; **deux** descendent. Ce
+/// n'est pas un choix de style : sur l'écran de référence de 360 dp, il ne
+/// reste que 260 dp après les marges, le rembourrage et l'icône, et les deux
+/// actions des priorités 10 et 11 les consomment à elles seules — un libellé
+/// unique, lui, y tient sans serrer le message. La règle garde donc le message
+/// insensible à la longueur des libellés comme à la tolérance de +30 % du §0
+/// (§2.4, amendé le 30 août 2026 puis le 4 septembre 2026 — archive §18.7).
 class Bandeau extends StatelessWidget {
   /// Crée le bandeau qui rend [entree].
   const Bandeau({required this.entree, super.key});
@@ -40,10 +42,23 @@ class Bandeau extends StatelessWidget {
   /// La ligne à afficher, choisie par `resoudre`.
   final EntreeBandeau entree;
 
+  /// L'action qui tient sur la rangée du message, ou `null` — spec UX §2.4.
+  ///
+  /// Une seule y tient. Deux passent en seconde rangée : c'est le nombre, pas
+  /// la présence, qui décide.
+  ActionBandeau? get _actionSurLaRangee =>
+      entree.actions.length == 1 ? entree.actions.single : null;
+
+  /// Les actions reléguées sous le message — deux, ou aucune.
+  List<ActionBandeau> get _actionsEnSecondeRangee =>
+      entree.actions.length > 1 ? entree.actions : const [];
+
   @override
   Widget build(BuildContext context) {
     final couleurs = Theme.of(context).colorScheme;
     final textes = AppLocalizations.of(context);
+    // Liée à une locale : un `get` ne se promeut pas, même testé juste avant.
+    final actionSeule = _actionSurLaRangee;
     return Padding(
       // Largeur pleine moins une marge d'écran de chaque côté (§2.4).
       padding: const EdgeInsets.symmetric(horizontal: Espacements.x4),
@@ -64,7 +79,14 @@ class Bandeau extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                // Sans action sur la rangée, l'icône s'aligne sur la première
+                // ligne du message — inchangé pour les lignes 5, 10 et 11.
+                // Avec, la rangée mêle un libellé de 24 dp et une cible
+                // tactile de 48 : les centrer est le seul alignement qui ne
+                // fasse pas flotter le message en haut de son bouton.
+                crossAxisAlignment: actionSeule == null
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.center,
                 children: [
                   Icon(
                     _glyphe(entree.severite),
@@ -80,9 +102,19 @@ class Bandeau extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Une action **seule** tient sur la rangée du message : la
+                  // mesure du §2.4 qui les en chasse porte sur **deux**
+                  // libellés, qui consomment à eux seuls les 260 dp restants.
+                  if (actionSeule != null) ...[
+                    const SizedBox(width: Espacements.x2),
+                    TextButton(
+                      onPressed: actionSeule.onPressed,
+                      child: Text(actionSeule.libelle(textes)),
+                    ),
+                  ],
                 ],
               ),
-              if (entree.actions.isNotEmpty) ...[
+              if (_actionsEnSecondeRangee.isNotEmpty) ...[
                 const SizedBox(height: Espacements.x2),
                 // `Wrap` et non `Row` : le §1.2 exige de suivre le réglage de
                 // taille de police du système **jusqu'à 200 % sans
@@ -94,7 +126,7 @@ class Bandeau extends StatelessWidget {
                   alignment: WrapAlignment.end,
                   spacing: Espacements.x2,
                   children: [
-                    for (final action in entree.actions)
+                    for (final action in _actionsEnSecondeRangee)
                       // La cible tactile du §1.4 vient du `TextButtonThemeData`
                       // du thème (#46) — aucun style local : il masquerait le
                       // thème, qui l'emporterait en silence.
