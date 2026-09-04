@@ -729,3 +729,31 @@ identité §0.1). En mode sombre, l'état pressé ne peut donc qu'éclaircir. Un
 `app/lib/ui/core/theme/mouvement.dart`, docstring du jeton `press` (répétait le « 6 % »), corrigée
 dans le même commit. Aucun document de rang 1 ne mentionne le retour d'appui : pas de ligne au
 journal du cadrage.
+
+## 18.10 Amendement du §1.6 du 4 septembre 2026 — l'exception de l'indicateur de progression
+
+**La contradiction.** Le §1.6 écrivait « Aucune exception. Le réglage désactive les animations,
+il les désactive toutes », et l'écran d'attente du lot 2b de #46 rend un
+`CircularProgressIndicator` Material qui pilote son propre `AnimationController` et tourne
+indéfiniment, `MediaQuery.disableAnimations` compris — mesuré par la relecture indépendante.
+
+**Options examinées :**
+
+| Option | Retenue ? |
+|---|---|
+| **Le § gagne une exception explicite et nommée** — l'indicateur de progression indéterminé anime en continu : état, pas transition ; sa présence est l'information | **Oui.** (1) La distinction est déjà dans l'esprit du § (« chaque transition a un état final lisible à l'arrêt » — un indicateur indéterminé n'a pas d'état final) ; (2) un spinner figé est indiscernable d'un gel de l'app — une dégradation, pas une protection ; (3) c'est le comportement natif d'Android, et l'apparition différée de 600 ms (§2.1) borne déjà le mouvement inutile |
+| Figer l'indicateur sous le réglage | Non. Fidèle à la lettre, contraire à l'intention : l'utilisateur y lirait un gel |
+| Retirer l'indicateur sous le réglage | Non. Retirerait l'information elle-même — le § interdit précisément qu'une animation porte seule une information, pas qu'un état s'affiche |
+
+**Garde-fous, pour que « Aucune exception » ne s'érode pas :** l'exception est **nommée et
+unique** — l'indicateur de progression indéterminé, ni « les indicateurs » ni « les états
+animés » ; toute nouvelle exception repasse par un amendement de § (`/contradiction`), jamais par
+analogie. **L'invariant vérifiable reste intact** : tout ce qui passe par `Mouvement` tombe à
+0 ms sous le réglage (test qui parcourt l'énumération), et l'indicateur Material n'y passe pas —
+le jour où on voudrait le styler, il resterait hors des jetons de durée.
+
+**§§ répercutés :** `02-specification-ux.md` §1.6 (paragraphe « Aucune exception », complété d'un
+paragraphe d'exception nommée). §2.1 inchangé (le différé de 600 ms y était déjà). Aucun document
+de rang 1 ni de rang 3 ne mentionne le réglage : cascade nulle, mesurée sur les ancres
+`disableAnimations`, « aucune exception », « indicateur » dans `01-cadrage.md` et
+`03-identite-visuelle.md`. Hors documents : rien — `mouvement.dart` ne parle que des jetons.

@@ -306,6 +306,13 @@ vol de caméra du §7.4, qui devient un saut instantané, et la transition d'él
 l'accompagne. Un joueur qui a demandé zéro mouvement obtient zéro mouvement ; lui en concéder
 « juste un peu » quelque part, c'est ne pas respecter le réglage tout en compliquant le code.
 
+**Une seule exception, nommée : l'indicateur de progression indéterminé** (§2.1). Il anime en
+continu, réglage compris — c'est un **état**, pas une transition : il n'a pas d'état final, sa
+présence est l'information, et figé il serait indiscernable d'un gel de l'application. Il reste
+rendu — jamais retiré — sous le réglage, et son apparition différée de 600 ms (§2.1) borne déjà
+le mouvement inutile. Toute nouvelle exception repasse par l'amendement de ce §, jamais par
+analogie avec celle-ci.
+
 **Le principe qui gouverne les formes d'entrée.** Un élément entre **par l'endroit où il va vivre**.
 Une feuille ancrée en bas glisse depuis le bas ; une modale centrée grossit sur place, de 96 % à
 100 %, avec le fondu de son voile. L'inverse — une modale centrée qui glisse, une feuille qui
