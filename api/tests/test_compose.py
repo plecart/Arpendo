@@ -23,6 +23,18 @@ IMAGE_DU_PAQUET = "arpendo-api:dev"
 C'est **elle** qui désigne les services concernés, et non une liste de noms écrite ici : un
 troisième point d'entrée bâti sur la même image sera couvert le jour où il naîtra, sans que
 personne ait à penser à l'ajouter. Une liste de noms, elle, aurait vieilli en silence.
+
+**Une seule chose ne se dérive pas** : le témoin positif ci-dessous énumère les points d'entrée
+attendus, et c'est sa raison d'être — il rougit à l'arrivée du troisième pour forcer la
+conversation, plutôt que de l'absorber en silence. Tout le reste suit, y compris l'exception
+``SERVICE_D_UVICORN``, qui nomme un service et non une liste.
+"""
+
+SERVICE_D_UVICORN = "api"
+"""Le seul point d'entrée que le serveur uvicorn héberge — donc le seul à lire `UVICORN_*`.
+
+Nommé une fois, ici : c'est l'**exception** à la partition, et une exception se déclare. Tout ce qui
+n'est pas cette exception se dérive de ``IMAGE_DU_PAQUET``, sans liste à tenir.
 """
 
 BORNE_UVICORN = "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN"
@@ -62,7 +74,7 @@ def _services_du_paquet() -> dict[str, dict[str, Any]]:
     return {nom: bloc for nom, bloc in services.items() if bloc.get("image") == IMAGE_DU_PAQUET}
 
 
-def test_le_compose_declare_au_moins_deux_points_d_entree() -> None:
+def test_le_compose_declare_les_points_d_entree_attendus() -> None:
     """Garde-fou du garde : sans lui, une image renommée viderait la paramétrisation ci-dessous.
 
     Un test paramétré sur une collection vide ne s'exécute pas — et ne rougit donc jamais. C'est
@@ -72,7 +84,7 @@ def test_le_compose_declare_au_moins_deux_points_d_entree() -> None:
 
 
 @pytest.mark.parametrize("service", sorted(_services_du_paquet()))
-def test_chaque_point_d_entree_recoit_toute_la_configuration_requise(service: str) -> None:
+def test_chaque_point_d_entree_recoit_tout_ce_que_lisent_les_reglages(service: str) -> None:
     """Toute variable que lit ``Settings`` est présente dans l'environnement de chaque service.
 
     ``Settings`` valide la configuration **entière** au démarrage, quel que soit le point d'entrée :
@@ -177,32 +189,34 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
         "ouvertes sans limite, et Docker le tuerait au SIGKILL"
     )
     assert relais.startswith(f"${{{BORNE_UVICORN}:?"), (
-        f"{BORNE_UVICORN} est relayée par {relais!r}, hors de la forme `${{…:?…}}`. La valeur se "
-        "déclare une seule fois, dans le `.env` — donc ni littéral ici, ni défaut d'interpolation. "
-        "Et seul le `:?` refuse aussi la valeur **vide** : `${{…?…}}`, sans les deux-points, "
-        "laisse passer la chaîne vide, que click ignore en silence. La borne se perdrait "
-        "sans un mot"
+        f"{BORNE_UVICORN} est relayée par {relais!r}, hors de la seule forme sûre. La valeur se "
+        "déclare une fois, dans le `.env` : ni littéral ici, ni défaut d'interpolation. Et seul "
+        "le `:?` refuse aussi la valeur **vide** — une interpolation nue `${…}` comme un "
+        "`${…?…}` sans les deux-points la laissent passer, et click l'ignore en silence. "
+        "La borne se perdrait sans un mot"
     )
 
 
-def test_le_worker_ne_recoit_rien_de_plus_que_l_ancre() -> None:
-    """L'autre moitié de la partition : ce qu'uvicorn lit ne descend pas jusqu'au worker.
+@pytest.mark.parametrize("service", sorted(set(_services_du_paquet()) - {SERVICE_D_UVICORN}))
+def test_un_point_d_entree_sans_uvicorn_ne_recoit_rien_de_plus_que_l_ancre(service: str) -> None:
+    """L'autre moitié de la partition : ce qu'uvicorn lit ne descend pas aux autres points d'entrée.
 
     L'égalité gardée plus haut porte sur le **contenu de l'ancre** ; elle laisserait passer une
     variable d'uvicorn recopiée en plus sur ce service. Elle y serait sans effet — ce point d'entrée
     n'exécute pas uvicorn — mais elle ferait mentir la règle que le compose énonce, et la prochaine
     variable ajoutée « par symétrie » n'aurait plus rien pour l'arrêter.
 
-    Avec le garde d'inclusion plus haut, ce sens ferme l'égalité : le `worker` reçoit **exactement**
-    l'ancre. `api` est le seul service autorisé à porter davantage, et l'asymétrie est le sujet —
-    c'est lui qui exécute uvicorn.
+    Avec le garde d'inclusion plus haut, ce sens ferme l'égalité : un point d'entrée qui n'exécute
+    pas uvicorn reçoit **exactement** l'ancre. Le service qui l'exécute est le seul à porter
+    davantage, et l'asymétrie est le sujet — l'exception est nommée par ``SERVICE_D_UVICORN``, tout
+    le reste est dérivé de l'image.
     """
-    surplus = set(_services_du_paquet()["worker"]["environment"]) - set(_document()[ANCRE_PARTAGEE])
+    surplus = set(_services_du_paquet()[service]["environment"]) - set(_document()[ANCRE_PARTAGEE])
 
     assert not surplus, (
-        f"le `worker` reçoit {sorted(surplus)} en plus de l'ancre. Ce que lit ``Settings`` va dans "
-        "`x-env` ; ce que lit le serveur qui héberge l'api reste sur `api`, seul service à "
-        "exécuter uvicorn. Si l'une de ces variables est légitimement propre au worker, c'est "
-        "la règle de partition qu'il faut amender — dans le compose et ici —, pas ce garde "
-        "qu'il faut retirer"
+        f"`{service}` reçoit {sorted(surplus)} en plus de l'ancre. Ce que lit ``Settings`` va dans "
+        f"`x-env` ; ce que lit le serveur qui héberge l'api reste sur `{SERVICE_D_UVICORN}`, seul "
+        "service à l'exécuter. Si l'une de ces variables est légitimement propre à ce point "
+        "d'entrée, c'est la règle de partition qu'il faut amender — dans le compose et ici —, "
+        "pas ce garde qu'il faut retirer"
     )

@@ -68,10 +68,9 @@ def variables_des_reglages() -> set[str]:
     """Toutes les variables d'environnement que `Settings` lit — requises ou non.
 
     **Dérivées des champs du modèle, jamais recopiées.** C'est la seule représentation de cet
-    ensemble dans la suite : ajouter un champ étend d'un coup tout ce qui s'appuie dessus — la
-    couverture des tests de réglages comme la partition des services du compose — sans que personne
-    ait à tenir une seconde liste à jour. Une liste écrite à la main sous-couvrirait en silence, ce
-    qui est le pire des deux mondes : verte et fausse.
+    ensemble dans la suite : ajouter un champ étend d'un coup la partition des services du compose,
+    sans que personne ait à tenir une seconde liste à jour. Une liste écrite à la main
+    sous-couvrirait en silence, ce qui est le pire des deux mondes : verte et fausse.
 
     `pydantic_settings` fait correspondre le nom de champ à la variable en majuscules, sans
     préfixe — `env_prefix` vide et `case_sensitive` faux dans la configuration du modèle.
