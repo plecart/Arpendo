@@ -13,7 +13,9 @@ import 'package:flutter/material.dart';
 enum JetonMouvement {
   /// `motion-press` — retour d'appui sur toute cible tactile.
   ///
-  /// Échelle 0,98 plus assombrissement de la surface de 6 %. Aucun changement
+  /// Échelle 0,98 plus le passage de la surface à son état pressé —
+  /// `accent-pressed` (§1.5) sur une surface d'accent, qui fonce en clair et
+  /// **éclaircit** en sombre (§1.6 amendé, archive §18.9). Aucun changement
   /// d'élévation, aucune ombre, aucun enfoncement visible : l'identité retenue
   /// exclut le relief.
   press(120),
@@ -86,6 +88,15 @@ class Mouvement {
 
   /// La sortie dure 75 % de l'entrée — §1.6.
   static const double _rapportSortie = 0.75;
+
+  /// Échelle de la cible sous le doigt — `motion-press`, §1.6.
+  ///
+  /// Une **cible**, pas une durée : la coupure des animations rend le
+  /// changement instantané ([entree] tombe à zéro), elle ne le supprime pas —
+  /// l'état pressé reste visible, comme l'assombrissement `accent-pressed`.
+  /// Elle vit ici et non dans `ButtonStyle`, qui n'a aucune propriété
+  /// d'échelle : c'est `BoutonPleineLargeur` qui l'applique.
+  static const double echellePression = 0.98;
 
   /// Courbe d'entrée — un élément entre par l'endroit où il va vivre.
   static const Curve courbeEntree = Curves.easeOutCubic;

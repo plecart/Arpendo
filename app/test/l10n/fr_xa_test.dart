@@ -1,6 +1,8 @@
 import 'package:arpendo/domain/bandeau/lignes.dart';
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/bandeau/bandeau.dart';
+import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
+import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -8,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/allonger_arb.dart' show marqueurDebut, marqueurFin;
 
-/// L'accroche du bloc marque, seul texte que l'app sache rendre aujourd'hui.
+/// L'accroche du bloc marque, isolée pour le test du texte cité du cadrage §1.
 Widget accroche(BuildContext context) =>
     Text(AppLocalizations.of(context).marqueAccroche);
 
@@ -24,7 +26,9 @@ Widget accroche(BuildContext context) =>
 /// conteneur trop petit — est énuméré dans `app/README.md`, section « Ce que
 /// prouve le test `fr-XA` », qui en est la source unique.
 final composants = <String, WidgetBuilder>{
-  "l'accroche de la marque": accroche,
+  // Le bloc entier — signe, logotype, accroche — plutôt que l'accroche seule
+  // qu'il remplace ici : c'est en composition que la largeur contraint.
+  'le bloc de marque': (_) => const BlocDeMarque(),
   // Les deux lignes que #43 livre, et les deux formes du bandeau : sans action,
   // puis avec ses deux boutons — c'est la seconde qui est contrainte, puisque
   // les libellés s'allongent de 30 % eux aussi.
@@ -32,6 +36,14 @@ final composants = <String, WidgetBuilder>{
       Bandeau(entree: ligneReseauAbsent()),
   'le bandeau à deux actions (ligne 12)': (_) => Bandeau(
     entree: ligneMiseAJourRecommandee(onMettreAJour: () {}, onFermer: () {}),
+  ),
+  // Son libellé vient de l'appelant : n'importe quelle valeur d'ARB prouve le
+  // chemin de rendu sous la locale allongée — celle-ci est la première livrée.
+  // Les libellés réels (« Réessayer », « Mettre à jour ») arrivent avec leurs
+  // écrans, qui s'inscrivent ici à leur tour.
+  'le bouton pleine largeur': (context) => BoutonPleineLargeur(
+    libelle: AppLocalizations.of(context).marqueAccroche,
+    onPressed: () {},
   ),
 };
 
