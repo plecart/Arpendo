@@ -15,9 +15,7 @@ from typing import Any
 
 import pytest
 import yaml
-from conftest import COMPOSE, ENV_EXAMPLE, variables_requises
-
-from arpendo_api.core.settings import Settings
+from conftest import COMPOSE, ENV_EXAMPLE, variables_des_reglages, variables_requises
 
 IMAGE_DU_PAQUET = "arpendo-api:dev"
 """L'image que partagent les points d'entrée du paquet (cadrage §13.0 : un paquet, deux entrées).
@@ -27,8 +25,17 @@ troisième point d'entrée bâti sur la même image sera couvert le jour où il 
 personne ait à penser à l'ajouter. Une liste de noms, elle, aurait vieilli en silence.
 """
 
-BORNE_D_UVICORN = re.compile(r"^UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN=(\d+)$", re.MULTILINE)
-"""Les secondes qu'uvicorn accorde aux connexions ouvertes, telles que `.env.example` les pose."""
+BORNE_UVICORN = "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN"
+"""La variable qui borne l'attente d'uvicorn sur les connexions déjà ouvertes.
+
+Elle traverse **trois** artefacts avant d'agir : `.env.example` la pose, le compose la relaie au
+service qui exécute uvicorn, et uvicorn la lit sous ce nom (`auto_envvar_prefix` de click). C'est
+une chaîne, et une chaîne cède à son maillon le moins tenu — d'où un garde par maillon plutôt qu'un
+seul sur le résultat.
+"""
+
+BORNE_POSEE = re.compile(rf"^{BORNE_UVICORN}=(\d+)$", re.MULTILINE)
+"""Les secondes que `.env.example` propose au poste."""
 
 ANCRE_PARTAGEE = "x-env"
 """Le champ d'extension qui porte l'environnement commun aux points d'entrée du paquet.
@@ -90,10 +97,10 @@ def test_l_ancre_partagee_porte_exactement_ce_que_lisent_les_reglages() -> None:
     recopierait à nouveau service par service, et une variable d'uvicorn glissée dedans serait
     donnée à un `worker` qui n'exécute pas uvicorn.
 
-    L'attendu est **dérivé du modèle**, comme ``variables_requises`` : ajouter un champ à
+    L'attendu est **dérivé du modèle** (``variables_des_reglages``) : ajouter un champ à
     ``Settings`` fait rougir ici tant que l'ancre ne le porte pas.
     """
-    assert set(_document()[ANCRE_PARTAGEE]) == {nom.upper() for nom in Settings.model_fields}
+    assert set(_document()[ANCRE_PARTAGEE]) == variables_des_reglages()
 
 
 def _secondes(duree: str) -> int:
@@ -123,9 +130,9 @@ def test_uvicorn_ferme_avant_que_docker_n_abrege() -> None:
     ne peut voir ça, et un commentaire de chaque côté ne l'empêche pas — seule cette lecture
     croisée le tient.
 
-    Elle couvre du même geste la présence du délai : sans lui, Docker s'en tient à ses 10 secondes.
+    Elle couvre du même geste la présence du délai : sans lui, Docker s'en tient à son défaut.
     """
-    proposee = BORNE_D_UVICORN.search(ENV_EXAMPLE.read_text(encoding="utf-8"))
+    proposee = BORNE_POSEE.search(ENV_EXAMPLE.read_text(encoding="utf-8"))
     assert proposee, (
         "`.env.example` ne propose plus de borne à uvicorn : il attendrait les connexions ouvertes "
         "sans limite, et Docker le tuerait au SIGKILL"
@@ -134,8 +141,52 @@ def test_uvicorn_ferme_avant_que_docker_n_abrege() -> None:
 
     for nom, bloc in sorted(_services_du_paquet().items()):
         delai = bloc.get("stop_grace_period")
-        assert delai, f"`{nom}` n'a pas de `stop_grace_period` : Docker le tue au bout de 10 s"
+        assert delai, (
+            f"`{nom}` n'a pas de `stop_grace_period` : Docker s'en tient à son défaut, trop court "
+            "pour fermer proprement des flux ouverts"
+        )
         assert borne < _secondes(delai), (
             f"uvicorn attend jusqu'à {borne} s là où Docker tue `{nom}` à {delai} : le SIGKILL "
             "arrive le premier et l'arrêt n'est plus gracieux"
         )
+
+
+def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde() -> None:
+    """Le maillon du milieu : la borne posée dans le `.env` doit atteindre le conteneur.
+
+    L'ordre gardé plus haut ne vaut que si la variable arrive jusqu'à uvicorn. La retirer du
+    service laisserait tout le reste vrai — `.env.example` la propose toujours, elle est toujours
+    sous le délai de Docker — et l'attente redeviendrait pourtant infinie.
+
+    Le garde `:?` fait partie du maillon, il n'est pas un ornement : **mesuré**, une valeur vide est
+    ignorée en silence par click, qui retombe sur « sans borne ». Un `${…}` nu laisse Compose
+    injecter la chaîne vide avec un simple avertissement sur stderr, et la borne disparaît sans que
+    rien n'échoue. La forme brute est lisible ici parce que ``yaml.safe_load`` n'interpole pas.
+    """
+    relais = _services_du_paquet()["api"]["environment"].get(BORNE_UVICORN)
+
+    assert relais, (
+        f"le service `api` ne reçoit plus {BORNE_UVICORN} : uvicorn attendrait les connexions "
+        "ouvertes sans limite, et Docker le tuerait au SIGKILL"
+    )
+    assert relais.startswith(f"${{{BORNE_UVICORN}:?"), (
+        f"{BORNE_UVICORN} est relayée par {relais!r}, sans le garde `:?` : un `.env` qui ne la "
+        "porte pas — ou qui la laisse vide — donnerait une chaîne vide, que click ignore. Compose "
+        "n'émettrait qu'un avertissement, et la borne serait perdue en silence"
+    )
+
+
+def test_le_worker_ne_recoit_rien_de_plus_que_l_ancre() -> None:
+    """L'autre moitié de la partition : ce qu'uvicorn lit ne descend pas jusqu'au worker.
+
+    L'égalité gardée plus haut porte sur le **contenu de l'ancre** ; elle laisserait passer une
+    variable d'uvicorn recopiée en plus sur ce service. Elle y serait sans effet — ce point d'entrée
+    n'exécute pas uvicorn — mais elle ferait mentir la règle que le compose énonce, et la prochaine
+    variable ajoutée « par symétrie » n'aurait plus rien pour l'arrêter.
+    """
+    surplus = set(_services_du_paquet()["worker"]["environment"]) - set(_document()[ANCRE_PARTAGEE])
+
+    assert not surplus, (
+        f"le `worker` reçoit {sorted(surplus)} en plus de l'ancre. Ce que lit le serveur qui "
+        "héberge l'api reste sur `api` seule : ce point d'entrée n'exécute pas uvicorn"
+    )
