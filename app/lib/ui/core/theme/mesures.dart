@@ -46,6 +46,13 @@ abstract final class CiblesTactiles {
   /// côté en hauteur, et c'est lui qui décide de la hauteur du bandeau dès
   /// qu'une action est présente.
   static const double min = 48;
+
+  /// Hauteur du **bouton principal** des écrans sans carte, en dp (§4, §11.2).
+  ///
+  /// Distincte de [min] : celui-ci est un plancher d'accessibilité, celle-là
+  /// une décision de composition. Le thème la donne au `FilledButton`, et la
+  /// mise en page s'en sert pour réserver la bande basse.
+  static const double boutonPrincipal = 56;
 }
 
 /// Rayons d'angle — §1.3.

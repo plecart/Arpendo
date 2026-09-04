@@ -5,25 +5,48 @@ import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<Rect> _positionDuBloc(WidgetTester tester, {Widget? sous}) async {
+Future<Rect> _positionDuBloc(
+  WidgetTester tester, {
+  Widget? sous,
+  Widget? bandeBasse,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: const Locale('fr'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: themeArpendo(Brightness.light),
-      home: Scaffold(body: MarqueCentree(sous: sous)),
+      home: Scaffold(
+        body: MarqueCentree(sous: sous, bandeBasse: bandeBasse),
+      ),
     ),
   );
   return tester.getRect(find.byType(BlocDeMarque));
 }
 
 void main() {
-  testWidgets('le bloc est centré verticalement', (tester) async {
+  testWidgets('le bloc est centré au-dessus de la bande basse', (tester) async {
     final bloc = await _positionDuBloc(tester);
 
+    // Centré dans **ce qui reste au-dessus de la bande basse**, et non sur la
+    // hauteur totale : c'est cette réservation constante qui empêche à la fois
+    // le bloc de bouger d'un état à l'autre et le contenu de recouvrir le
+    // bouton (§2.1, §11.2).
     final ecran = tester.getRect(find.byType(MaterialApp));
-    expect(bloc.center.dy, moreOrLessEquals(ecran.center.dy, epsilon: 0.5));
+    final centreDeLaZone = (ecran.height - MarqueCentree.hauteurBandeBasse) / 2;
+    expect(bloc.center.dy, moreOrLessEquals(centreDeLaZone, epsilon: 0.5));
+  });
+
+  testWidgets('la bande basse est réservée même vide', (tester) async {
+    // C'est **la** raison d'être de la réservation : un bouton qui paraît ou
+    // disparaît d'un état à l'autre ne doit pas déplacer le logo.
+    final sansBouton = await _positionDuBloc(tester);
+    final avecBouton = await _positionDuBloc(
+      tester,
+      bandeBasse: const SizedBox(height: 56, child: Text('Agir')),
+    );
+
+    expect(sansBouton, avecBouton);
   });
 
   testWidgets('ce qui paraît dessous ne le déplace pas', (tester) async {

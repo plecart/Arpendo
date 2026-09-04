@@ -303,8 +303,14 @@ lignes** : le logo occupe la même place sur tous les écrans qui l'emploient �
 mise à jour obligatoire (§11.2) aujourd'hui, Connexion (§4) et Accueil (§5) demain — donc il ne
 saute jamais quand l'un remplace l'autre. `sous` est peint par un `Align(heightFactor: 0)` : il ne
 compte pas dans la hauteur, sans quoi le bloc remonterait de la moitié de ce qui paraît (52 dp
-mesurés avant #98). **Ce qui s'ancre à un bord — un bouton de bande basse — se pose à côté d'elle
-dans un `Stack`, jamais dedans.**
+mesurés avant #98).
+
+**La bande basse est réservée en permanence**, remplie ou non — `bandeBasse` reçoit le bouton
+quand il y en a un. Les deux effets sont indissociables : réserver *toujours* empêche le bloc de
+bouger quand une action paraît ou disparaît, et réserver *tout court* empêche `sous` de recouvrir
+le bouton (31 dp de recouvrement mesurés sur 360 × 800 sans la réservation). Comme `sous` est hors
+du flux, **aucun défilement ne peut le sauver** : c'est la place qu'on lui laisse, ou rien — d'où
+le test de non-recouvrement que chaque écran garde en propre.
 
 
 `ui/core/marque/bloc_de_marque.dart` — signe, logotype, accroche (§4), la même composition pour

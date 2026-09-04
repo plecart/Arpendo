@@ -61,26 +61,18 @@ class EcranAttente extends StatelessWidget {
             child: SizedBox.expand(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Espacements.x4),
-                // Deux plans indépendants, et c'est ce qui tient l'invariant
-                // du §2.1 : le bloc est centré seul, le bouton est ancré en
-                // bas. Ni l'un ni l'autre ne peut donc déplacer le bloc.
-                child: Stack(
-                  children: [
-                    MarqueCentree(sous: _zoneEtat(context, textes)),
-                    if (etat is Injoignable)
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: Espacements.x6,
-                          ),
-                          child: BoutonPleineLargeur(
-                            libelle: textes.attenteActionReessayer,
-                            onPressed: onReessayer,
-                          ),
-                        ),
-                      ),
-                  ],
+                // `MarqueCentree` tient l'invariant du §2.1 : elle réserve
+                // la bande basse **même en `Pret`**, où aucun bouton ne la
+                // remplit. C'est cette réservation constante qui empêche le
+                // bloc de bouger quand « Réessayer » paraît ou disparaît.
+                child: MarqueCentree(
+                  sous: _zoneEtat(context, textes),
+                  bandeBasse: etat is Injoignable
+                      ? BoutonPleineLargeur(
+                          libelle: textes.attenteActionReessayer,
+                          onPressed: onReessayer,
+                        )
+                      : null,
                 ),
               ),
             ),

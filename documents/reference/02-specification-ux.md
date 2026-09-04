@@ -428,9 +428,14 @@ au-delà (téléchargement, migration locale) rouvre la question.
 
 **Le bloc de marque ne bouge pas.** Sa position est la même dans les trois états — attente,
 échec, prêt — et ce qui apparaît sous lui prend sa place **sans le déplacer** : un logo qui
-remonte à chaque changement d'état se lit comme une instabilité de l'application. Il est
-**centré verticalement**, et non en bande haute comme au §4 et au §5, parce que cet écran n'a ni
-action permanente ni contenu à dégager sous lui.
+remonte à chaque changement d'état se lit comme une instabilité de l'application.
+
+Il est **centré dans la zone utile**, et non en bande haute comme au §4 et au §5 : cet écran n'a
+rien à dégager en haut. La zone utile est la hauteur **moins la bande basse** — celle du bouton
+d'action et de sa marge —, et cette bande est **réservée en permanence**, y compris dans les états
+qui n'ont pas de bouton. C'est ce qui donne les deux garanties d'un coup : le bloc ne bouge pas
+quand une action paraît ou disparaît, et ce qui s'écrit sous lui ne peut pas venir recouvrir le
+bouton. Sans cette réservation, le recouvrement est mesuré à **31 dp** sur l'écran de référence.
 
 Serveur injoignable à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer » (réseau absent :
 bandeau priorité 5).
@@ -524,8 +529,14 @@ compte 24 dp (§1.2) et une rangée d'actions 48 + `space-2` (§1.4). D'où, pou
 Ce sont des **illustrations de la règle, pas une énumération** : un message plus long continue de
 grandir de 24 dp par ligne, et les tests mesurent, ils ne recopient pas.
 
-**Pourquoi deux actions ne partagent pas la rangée du message.** Sur l'écran de référence de
-360 dp, il reste 260 dp une fois retirés les marges, le rembourrage, l'icône et son écart. Les
+**La largeur dont on dispose, une fois pour toutes.** Sur l'écran de référence de 360 dp :
+`360 − 2 × 16` de marges d'écran `− 2 × 16` de rembourrage interne = **296 dp** pour le contenu ;
+moins l'icône de 24 dp et son écart de 12 = **260 dp** pour le message ; moins `space-2` avant une
+action = **252 dp** à partager. Ces trois nombres reviennent plus bas et dans le code : ils se
+dérivent d'ici, ils ne se recalculent pas.
+
+**Pourquoi deux actions ne partagent pas la rangée du message.** Il reste 260 dp une fois retirés
+les marges, le rembourrage, l'icône et son écart. Les
 deux actions des priorités 10 et 11 — « Réglages » et « Masquer pour cette partie » — les
 consomment à elles seules. Elles descendent donc, et le message garde toute la largeur, ce qui le
 rend insensible à la longueur des libellés comme à la tolérance de +30 % du §0.
@@ -2210,10 +2221,11 @@ ne sort jamais de l'application.
 ### 11.2 Mise à jour (§14.1)
 
 **Version minimale — écran bloquant.** `z 500`, plein écran, pas de bouton retour, pas de
-fermeture. Il porte le **bloc de marque du §4 — signe, nom, accroche — centré verticalement**,
-comme l'écran d'attente et **à la même place que lui** : c'est le seul écran qui remplace l'attente
-en cours de séquence, et le logo ne doit pas sauter en le faisant. Le reste s'écrit **sous** le
-bloc, sans le déplacer.
+fermeture. Il porte le **bloc de marque du §4 — signe, nom, accroche — centré dans la zone utile**,
+exactement comme l'écran d'attente et **à la même place que lui** : c'est le seul écran qui
+remplace l'attente en cours de séquence, et le logo ne doit pas sauter en le faisant. Même
+définition de la zone utile qu'au §2.1 — hauteur moins la bande basse du bouton. Le reste s'écrit
+**sous** le bloc, sans le déplacer.
 Titre « Mise à jour nécessaire ». Corps « Cette version d'Arpendo n'est plus compatible
 avec le serveur. Installe la dernière version pour continuer à jouer. » Bouton « Mettre à jour »
 (56 dp, bande basse) → Play Store.
@@ -2231,10 +2243,12 @@ l'inquiétude à un écran déjà bloquant.
 
 Cet écran s'affiche **avant** tout appel authentifié (§2.1).
 
-**Version recommandée — bandeau.** Priorité 12 du bandeau unique (§2.4), **une seule action** —
-« Mettre à jour », sur la rangée du message. Le bandeau **n'est pas fermable** : il reste tant que
-la recommandation vaut, et disparaît quand le joueur a mis à jour. Le rendre fermable — et la
-persistance par version que cela suppose — est **repoussé après le MVP** (cadrage §20).
+**Version recommandée — bandeau.** Priorité 12 du bandeau unique (§2.4), **aucune action** : le
+message est lui-même le lien vers le magasin, et c'est le **bandeau entier** qui est tapable. Un
+bouton « Mettre à jour » à côté de « Une nouvelle version est disponible. » dirait deux fois la
+même chose. Le bandeau **n'est pas fermable** : il reste tant que la recommandation vaut, et
+disparaît quand le joueur a mis à jour. Le rendre fermable — et la persistance par version que
+cela suppose — est **repoussé après le MVP** (cadrage §20).
 
 ---
 

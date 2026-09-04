@@ -43,25 +43,21 @@ class EcranMiseAJour extends StatelessWidget {
         child: PileDeCalques(
           children: {
             Calque.bloquant: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Espacements.x4,
-                vertical: Espacements.x6,
-              ),
-              // Deux plans indépendants, comme sur l'écran d'attente : le bloc
-              // de marque est centré seul, le bouton est ancré en bas. Ni
-              // l'un ni l'autre ne peut donc déplacer le bloc, et le logo ne
-              // saute pas au passage attente → bloquant.
-              child: Stack(
-                children: [
-                  MarqueCentree(sous: _message(context, textes)),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: BoutonPleineLargeur(
-                      libelle: textes.miseAJourAction,
-                      onPressed: onMettreAJour,
-                    ),
-                  ),
-                ],
+              // Marges d'écran horizontales seulement, comme l'écran
+              // d'attente : la marge basse est celle de la bande de
+              // `MarqueCentree`, et la doubler ici volait 48 dp à la zone du
+              // contenu — assez pour lui faire recouvrir le bouton.
+              padding: const EdgeInsets.symmetric(horizontal: Espacements.x4),
+              // `MarqueCentree` tient les deux plans : le bloc centré dans
+              // ce qui reste au-dessus de la bande basse, et le bouton dans
+              // cette bande. Le logo occupe donc la même place que sur
+              // l'écran d'attente, et rien ne peut le déplacer.
+              child: MarqueCentree(
+                sous: _message(context, textes),
+                bandeBasse: BoutonPleineLargeur(
+                  libelle: textes.miseAJourAction,
+                  onPressed: onMettreAJour,
+                ),
               ),
             ),
           },

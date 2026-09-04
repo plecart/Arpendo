@@ -1,13 +1,24 @@
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
 import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
+import 'package:arpendo/ui/core/marque/marque_centree.dart';
 import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_mise_a_jour.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Écran de référence de conception (spec UX §0) : le cas le plus contraint.
+///
+/// La fenêtre par défaut de `flutter_test` fait 800 × 600 — plus **large** que
+/// haute, ce qu'aucun téléphone n'est. Mesurer une mise en page verticale
+/// dessus ne dit rien de l'appareil.
+const _ecranDeReference = Size(360, 800);
+
 Future<void> _monter(WidgetTester tester, {VoidCallback? onMettreAJour}) {
+  tester.view.physicalSize = _ecranDeReference;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   return tester.pumpWidget(
     MaterialApp(
       locale: const Locale('fr'),
@@ -29,8 +40,12 @@ void main() {
     await _monter(tester);
 
     final bloc = tester.getRect(find.byType(BlocDeMarque));
+    // Même référentiel que l'écran d'attente : la zone au-dessus de la bande
+    // basse, réservée des deux côtés. C'est ce qui fait que le logo est au
+    // **même pixel** sur les deux écrans.
     final ecran = tester.getRect(find.byType(MaterialApp));
-    expect(bloc.center.dy, moreOrLessEquals(ecran.center.dy, epsilon: 0.5));
+    final centreDeLaZone = (ecran.height - MarqueCentree.hauteurBandeBasse) / 2;
+    expect(bloc.center.dy, moreOrLessEquals(centreDeLaZone, epsilon: 0.5));
   });
 
   testWidgets('porte les trois textes du §11.2', (tester) async {
@@ -64,6 +79,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(ouvertures, 1);
+  });
+
+  testWidgets('le message ne recouvre pas le bouton', (tester) async {
+    // `MarqueCentree` peint son contenu hors du flux (`heightFactor: 0`) :
+    // le framework ne signalera donc **aucun** débordement. Ce garde remplace
+    // celui qu'on perd, comme sur l'écran d'attente — et il compte davantage
+    // ici, où le contenu est plus haut (titre + corps de deux lignes, et
+    // +30 % sous la locale allongée du §0).
+    await _monter(tester);
+
+    expect(
+      tester.getRect(find.text('Mise à jour nécessaire')).bottom,
+      lessThan(tester.getRect(find.byType(BoutonPleineLargeur)).top),
+    );
+    expect(
+      tester
+          .getRect(
+            find.textContaining(
+              "Cette version d'Arpendo n'est plus compatible",
+            ),
+          )
+          .bottom,
+      lessThan(tester.getRect(find.byType(BoutonPleineLargeur)).top),
+      reason: 'le corps est le plus bas des deux textes, donc le plus exposé',
+    );
   });
 
   testWidgets('le bouton respecte la barre de gestes Android', (tester) async {

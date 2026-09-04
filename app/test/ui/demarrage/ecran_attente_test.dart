@@ -2,6 +2,7 @@ import 'package:arpendo/domain/bandeau/lignes.dart';
 import 'package:arpendo/l10n/generated/app_localizations.dart';
 import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
 import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
+import 'package:arpendo/ui/core/marque/marque_centree.dart';
 import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
 import 'package:arpendo/ui/demarrage/ecran_attente.dart';
@@ -57,19 +58,25 @@ void main() {
     },
   );
 
-  testWidgets('le bloc de marque est centré verticalement', (tester) async {
+  testWidgets('le bloc de marque est centré au-dessus de la bande basse', (
+    tester,
+  ) async {
     await _monter(tester, const Injoignable());
 
     final bloc = tester.getRect(find.byType(BlocDeMarque));
+    // Centré dans **ce qui reste au-dessus de la bande basse**, et non sur la
+    // hauteur totale : c'est cette réservation constante qui empêche à la fois
+    // le bloc de bouger d'un état à l'autre et le contenu de recouvrir le
+    // bouton (§2.1, §11.2). Un demi-pixel de tolérance : un bloc de hauteur
+    // impaire ne peut pas tomber sur un centre entier.
     final ecran = tester.getRect(find.byType(MaterialApp));
+    final centreDeLaZone = (ecran.height - MarqueCentree.hauteurBandeBasse) / 2;
     expect(
       bloc.center.dy,
-      // Un demi-pixel de tolérance : un bloc de hauteur impaire ne peut pas
-      // tomber sur un centre entier. Au-delà, ce n'est plus un arrondi.
-      moreOrLessEquals(ecran.center.dy, epsilon: 0.5),
+      moreOrLessEquals(centreDeLaZone, epsilon: 0.5),
       reason:
-          'le §2.1 centre le bloc verticalement, et non en bande haute comme '
-          'au §4 : cet écran n\'a ni action permanente ni contenu à dégager',
+          'le §2.1 centre le bloc dans la zone utile, et non en bande haute '
+          'comme au §4 : cet écran n\'a pas de contenu à dégager en haut',
     );
   });
 
