@@ -117,10 +117,11 @@ services:
       FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
       # Le temps qu'uvicorn accorde aux connexions déjà ouvertes avant de les fermer lui-même.
       # Sans elle il attend **sans borne**, et c'est Docker qui tranche au SIGKILL — une SSE,
-      # demain, tiendrait jusque-là. 25 < 30 s de `stop_grace_period` : uvicorn ferme le premier,
-      # donc l'arrêt reste gracieux, `--reload` compris.
+      # demain, tiendrait jusque-là. Elle doit rester **sous** le `stop_grace_period` ci-dessous,
+      # sinon uvicorn ne ferme jamais le premier et la marge ne sert à rien ; `--reload` compris.
+      # La valeur est dans le `.env`, l'ordre est gardé par `api/tests/test_compose.py`.
       #
-      # `:?` et non `:-25` : la valeur est déclarée une seule fois, dans le `.env` (le poste, ce
+      # `:?` et non un défaut : la valeur est déclarée une seule fois, dans le `.env` (le poste, ce
       # compose et #45 la lisent là). Et **mesuré** : click ignore silencieusement une valeur vide
       # et retombe sur « sans borne » — un `.env` antérieur à ce lot perdrait la borne sans un mot.
       # Ce garde le dit à voix haute, comme celui de `VALKEY_PASSWORD`.
@@ -129,9 +130,10 @@ services:
     # sans lui, uvicorn scrute aussi `/app/.venv`, des milliers de fichiers relus en boucle.
     command: ["uvicorn", "arpendo_api.main:create_app", "--factory", "--host", "0.0.0.0",
               "--port", "8000", "--reload", "--reload-dir", "/app/src"]
-    # 30 s, au lieu des 10 s par défaut de Docker (§13.7 troisième piège, §13.9 règle 6) : le
-    # temps qu'uvicorn laisse partir ce qui est en cours avant que Docker ne l'abrège au SIGKILL.
-    # `docker compose stop api` doit rendre 0, jamais 137.
+    # Déclaré, parce que le défaut de Docker est trop court pour des flux ouverts (§13.7
+    # troisième piège, §13.9 règle 6) : c'est le temps qu'uvicorn a pour laisser partir ce qui est
+    # en cours avant que Docker ne l'abrège au SIGKILL. `docker compose stop api` doit rendre 0,
+    # jamais 137.
     stop_grace_period: 30s
     volumes:
       - ../api/src:/app/src
@@ -157,7 +159,7 @@ services:
     environment:
       <<: *env
     command: ["python", "-m", "arpendo_api.worker"]
-    # Même délai que `api`, pour la même raison : #44 arrête la boucle sur SIGTERM, mais le tour
+    # Même délai qu'`api`, pour la même raison : #44 arrête la boucle sur SIGTERM, mais le tour
     # de tâche en cours doit pouvoir finir. Rien à borner côté applicatif — pas d'uvicorn ici.
     stop_grace_period: 30s
     volumes:

@@ -44,25 +44,29 @@ clients échouent vite plutôt que d'épuiser le budget de la sonde.
 
 ## Arrêter
 
-`docker compose stop` envoie un SIGTERM, puis tue au SIGKILL après un délai. Les 10 secondes par
-défaut de Docker ne suffisent pas (cadrage §13.7, §13.9 règle 6) : `api` et `worker` déclarent donc
-`stop_grace_period: 30s`.
+`docker compose stop` envoie un SIGTERM, puis tue au SIGKILL après un délai. Le défaut de Docker
+est trop court pour fermer proprement des flux ouverts (cadrage §13.7, §13.9 règle 6) : `api` et
+`worker` déclarent donc leur propre `stop_grace_period` dans `infra/docker-compose.yml`.
 
-Ce délai seul ne suffirait pas non plus, parce qu'**uvicorn attend les connexions ouvertes sans
-borne** : une requête longue — une SSE, demain — tiendrait jusqu'au SIGKILL, et le délai n'aurait
-fait que retarder la mort brutale. `UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN=25`, dans le `.env`, lui
-donne cette borne. **25 sous 30, et l'ordre est tout le sujet** : uvicorn doit fermer le premier,
-sinon c'est encore Docker qui tranche. Changer l'une des deux valeurs demande de relire l'autre.
+Ce délai seul ne suffirait pas, parce qu'**uvicorn attend les connexions ouvertes sans borne** :
+une requête longue — une SSE, demain — tiendrait jusqu'au SIGKILL, et le délai n'aurait fait que
+retarder la mort brutale. `UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN`, dans le `.env`, lui donne cette
+borne.
+
+**L'ordre est tout le sujet** : la borne d'uvicorn doit rester **sous** le `stop_grace_period`,
+sinon c'est encore Docker qui tranche et la marge n'aura servi à rien. Les deux valeurs vivent dans
+deux fichiers que rien ne relie — `api/tests/test_compose.py` les compare, et rougit si l'ordre
+s'inverse ou si un maillon disparaît. Ne pas recopier ces chiffres ailleurs : les lire là.
 
 Le worker n'a rien à borner : sa boucle s'arrête d'elle-même sur SIGTERM, il lui faut seulement le
 temps de finir le tour en cours.
 
-Ce qu'on doit observer : `docker compose stop api` rend la main **en moins de 30 secondes** avec le
+Ce qu'on doit observer : `docker compose stop api` rend la main **dans le délai déclaré** avec le
 code de sortie **0**. Un `137` signifierait un SIGKILL — c'est-à-dire l'inverse de ce que cette
 configuration existe pour obtenir.
 
-La borne uvicorn est configurée, pas testée : aucune route de cette api ne tient assez longtemps
-pour l'exercer. Elle le sera par ce qui l'exercera vraiment.
+La borne uvicorn est configurée, pas testée en exécution : aucune route de cette api ne tient assez
+longtemps pour l'exercer. Elle le sera par ce qui l'exercera vraiment.
 
 ## Tester et vérifier
 
