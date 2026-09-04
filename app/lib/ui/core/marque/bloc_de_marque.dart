@@ -13,7 +13,7 @@ import '../theme/typographie.dart';
 ///
 /// Le signe est l'actif `assets/signe-arpendo.svg`, copié tel quel depuis
 /// `documents/assets/` (source unique) et teinté par `ColorFilter.mode(…,
-/// srcIn)` : les opacités 0,30 / 0,58 des courbes sont conservées, et le mode
+/// srcIn)` : les opacités 0,26 / 0,52 des courbes sont conservées, et le mode
 /// sombre vient du thème sans second fichier. Le logotype est composé en
 /// Roboto w500 (§1.2, amendement du 3 septembre 2026 — archive §18.8), à la
 /// hauteur de capitale que le §4 fixe.

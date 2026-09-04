@@ -729,3 +729,114 @@ identité §0.1). En mode sombre, l'état pressé ne peut donc qu'éclaircir. Un
 `app/lib/ui/core/theme/mouvement.dart`, docstring du jeton `press` (répétait le « 6 % »), corrigée
 dans le même commit. Aucun document de rang 1 ne mentionne le retour d'appui : pas de ligne au
 journal du cadrage.
+
+## 18.10 Amendement du §1.6 du 4 septembre 2026 — l'exception de l'indicateur de progression
+
+**La contradiction.** Le §1.6 écrivait « Aucune exception. Le réglage désactive les animations,
+il les désactive toutes », et l'écran d'attente du lot 2b de #46 rend un
+`CircularProgressIndicator` Material qui pilote son propre `AnimationController` et tourne
+indéfiniment, `MediaQuery.disableAnimations` compris — mesuré par la relecture indépendante.
+
+**Options examinées :**
+
+| Option | Retenue ? |
+|---|---|
+| **Le § gagne une exception explicite et nommée** — l'indicateur de progression indéterminé anime en continu : état, pas transition ; sa présence est l'information | **Oui.** (1) La distinction est déjà dans l'esprit du § (« chaque transition a un état final lisible à l'arrêt » — un indicateur indéterminé n'a pas d'état final) ; (2) un spinner figé est indiscernable d'un gel de l'app — une dégradation, pas une protection ; (3) c'est le comportement natif d'Android, et l'apparition différée de 600 ms (§2.1) borne déjà le mouvement inutile |
+| Figer l'indicateur sous le réglage | Non. Fidèle à la lettre, contraire à l'intention : l'utilisateur y lirait un gel |
+| Retirer l'indicateur sous le réglage | Non. Retirerait l'information elle-même — le § interdit précisément qu'une animation porte seule une information, pas qu'un état s'affiche |
+
+**Garde-fous, pour que « Aucune exception » ne s'érode pas :** l'exception est **nommée et
+unique** — l'indicateur de progression indéterminé, ni « les indicateurs » ni « les états
+animés » ; toute nouvelle exception repasse par un amendement de § (`/contradiction`), jamais par
+analogie. **L'invariant vérifiable reste intact** : tout ce qui passe par `Mouvement` tombe à
+0 ms sous le réglage (test qui parcourt l'énumération), et l'indicateur Material n'y passe pas —
+le jour où on voudrait le styler, il resterait hors des jetons de durée.
+
+**§§ répercutés :** `02-specification-ux.md` §1.6 (paragraphe « Aucune exception », complété d'un
+paragraphe d'exception nommée). §2.1 inchangé (le différé de 600 ms y était déjà). Aucun document
+de rang 1 ni de rang 3 ne mentionne le réglage : cascade nulle, mesurée sur les ancres
+`disableAnimations`, « aucune exception », « indicateur » dans `01-cadrage.md` et
+`03-identite-visuelle.md`. Hors documents : rien — `mouvement.dart` ne parle que des jetons.
+
+## 18.11 Alignement des actifs du signe du 4 septembre 2026 — un seul dessin, celui de l'icône
+
+**Le constat, au HITL du lot 2b de #46.** Le signe affiché à l'écran (`signe-arpendo.svg` : deux
+courbes organiques emboîtées) ne correspondait pas à l'icône de lancement (variante A″2 : œuf
+calculé, cercle parfait, hexagone), et le mainteneur a tranché : **un seul dessin, celui de
+l'icône**. Ce n'était pas une contradiction à arbitrer : la prose du §1.5 décrivait DÉJÀ l'œuf et
+le cercle parfait depuis l'amendement de #50 (PR #70) — les actifs `signe-arpendo.svg`,
+`logo-arpendo.svg` et les deux blocs SVG inline du §1.5 n'avaient jamais été rattrapés. Le
+document gagne, les actifs s'alignent.
+
+**Appliqué :** `documents/assets/signe-arpendo.svg` réécrit (géométrie A″2 sans fond, cadrée
+`viewBox="24.3 22.3 62 62"`, stroke 3, opacités 0,26/0,52 — celles de l'icône) ; copies
+recopiées à l'identique (`app/assets/`, `documents/maquettes/claude-design-v2/` — md5 égaux, la
+copie app est en outre gardée par test) ; `logo-arpendo.svg` : groupe signe remplacé (échelle
+0,897 sur l'emprise de l'ancien) ; blocs inline du §1.5 mis à jour (œuf abrégé, les fichiers
+font foi) ; opacités corrigées dans la doc du composant `BlocDeMarque`. Le rendu app est
+inchangé dans son mécanisme : `ColorFilter.mode(primary, srcIn)` conserve les nouvelles opacités
+comme les anciennes.
+
+**Aucun § de prose amendé** — la prose était la cible. Spec §4 (« courbes de niveau refermées
+sur un hexagone ») tient pour la nouvelle géométrie. Cadrage muet sur la géométrie du signe.
+
+## 18.12 Amendement du §2.1 du 4 septembre 2026 — l'écran d'attente perd son indicateur, le bloc de marque se fige
+
+**Le constat, au HITL du lot 2b de #46.** Les trois états de l'écran d'attente **déplacent le
+bloc de marque** vers le haut : haut du signe à 415,7 dp en `Pret`, 397,7 dp quand l'indicateur
+paraît (−18 dp), 363,7 dp en `Injoignable` (−34 dp de plus) — **52 dp de dérive**, mesurés au
+pixel sur les captures, densité 3. Mécanique : le groupe `bloc + zone d'état` était centré **dans
+son ensemble** entre deux `Spacer`, donc chaque agrandissement de la zone d'état remontait le bloc
+de la moitié de la croissance, et le bouton « Réessayer », posé hors de la paire de `Spacer`,
+poussait de 40 dp de plus. Le mainteneur a tranché deux choses : le bloc ne bouge plus, **et**
+l'indicateur disparaît.
+
+**Options examinées :**
+
+| Option | Retenue ? |
+|---|---|
+| **Figer le bloc et retirer l'indicateur**, sans rien mettre à la place | **Oui.** « Pour un MVP c'est très bien […] en attendant on fait sobre » (mainteneur). Le bloc affiché porte déjà l'information « ça démarre », et l'attente est **bornée par le délai du client HTTP** (`ApiConfig.delaiParDefaut`, 10 s par tentative) : l'écran ne peut pas rester statique indéfiniment |
+| Figer le bloc, **garder** l'indicateur en réservant sa place dès le premier état | Non. Corrige la dérive mais laisse un creux visible dans l'état initial, et conserve un mouvement que le mainteneur juge non informatif |
+| Figer le bloc, retirer l'indicateur, **faire pulser lentement le signe** à la place | Non — **reporté**, pas écarté. C'est le sujet de l'issue ouverte le même jour : deux questions restaient à instruire (voir ci-dessous), et le §1 ne définit aucun jeton de pulsation |
+| Ne rien changer | Non. La dérive de 52 dp est un défaut visible, mesuré, et indépendant de la question de l'indicateur |
+
+**La borne qui rend l'absence d'indicateur sûre, et non seulement sobre.** L'écran statique est
+acceptable **parce que** le délai du client HTTP majore l'attente. C'est une condition écrite,
+donc vérifiable : le jour où un flux allongerait l'attente au-delà de cette borne — téléchargement
+d'actifs, migration de base locale —, l'absence d'indicateur redevient un gel apparent et la
+question se rouvre. Le §2.1 porte cette clause.
+
+**Ce qui a été reporté, et pourquoi.** L'animation discrète du signe (pulsation, illumination) a
+été sortie de cette PR vers une issue dédiée : deux objections méritent d'être instruites avant
+d'écrire un jeton de mouvement. **(1) Accessibilité** — le §1.6 exige que l'exception « reste
+rendue, jamais retirée » sous `disableAnimations` ; une surface pulsante centrale de la taille du
+bloc de marque est une gêne bien plus grande, pour qui a demandé zéro mouvement, qu'un cercle de
+48 dp. **(2) Le délai de 600 ms perd son sens** : il existe pour qu'un indicateur n'apparaisse pas
+puis ne disparaisse aussitôt ; une pulsation qui démarre sur un élément **déjà affiché** ne
+clignote pas de la même façon, et il faudrait trancher si elle démarre à 0 ms ou après un délai.
+Motif du report côté mainteneur : « on y ajoutera de l'animation et une transition animée à la
+prochaine page » — le lien est donc à faire avec la transition attente → Connexion, que le domaine
+Compte livrera.
+
+**La position du bloc — un vide comblé, pas une contradiction.** Le §4 place le bloc « Centré,
+tiers haut » sur Connexion et le §5 « Centré, bande haute » sur Accueil ; le §2.1 n'avait **jamais**
+dit où le placer sur l'écran d'attente. Le « à l'identique » du §4 porte sur la **composition** —
+le §5 le montre en écrivant « même composition qu'au §4 » tout en fixant sa propre position. Le
+mainteneur a choisi le **centre vertical**, en connaissance de la conséquence qui lui a été
+présentée : le bloc **sautera** au passage attente → Connexion, puisque Connexion le place en
+bande haute. Conséquence assumée et documentée ici ; elle sera à reprendre avec la transition
+animée ci-dessus, qui est précisément l'endroit où ce saut se traitera.
+
+**§§ répercutés :** `02-specification-ux.md` §2.1 (origine — indicateur retiré, borne du délai
+HTTP écrite, stabilité et position du bloc fixées) ; §13.2, table « attente subie / provoquée »
+(« démarrage de l'app » retiré des exemples d'attente subie — la règle des 600 ms reste entière
+pour les autres) et table « Où / Forme » (ligne « Démarrage de l'app » réécrite) ; §1.6, exception
+nommée — son pointeur `(§2.1)` **redirigé vers `(§13.2)`** et la mention du différé de 600 ms
+généralisée : l'exception **survit à son premier cas d'usage**, l'indicateur indéterminé restant
+en service au §4.1 (vérification du pseudo), dans les boutons (§5.1, §5.2) et en pied de liste
+paginée (§13.2). Cascade nulle au-dessus du rang 2, **documents parcourus** et non seulement
+grepés : `01-cadrage.md` (seule occurrence d'« indicateur » : le bouton Recentrer du §4.3, sans
+rapport), `03-identite-visuelle.md`, `04-chiffrage.md` — aucune occurrence. Hors documents :
+`app/README.md` (le piège `pumpAndSettle` perd son objet), `EcranAttente` et ses tests (minuteur
+et état d'indicateur devenus morts) ; `.claude/pipeline.config.md` et `CLAUDE.md` muets.
+Rang 5 : #46, description et critère d'acceptation, plus le brief d'agent.

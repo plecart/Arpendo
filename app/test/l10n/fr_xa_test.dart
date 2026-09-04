@@ -4,6 +4,8 @@ import 'package:arpendo/ui/core/bandeau/bandeau.dart';
 import 'package:arpendo/ui/core/boutons/bouton_pleine_largeur.dart';
 import 'package:arpendo/ui/core/marque/bloc_de_marque.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
+import 'package:arpendo/ui/demarrage/ecran_attente.dart';
+import 'package:arpendo/ui/demarrage/etat_demarrage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +46,13 @@ final composants = <String, WidgetBuilder>{
   'le bouton pleine largeur': (context) => BoutonPleineLargeur(
     libelle: AppLocalizations.of(context).marqueAccroche,
     onPressed: () {},
+  ),
+  // L'état d'échec, le plus riche en textes : message §2.1, « Réessayer »,
+  // bloc de marque, et la ligne 5 sur son calque.
+  "l'écran d'attente en échec": (_) => EcranAttente(
+    etat: const Injoignable(),
+    entreeBandeau: ligneReseauAbsent(),
+    onReessayer: () {},
   ),
 };
 

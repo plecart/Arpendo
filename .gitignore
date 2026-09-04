@@ -50,6 +50,7 @@ doc/api/
 # `**/` est indispensable : l'app vit dans `app/`, pas à la racine. Un motif écrit
 # `android/...` serait ancré sur ce fichier et ne matcherait jamais `app/android/...`.
 **/android/.gradle/
+**/android/.kotlin/
 **/android/local.properties
 **/android/app/debug/
 **/android/app/profile/

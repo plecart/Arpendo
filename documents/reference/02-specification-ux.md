@@ -301,10 +301,18 @@ Toutes les durées passent à **0 ms** si `MediaQuery.disableAnimations` est vra
 d'accessibilité). Une animation ne porte jamais seule une information — chaque transition
 ci-dessous a un état final lisible à l'arrêt.
 
-**Aucune exception.** Le réglage désactive les animations, il les désactive toutes — y compris le
+**Aucune exception, hormis celle nommée ci-dessous.** Le réglage désactive les animations, il
+les désactive toutes — y compris le
 vol de caméra du §7.4, qui devient un saut instantané, et la transition d'élément partagé qui
 l'accompagne. Un joueur qui a demandé zéro mouvement obtient zéro mouvement ; lui en concéder
 « juste un peu » quelque part, c'est ne pas respecter le réglage tout en compliquant le code.
+
+**Une seule exception, nommée : l'indicateur de progression indéterminé** (§13.2). Il anime en
+continu, réglage compris — c'est un **état**, pas une transition : il n'a pas d'état final, sa
+présence est l'information, et figé il serait indiscernable d'un gel de l'application. Il reste
+rendu — jamais retiré — sous le réglage, et le délai qui borne son apparition (§13.2) borne déjà
+le mouvement inutile. Toute nouvelle exception repasse par l'amendement de ce §, jamais par
+analogie avec celle-ci.
 
 **Le principe qui gouverne les formes d'entrée.** Un élément entre **par l'endroit où il va vivre**.
 Une feuille ancrée en bas glisse depuis le bas ; une modale centrée grossit sur place, de 96 % à
@@ -410,9 +418,20 @@ participants, flux, invitation, scores, confirmations — s'ouvre **par-dessus**
 3. Requête « ai-je une partie active ? » → Jeu, ou Menu.
 4. Évaluation des permissions (§13), **à chaque passage au premier plan**, pas seulement ici.
 
-**Pendant les étapes 2 à 3**, l'écran affiché est un **écran d'attente neutre** : logo, accroche
-« prends du terrain », et un indicateur de progression indéterminé après **600 ms** seulement —
-en dessous, l'indicateur clignote et donne une impression de lenteur là où il n'y en a pas.
+**Pendant les étapes 2 à 3**, l'écran affiché est un **écran d'attente neutre** : le bloc de
+marque du §4 — signe, logotype, accroche « prends du terrain » — et **rien d'autre**. **Aucun
+indicateur de progression** : le bloc affiché est déjà le signe que l'application démarre, et
+l'attente est **bornée par le délai du client HTTP**, 10 s par tentative — l'écran ne peut pas
+rester statique plus longtemps avant de basculer vers l'étape suivante ou vers l'échec. C'est
+cette borne qui rend l'absence d'indicateur acceptable : un flux qui allongerait l'attente
+au-delà (téléchargement, migration locale) rouvre la question.
+
+**Le bloc de marque ne bouge pas.** Sa position est la même dans les trois états — attente,
+échec, prêt — et ce qui apparaît sous lui prend sa place **sans le déplacer** : un logo qui
+remonte à chaque changement d'état se lit comme une instabilité de l'application. Il est
+**centré verticalement**, et non en bande haute comme au §4 et au §5, parce que cet écran n'a ni
+action permanente ni contenu à dégager sous lui.
+
 Serveur injoignable à l'étape 3 : « Le serveur ne répond pas. » + bouton « Réessayer » (réseau absent :
 bandeau priorité 5).
 Ne jamais router vers le Menu par défaut : un joueur dont la partie est en cours verrait
@@ -2275,7 +2294,7 @@ problème :
 
 | Cas | Délai | Motif |
 |---|---|---|
-| **Attente subie** — le joueur n'a rien déclenché : démarrage de l'app, chargement d'un écran | **600 ms** avant tout indicateur | En dessous, il clignote et fabrique une impression de lenteur là où il n'y en a pas |
+| **Attente subie** — le joueur n'a rien déclenché : chargement d'un écran, d'une liste | **600 ms** avant tout indicateur | En dessous, il clignote et fabrique une impression de lenteur là où il n'y en a pas |
 | **Attente provoquée** — le joueur vient de taper un bouton | **Aucun délai**, l'indicateur remplace le libellé immédiatement | C'est l'accusé de réception du tap. 600 ms de bouton inerte se lisent comme un tap perdu, et le joueur retape |
 
 | Où | Forme |
@@ -2285,7 +2304,7 @@ problème :
 | Vérification du pseudo (§5.1) | Indicateur dans le champ, après 400 ms d'inactivité de frappe |
 | Listes (joueurs, flux, historique) | Trois lignes en squelette |
 | Page suivante d'une liste paginée | Indicateur 32 dp en pied de liste |
-| Démarrage de l'app | Écran d'attente, indicateur après 600 ms |
+| Démarrage de l'app | Écran d'attente (§2.1), **aucun indicateur** — le bloc de marque tient ce rôle, et le délai du client HTTP borne l'attente |
 
 ### 13.3 États d'erreur
 
