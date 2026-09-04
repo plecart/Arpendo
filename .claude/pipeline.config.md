@@ -93,7 +93,10 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   réelles ; à réintroduire au premier déploiement
 - hors périmètre : monétisation · analytics produit · iOS (phase 2) · modale « Mes hexagones »
   (post-MVP, cadrage §7.6) · animations de squelette via couches Three.js custom (cadrage §13.1) ·
-  exclusion géographique de zones (cadrage §16)
+  exclusion géographique de zones (cadrage §16) · animation du logo pendant le chargement et
+  animation de transition entre les écrans (**cadrage §20**, registre des reports)
+- **`triage` lit le cadrage §20 avant de créer une issue** : un sujet qui y figure est un report
+  décidé, pas un manque à ticketer
 - surfaces exposées — ce que la QA a le droit de vérifier ; ne lister que ce qui existe :
   API HTTP REST + SSE · persistance PostgreSQL · cache et pub/sub Valkey · traitements
   asynchrones (conteneur `worker`) · application mobile Android · comptes utilisateurs /
