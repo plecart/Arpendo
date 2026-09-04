@@ -31,6 +31,10 @@ dependencies:
   # Injection des services depuis la racine de composition (brief #46 :
   # `provider` entre avec le premier ViewModel). Seul `main.dart` l'importe.
   provider: ^6.1.2
+  # Préférences locales — ce qu'un redémarrage doit retrouver, rien de
+  # sensible (le stockage Android n'est pas chiffré). Seul
+  # `lib/data/services/preferences_service.dart` l'importe.
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   # Déjà dans l'arbre en transitive de `connectivity_plus` ; déclarée ici pour
