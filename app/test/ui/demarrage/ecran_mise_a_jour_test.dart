@@ -33,7 +33,7 @@ void main() {
     expect(bloc.center.dy, moreOrLessEquals(ecran.center.dy, epsilon: 0.5));
   });
 
-  testWidgets('porte les quatre textes du §11.2', (tester) async {
+  testWidgets('porte les trois textes du §11.2', (tester) async {
     await _monter(tester);
 
     expect(find.text('Mise à jour nécessaire'), findsOneWidget);
@@ -45,9 +45,11 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('Ta partie et ta progression sont conservées.'),
-      findsOneWidget,
-      reason: 'sans elle le joueur croit tout perdre et hésite (§11.2)',
+      find.textContaining('progression'),
+      findsNothing,
+      reason:
+          'la conservation des données est implicite à toute mise à jour ; '
+          "l'écrire attirait l'attention sur un risque qui n'existe pas",
     );
     expect(find.widgetWithText(BoutonPleineLargeur, 'Mettre à jour'), findsOne);
   });

@@ -4,7 +4,7 @@ import '../../domain/bandeau/entree_bandeau.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../core/bandeau/emplacement_bandeau.dart';
 import '../core/boutons/bouton_pleine_largeur.dart';
-import '../core/marque/bloc_de_marque.dart';
+import '../core/marque/marque_centree.dart';
 import '../core/mise_en_page/pile_de_calques.dart';
 import '../core/theme/mesures.dart';
 import '../core/theme/typographie.dart';
@@ -66,7 +66,7 @@ class EcranAttente extends StatelessWidget {
                 // bas. Ni l'un ni l'autre ne peut donc déplacer le bloc.
                 child: Stack(
                   children: [
-                    Center(child: _blocEtZoneEtat(context, textes)),
+                    MarqueCentree(sous: _zoneEtat(context, textes)),
                     if (etat is Injoignable)
                       Align(
                         alignment: Alignment.bottomCenter,
@@ -88,31 +88,6 @@ class EcranAttente extends StatelessWidget {
           Calque.bandeau: EmplacementBandeau(entree: entreeBandeau),
         },
       ),
-    );
-  }
-
-  /// Le bloc de marque, et sous lui la zone d'état — qui est **peinte sans
-  /// compter dans la hauteur** du groupe.
-  ///
-  /// C'est `heightFactor: 0` qui tient l'invariant : la colonne mesure le
-  /// seul bloc, donc le [Center] le centre et il **reste immobile** quel que
-  /// soit ce qui s'affiche dessous. Compter la zone d'état dans la hauteur,
-  /// comme le faisait la version précédente, faisait remonter le bloc de la
-  /// moitié de ce qui paraissait — 52 dp mesurés entre attente et échec.
-  Widget _blocEtZoneEtat(BuildContext context, AppLocalizations textes) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const BlocDeMarque(),
-        Align(
-          alignment: Alignment.topCenter,
-          heightFactor: 0,
-          child: Padding(
-            padding: const EdgeInsets.only(top: Espacements.x6),
-            child: _zoneEtat(context, textes),
-          ),
-        ),
-      ],
     );
   }
 

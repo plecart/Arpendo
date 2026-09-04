@@ -37,17 +37,31 @@ void main() {
     expect(ligne.bloquant, isFalse);
   });
 
-  test('la mise à jour offre « Mettre à jour », et rien de plus', () {
-    // Une seule action : la fermeture du bandeau est repoussée après le MVP
-    // (cadrage §20). C'est aussi ce qui lui vaut de rester sur la rangée du
-    // message plutôt que de descendre (§2.4).
+  test('la mise à jour porte son geste sur son message, sans bouton', () {
+    // « Une nouvelle version est disponible. » et « Mettre à jour » disaient
+    // la même chose deux fois. Le message est le lien (§2.4).
     var miseAJour = 0;
     final ligne = ligneMiseAJourRecommandee(onMettreAJour: () => miseAJour++);
 
-    expect(ligne.actions.map((action) => action.libelle(fr)), [
-      'Mettre à jour',
-    ]);
-    ligne.actions.single.onPressed();
+    expect(ligne.actions, isEmpty);
+    expect(ligne.onTexteTape, isNotNull);
+
+    ligne.onTexteTape!();
     expect(miseAJour, 1);
+  });
+
+  test('un message tapable et des boutons ne coexistent pas', () {
+    // Les deux offriraient le même geste deux fois, et doubleraient la cible
+    // tactile à tenir. L'`assert` du modèle le refuse en debug.
+    expect(
+      () => EntreeBandeau(
+        priorite: 99,
+        severite: Severite.info,
+        texte: (_) => 'peu importe',
+        actions: [ActionBandeau(libelle: (_) => 'Agir', onPressed: () {})],
+        onTexteTape: () {},
+      ),
+      throwsA(isA<AssertionError>()),
+    );
   });
 }

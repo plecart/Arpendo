@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../core/boutons/bouton_pleine_largeur.dart';
-import '../core/marque/bloc_de_marque.dart';
+import '../core/marque/marque_centree.dart';
 import '../core/mise_en_page/pile_de_calques.dart';
 import '../core/theme/mesures.dart';
 import '../core/theme/typographie.dart';
@@ -53,7 +53,7 @@ class EcranMiseAJour extends StatelessWidget {
               // saute pas au passage attente → bloquant.
               child: Stack(
                 children: [
-                  Center(child: _blocEtMessage(context, textes)),
+                  MarqueCentree(sous: _message(context, textes)),
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: BoutonPleineLargeur(
@@ -70,51 +70,21 @@ class EcranMiseAJour extends StatelessWidget {
     );
   }
 
-  /// Le bloc de marque, et sous lui les trois textes du §11.2 — **peints sans
-  /// compter dans la hauteur** du groupe.
-  ///
-  /// Même mécanique que l'écran d'attente, et pour la même raison : le
-  /// [Center] ne mesure que le bloc, donc le logo occupe exactement la place
-  /// qu'il occupe là-bas. Passer de l'un à l'autre ne le déplace pas.
-  Widget _blocEtMessage(BuildContext context, AppLocalizations textes) {
+  /// Les deux textes du §11.2, sous le bloc de marque.
+  Widget _message(BuildContext context, AppLocalizations textes) {
     final couleurs = Theme.of(context).colorScheme;
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        const BlocDeMarque(),
-        Align(
-          alignment: Alignment.topCenter,
-          heightFactor: 0,
-          child: Padding(
-            padding: const EdgeInsets.only(top: Espacements.x6),
-            child: Column(
-              children: [
-                Text(
-                  textes.miseAJourTitre,
-                  style: Typographie.title.copyWith(color: couleurs.onSurface),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: Espacements.x3),
-                Text(
-                  textes.miseAJourCorps,
-                  style: Typographie.body.copyWith(color: couleurs.onSurface),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: Espacements.x3),
-                // La réassurance suit le corps plutôt que le bouton : elle
-                // répond à l'inquiétude que le corps vient de créer, et le
-                // §11.2 la motive par l'hésitation qu'elle évite — donc elle
-                // doit être lue AVANT la décision de taper.
-                Text(
-                  textes.miseAJourProgressionConservee,
-                  style: Typographie.caption.copyWith(
-                    color: couleurs.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
+        Text(
+          textes.miseAJourTitre,
+          style: Typographie.title.copyWith(color: couleurs.onSurface),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: Espacements.x3),
+        Text(
+          textes.miseAJourCorps,
+          style: Typographie.body.copyWith(color: couleurs.onSurface),
+          textAlign: TextAlign.center,
         ),
       ],
     );

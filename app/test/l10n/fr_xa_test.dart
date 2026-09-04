@@ -55,9 +55,9 @@ final composants = <String, WidgetBuilder>{
     entreeBandeau: ligneReseauAbsent(),
     onReessayer: () {},
   ),
-  // Quatre textes empilés sans carte pour absorber l'allongement — titre,
-  // corps de deux lignes, réassurance et bouton (§11.2). C'est l'écran du
-  // projet où la tolérance de +30 % du §0 est la plus contrainte.
+  // Le bloc de marque, le titre, un corps de deux lignes et le bouton (§11.2),
+  // empilés sans carte pour absorber l'allongement. C'est l'écran du projet où
+  // la tolérance de +30 % du §0 est la plus contrainte.
   "l'écran de mise à jour obligatoire": (_) =>
       EcranMiseAJour(onMettreAJour: () {}),
 };

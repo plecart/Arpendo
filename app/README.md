@@ -297,6 +297,16 @@ contrôleur qu'on rembobine applique un **second** miroir temporel, ce qui inver
 
 ### Le bloc de marque
 
+`ui/core/marque/marque_centree.dart` — `MarqueCentree(sous: …)` compose le bloc **centré** et ce
+qui s'écrit dessous. Elle existe pour tenir **un invariant, pas pour éviter de retaper dix
+lignes** : le logo occupe la même place sur tous les écrans qui l'emploient — attente (§2.1) et
+mise à jour obligatoire (§11.2) aujourd'hui, Connexion (§4) et Accueil (§5) demain — donc il ne
+saute jamais quand l'un remplace l'autre. `sous` est peint par un `Align(heightFactor: 0)` : il ne
+compte pas dans la hauteur, sans quoi le bloc remonterait de la moitié de ce qui paraît (52 dp
+mesurés avant #98). **Ce qui s'ancre à un bord — un bouton de bande basse — se pose à côté d'elle
+dans un `Stack`, jamais dedans.**
+
+
 `ui/core/marque/bloc_de_marque.dart` — signe, logotype, accroche (§4), la même composition pour
 les trois écrans sans carte : attente (§2.1), Connexion (§4), Accueil (§5). Le signe est
 `assets/signe-arpendo.svg` (copié depuis `documents/assets/`, source unique), teinté
@@ -388,8 +398,8 @@ La séquence de démarrage compare le build installé aux deux seuils de `GET /v
 
 | Verdict | Ce qui s'affiche |
 |---|---|
-| build < **minimal** | `EcranMiseAJour` **remplace** l'écran d'attente — `Calque.bloquant` (z 500), `PopScope(canPop: false)`, aucune sortie, pas même le geste de retour. Il reprend le **bloc de marque centré** et la mécanique de l'écran d'attente (`Align(heightFactor: 0)`), donc le logo ne bouge pas d'un écran à l'autre |
-| build < **recommandé** | l'écran d'attente reste, la **ligne 12** du bandeau s'ajoute sur son calque, avec « Mettre à jour » pour seule action |
+| build < **minimal** | `EcranMiseAJour` **remplace** l'écran d'attente — `Calque.bloquant` (z 500), `PopScope(canPop: false)`, aucune sortie, pas même le geste de retour. Il reprend le **bloc de marque centré** et la mécanique de l'écran d'attente (`Align(heightFactor: 0)`), donc le logo ne bouge pas d'un écran à l'autre. Il ne porte **aucune réassurance sur les données** : une mise à jour n'en fait perdre à personne, et le dire créerait la peur qu'on prétend calmer |
+| build < **recommandé** | l'écran d'attente reste, la **ligne 12** du bandeau s'ajoute sur son calque. **Aucun bouton** : le message est lui-même le lien (graisse 500, même couleur), et c'est le bandeau entier qui est tapable |
 | sinon | rien de plus |
 
 Un service de la couche Data sert les deux niveaux, et il est **le seul à importer son plugin** —

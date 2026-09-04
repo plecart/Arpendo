@@ -233,16 +233,15 @@ void main() {
       expect(vm.entreeBandeau?.priorite, 12);
     });
 
-    test('le bandeau 12 porte une seule action, sans « Fermer »', () async {
-      // La fermeture — et la persistance qu'elle suppose — sont repoussées
-      // après le MVP (cadrage §20). Une action unique tient sur la rangée du
-      // message (§2.4), ce qui est aussi ce que la ligne 12 veut dire : la
-      // mise à jour est recommandée, pas imposée.
+    test('le bandeau 12 porte son geste sur son message', () async {
+      // Aucun bouton : ni « Mettre à jour », qui répétait le message, ni
+      // « Fermer », repoussé après le MVP (cadrage §20).
       final vm = _modele(versions: sousLeRecommande);
 
       await vm.demarrer();
 
-      expect(vm.entreeBandeau!.actions, hasLength(1));
+      expect(vm.entreeBandeau!.actions, isEmpty);
+      expect(vm.entreeBandeau!.onTexteTape, isNotNull);
     });
 
     test('un échec après une lecture réussie efface la proposition', () async {
@@ -281,11 +280,11 @@ void main() {
       expect(vm.entreeBandeau?.priorite, 5);
     });
 
-    test('« Mettre à jour » ouvre la fiche du magasin', () async {
+    test('taper le message ouvre la fiche du magasin', () async {
       final vm = _modele(versions: sousLeRecommande);
       await vm.demarrer();
 
-      vm.entreeBandeau!.actions.first.onPressed();
+      vm.entreeBandeau!.onTexteTape!();
 
       expect(ouverturesMagasin, 1);
     });

@@ -39,7 +39,11 @@ EntreeBandeau ligneReseauAbsent() => EntreeBandeau(
 
 /// Ligne 12 — une version plus récente est recommandée (§2.4, §11.2).
 ///
-/// **Une seule action**, donc sur la rangée du message (§2.4).
+/// **Aucun bouton : le message est lui-même le lien.** « Une nouvelle version
+/// est disponible. » et « Mettre à jour » disaient la même chose deux fois ;
+/// le §2.4 admet donc qu'une entrée porte son geste sur son texte, en graisse
+/// 500 et sans changer de couleur.
+///
 /// [onMettreAJour] ouvre la fiche du magasin ; il est fourni par l'appelant,
 /// parce que la condition de cette ligne — « recommandée non atteinte » —
 /// appartient à la séquence de démarrage, pas à la table des lignes.
@@ -53,10 +57,5 @@ EntreeBandeau ligneMiseAJourRecommandee({
   priorite: 12,
   severite: Severite.info,
   texte: (l10n) => l10n.bandeauMiseAJourDisponible,
-  actions: [
-    ActionBandeau(
-      libelle: (l10n) => l10n.bandeauActionMettreAJour,
-      onPressed: onMettreAJour,
-    ),
-  ],
+  onTexteTape: onMettreAJour,
 );

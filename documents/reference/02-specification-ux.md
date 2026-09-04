@@ -501,6 +501,14 @@ place** : une action **seule** partage la rangée du message, à sa droite, sép
 `space-2` ; **deux** actions descendent sur une **seconde rangée**, alignées à droite et séparées
 du message par `space-2`.
 
+**Troisième forme : le message porte le geste.** Quand une entrée n'offre qu'une action et que
+cette action **est** ce que le message annonce, le bouton la répéterait — « Une nouvelle version
+est disponible. » suivi de « Mettre à jour » dit deux fois la même chose. Le message devient alors
+le lien : **graisse 500, sans changer de couleur**, la couleur seule ne portant jamais une
+information (§1.5). La cible tactile est alors le **bandeau entier**, pas la ligne de texte : 56 dp
+de haut sur toute la largeur, ce qui satisfait le §1.4 sans ajouter de hauteur. Un message tapable
+et des boutons **ne coexistent pas**.
+
 **La hauteur est un résultat, jamais une consigne** (§0 : les conteneurs grandissent, ils ne
 tronquent pas). Elle vaut `space-4` × 2 plus la hauteur du contenu, où une ligne de `type-body`
 compte 24 dp (§1.2) et une rangée d'actions 48 + `space-2` (§1.4). D'où, pour les cas courants :
@@ -560,7 +568,7 @@ traiter qu'un problème à la fois — celui d'en haut est toujours la cause des
 | 9 | Connexion instable, **aucune coupure en cours** | info | « Connexion instable » | — |
 | 10 | Arrière-plan refusé | avertissement | « Ta progression s'arrêtera si ton téléphone redémarre » | « Réglages » · « Masquer pour cette partie » |
 | 11 | Notifications refusées | avertissement | « Arpendo ne peut pas t'avertir si la capture s'arrête. » | « Réglages » · « Masquer pour cette partie » |
-| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | « Mettre à jour » |
+| 12 | Mise à jour recommandée | info | « Une nouvelle version est disponible. » | — *le message est lui-même le lien* |
 | 13 | Captures perdues, au retour au premier plan | info | *« La coupure a duré trop longtemps : 12 captures sont perdues. »* | — *(disparaît seule après 6 s)* |
 
 Notes de comportement :
@@ -2208,8 +2216,11 @@ en cours de séquence, et le logo ne doit pas sauter en le faisant. Le reste s'�
 bloc, sans le déplacer.
 Titre « Mise à jour nécessaire ». Corps « Cette version d'Arpendo n'est plus compatible
 avec le serveur. Installe la dernière version pour continuer à jouer. » Bouton « Mettre à jour »
-(56 dp, bande basse) → Play Store. Corps 2, `type-caption` : « Ta partie et ta progression sont
-conservées. » — sans quoi le joueur croit tout perdre et hésite.
+(56 dp, bande basse) → Play Store.
+
+**Pas de réassurance sur les données.** L'écran ne dit **pas** que la partie et la progression sont
+conservées : une mise à jour ne fait perdre les données de personne, et l'écrire attire l'attention
+sur un risque qui n'existe pas — on rassure sur une peur qu'on vient de créer.
 
 **Si le magasin ne s'ouvre pas** — ni l'application du magasin ni un navigateur ne répond au lien —
 **l'écran ne change pas** : aucun message, aucun état d'erreur, et le bouton reste tapable. C'est

@@ -36,21 +36,16 @@ class _TransportFermable extends http.BaseClient {
   void close() => ferme = true;
 }
 
-http.Client _serveurNominal() => MockClient(
-  (_) async => http.Response('{"min_build":1,"recommended_build":1}', 200),
-);
-
 /// Les liens que la racine a réellement demandé d'ouvrir.
 late List<Uri> liensOuverts;
 
 /// Serveur qui publie [min] et [recommande] — les deux verdicts du §11.2.
-http.Client _serveurQuiPublie({required int min, required int recommande}) =>
-    MockClient(
-      (_) async => http.Response(
-        '{"min_build":$min,"recommended_build":$recommande}',
-        200,
-      ),
-    );
+///
+/// Sans argument, il publie des seuils déjà atteints : le cas nominal.
+http.Client _serveurQuiPublie({int min = 1, int recommande = 1}) => MockClient(
+  (_) async =>
+      http.Response('{"min_build":$min,"recommended_build":$recommande}', 200),
+);
 
 /// La racine telle que `main()` la construit, transport et réseau de test.
 ArpendoApp _app({http.Client? transport, int buildActuel = 4}) {
@@ -60,7 +55,7 @@ ArpendoApp _app({http.Client? transport, int buildActuel = 4}) {
       config: const ApiConfig(baseUrl: 'https://exemple.test/api'),
       clientVersion: '1.2.3+4',
       connectivite: connectivite,
-      client: transport ?? _serveurNominal(),
+      client: transport ?? _serveurQuiPublie(),
     ),
     connectivite: connectivite,
     buildActuel: buildActuel,
@@ -133,7 +128,11 @@ void main() {
 
     expect(find.byType(EcranAttente), findsOneWidget);
     expect(find.text('Une nouvelle version est disponible.'), findsOneWidget);
-    expect(find.text('Mettre à jour'), findsOneWidget);
+    expect(
+      find.byType(TextButton),
+      findsNothing,
+      reason: 'le message porte le lien : un bouton le répéterait (§2.4)',
+    );
     expect(
       find.text('Fermer'),
       findsNothing,
@@ -143,13 +142,15 @@ void main() {
     );
   });
 
-  testWidgets('bandeau 12 : son action unique est branchée', (tester) async {
+  testWidgets('bandeau 12 : taper le message atteint le magasin', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(transport: _serveurQuiPublie(min: 1, recommande: 9)),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Mettre à jour'));
+    await tester.tap(find.text('Une nouvelle version est disponible.'));
     await tester.pumpAndSettle();
 
     expect(liensOuverts, [Uri.parse('market://details?id=com.arpendo.game')]);
@@ -191,7 +192,7 @@ void main() {
   });
 
   testWidgets('le démontage de la racine ferme le client', (tester) async {
-    final transport = _TransportFermable(_serveurNominal());
+    final transport = _TransportFermable(_serveurQuiPublie());
     await tester.pumpWidget(_app(transport: transport));
     await tester.pumpAndSettle();
     expect(transport.ferme, isFalse);
