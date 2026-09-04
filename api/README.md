@@ -17,6 +17,9 @@ cp .env.example .env    # une fois, à la racine ; y mettre un VALKEY_PASSWORD
 just up
 ```
 
+Un `.env` qui date d'avant le délai d'arrêt fait échouer `just up` sur une variable manquante —
+voir « Arrêter » plus bas.
+
 Les sources sont montées dans le conteneur `api` et uvicorn tourne en `--reload` : éditer
 `src/` recharge le serveur sans rien reconstruire. Un changement de dépendance, lui, demande une
 image neuve — `just up` la rebâtit, et ne coûte rien quand rien n'a bougé.
@@ -61,8 +64,9 @@ s'inverse ou si un maillon disparaît. Ne pas recopier ces chiffres ailleurs : l
 Le worker n'a rien à borner : sa boucle s'arrête d'elle-même sur SIGTERM, il lui faut seulement le
 temps de finir le tour en cours.
 
-**Sur un `.env` plus ancien que ce réglage, toute commande `docker compose` échoue** — `just up` et
-`just test` compris — avec un message qui nomme la variable manquante. C'est délibéré : Compose
+**Sur un `.env` plus ancien que ce réglage, toute commande `docker compose` échoue** — donc
+`just up`, et par ricochet `just test`, qui exige la pile levée — avec un message qui nomme la
+variable manquante. C'est délibéré : Compose
 n'aurait sinon transmis qu'une chaîne vide, qu'uvicorn ignore, et la borne aurait disparu sans que
 rien ne le signale. Recopier la ligne depuis `.env.example` suffit.
 
