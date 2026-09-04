@@ -1630,6 +1630,7 @@ moins de 8 h/semaine.
 | CI/CD | **GitHub Actions** |
 | Versioning | **Versioning sémantique automatique** (commits conventionnels → changelog, tag et release GitHub) |
 | Publication | Automatisée vers la **piste de test interne Google Play** à chaque tag |
+| Url du serveur dans le bundle | **`API_BASE_URL` est injectée au build**, en `--dart-define` — aucune url par défaut n'est écrite en dur. `just build` échoue si la variable est absente, et l'app **refuse de démarrer** sans elle : un bundle construit sans cette variable ne démarre pas. Le workflow de tag doit donc la fournir ; sa **valeur de production** naît avec le déploiement, qui fait exister le domaine (§13.11). Déclarée dans `.env.example`, section « Application » |
 | Déploiement backend | Déclenché par la CI : **SSH → `compose pull` → migration en conteneur éphémère → `compose up -d`** (§13.9, règle 3) |
 | Monitoring | **Sentry** + logs structurés et métriques + alertes automatiques. **Plus un moniteur d'uptime dès le jour 1** : Sentry ne voit pas une machine morte (§13.11) |
 | Analytics produit | Repoussé après le MVP |
