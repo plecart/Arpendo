@@ -17,6 +17,9 @@ cp .env.example .env    # une fois, à la racine ; y mettre un VALKEY_PASSWORD
 just up
 ```
 
+Un `.env` qui date d'avant le délai d'arrêt fait échouer `just up` sur une variable manquante —
+voir « Arrêter » plus bas.
+
 Les sources sont montées dans le conteneur `api` et uvicorn tourne en `--reload` : éditer
 `src/` recharge le serveur sans rien reconstruire. Un changement de dépendance, lui, demande une
 image neuve — `just up` la rebâtit, et ne coûte rien quand rien n'a bougé.
@@ -41,6 +44,38 @@ Dans les deux cas, `GET http://localhost:8000/health` répond **200**
 la dépendance fautive marquée `"unreachable"` — le verdict pour un moniteur d'uptime, le détail
 pour la personne qui diagnostique. Un service absent se constate en quelques millisecondes : les
 clients échouent vite plutôt que d'épuiser le budget de la sonde.
+
+## Arrêter
+
+`docker compose stop` envoie un SIGTERM, puis tue au SIGKILL après un délai. Le défaut de Docker
+est trop court pour fermer proprement des flux ouverts (cadrage §13.7, §13.9 règle 6) : `api` et
+`worker` déclarent donc leur propre `stop_grace_period` dans `infra/docker-compose.yml`.
+
+Ce délai seul ne suffirait pas, parce qu'**uvicorn attend les connexions ouvertes sans borne** :
+une requête longue — une SSE, demain — tiendrait jusqu'au SIGKILL, et le délai n'aurait fait que
+retarder la mort brutale. `UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN`, dans le `.env`, lui donne cette
+borne.
+
+**L'ordre est tout le sujet** : la borne d'uvicorn doit rester **sous** le `stop_grace_period`,
+sinon c'est encore Docker qui tranche et la marge n'aura servi à rien. Les deux valeurs vivent dans
+deux fichiers que rien ne relie — `api/tests/test_compose.py` les compare, et rougit si l'ordre
+s'inverse ou si un maillon disparaît. Ne pas recopier ces chiffres ailleurs : les lire là.
+
+Le worker n'a rien à borner : sa boucle s'arrête d'elle-même sur SIGTERM, il lui faut seulement le
+temps de finir le tour en cours.
+
+**Sur un `.env` plus ancien que ce réglage, toute commande `docker compose` échoue** — donc
+`just up`, et par ricochet `just test`, qui exige la pile levée — avec un message qui nomme la
+variable manquante. C'est délibéré : Compose n'aurait sinon transmis qu'une chaîne vide, qu'uvicorn
+ignore, et la borne aurait disparu sans que rien ne le signale. Recopier la ligne depuis
+`.env.example` suffit.
+
+Ce qu'on doit observer : `docker compose stop api` rend la main **dans le délai déclaré** avec le
+code de sortie **0**. Un `137` signifierait un SIGKILL — c'est-à-dire l'inverse de ce que cette
+configuration existe pour obtenir.
+
+La borne uvicorn est configurée, pas testée en exécution : aucune route de cette api ne tient assez
+longtemps pour l'exercer. Elle le sera par ce qui l'exercera vraiment.
 
 ## Tester et vérifier
 

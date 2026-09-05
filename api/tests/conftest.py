@@ -43,27 +43,48 @@ def ddl(element: CreateTable | CreateIndex) -> str:
     return str(element.compile(dialect=postgresql.dialect()))
 
 
-COMPOSE = Path(__file__).resolve().parent.parent.parent / "infra" / "docker-compose.yml"
+RACINE = Path(__file__).resolve().parent.parent.parent
+"""La racine du dépôt : les fichiers de configuration gardés par la suite y vivent."""
+
+COMPOSE = RACINE / "infra" / "docker-compose.yml"
 """Le compose **local**, en chemin absolu — la suite peut être lancée d'ailleurs que d'`api/`.
 
-Celui-là et pas un autre : les deux invariants qui le lisent portent sur l'application qui tourne
+Celui-là et pas un autre : les invariants qui le lisent portent sur l'application qui tourne
 **sur le poste, pendant la suite** — la partition de sa configuration entre points d'entrée, et la
 séparation de sa base Valkey d'avec celle des tests. Un compose de production (#45) décrira une
 pile que personne ne lève ici.
 """
 
+ENV_EXAMPLE = RACINE / ".env.example"
+"""Le modèle de `.env` — la seule déclaration des valeurs que le poste et le compose se partagent.
 
-def variables_requises() -> set[str]:
-    """Les variables d'environnement sans lesquelles `Settings` refuse de se construire.
+Lu par les gardes qui portent sur un invariant **réparti** entre lui et `infra/docker-compose.yml` :
+une valeur proposée ici et relayée là-bas n'est cohérente nulle part ailleurs, et un commentaire de
+chaque côté ne la tient pas.
+"""
+
+
+def variables_des_reglages() -> set[str]:
+    """Toutes les variables d'environnement que `Settings` lit — requises ou non.
 
     **Dérivées des champs du modèle, jamais recopiées.** C'est la seule représentation de cet
-    ensemble dans la suite : ajouter un champ requis étend d'un coup tout ce qui s'appuie dessus —
-    la couverture des tests de réglages comme la partition des services du compose — sans que
-    personne ait à tenir une seconde liste à jour. Une liste écrite à la main sous-couvrirait en
-    silence, ce qui est le pire des deux mondes : verte et fausse.
+    ensemble dans la suite : ajouter un champ étend d'un coup la partition des services du compose,
+    sans que personne ait à tenir une seconde liste à jour. Une liste écrite à la main
+    sous-couvrirait en silence, ce qui est le pire des deux mondes : verte et fausse.
 
     `pydantic_settings` fait correspondre le nom de champ à la variable en majuscules, sans
     préfixe — `env_prefix` vide et `case_sensitive` faux dans la configuration du modèle.
+
+    Returns:
+        Les noms de variables, en majuscules.
+    """
+    return {nom.upper() for nom in Settings.model_fields}
+
+
+def variables_requises() -> set[str]:
+    """Celles de `variables_des_reglages` sans lesquelles `Settings` refuse de se construire.
+
+    Même dérivation et même convention de nommage ; seul le filtre change.
 
     Returns:
         Les noms de variables, en majuscules. Un champ pourvu d'un défaut en est exclu : son
@@ -169,9 +190,9 @@ def lignes(capsys: pytest.CaptureFixture[str]) -> Iterator[Lignes]:
 def alembic_config() -> Config:
     """La configuration d'Alembic — `[tool.alembic]` du `pyproject.toml`, sans `alembic.ini`.
 
-    Chemin absolu : la suite peut être lancée d'ailleurs que depuis `api/`.
+    Chemin absolu, ancré sur `RACINE` : la suite peut être lancée d'ailleurs que depuis `api/`.
     """
-    return Config(toml_file=str(Path(__file__).resolve().parent.parent / "pyproject.toml"))
+    return Config(toml_file=str(RACINE / "api" / "pyproject.toml"))
 
 
 @pytest.fixture(scope="session", autouse=True)

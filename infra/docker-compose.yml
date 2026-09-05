@@ -10,6 +10,43 @@
 # Le durcissement complet (empreintes d'images, `read_only`, `cap_drop`, limites de ressources,
 # compose de production, Caddy) est le périmètre de #45 ; ne rien en anticiper ici.
 
+# L'environnement commun aux deux points d'entrée du paquet. La partition est une **règle**, pas
+# une liste à tenir : ce que lit `Settings` est ici, parce que la classe valide la configuration
+# entière au démarrage quel que soit le point d'entrée — un `worker` à qui manque un seuil du
+# limiteur, qu'il n'utilise pourtant jamais, refuse de démarrer et redémarre en boucle. Ce que lit
+# le serveur qui héberge l'api — `UVICORN_*`, `FORWARDED_ALLOW_IPS` — reste sur `api` seule, seul
+# service à exécuter uvicorn. `api/tests/test_compose.py` tient cette règle dans les deux sens,
+# et refuse aussi bien un service à qui il manque une variable qu'un service qui en porte de trop.
+x-env: &env
+  # Les conteneurs se joignent par nom de service, jamais par `localhost` — d'où des URL
+  # différentes de celles du `.env`, qui sont le point de vue de l'hôte. Seul le mot de passe est
+  # un secret, donc seul lui est interpolé.
+  #
+  # `VALKEY_URL` est un **littéral**, et le reste : l'interpoler prendrait la base logique du
+  # `.env` — celle de la suite de tests — et l'application effacerait les clés des tests pendant
+  # qu'ils les lisent (#91). `api/tests/test_isolation.py` refuse la forme interpolée. La
+  # factoriser ici ne la réécrit pas, elle la déplace.
+  DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
+  VALKEY_URL: redis://valkey:6379/0
+  VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+  # Les seuils du limiteur, interpolés plutôt que littéraux : le conteneur et le poste limitent à
+  # l'identique, et changer un quota ne demande pas de toucher à ce fichier. Pas de `:?` —
+  # `Settings` refuse déjà de démarrer sur une valeur absente, en nommant le champ ; un second
+  # garde dirait la même chose plus tôt et moins bien.
+  RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
+  RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+  # Les deux seuils que `GET /version` publie. Interpolés comme les précédents : le conteneur et le
+  # poste annoncent la même cible, sinon l'app testée dans l'émulateur et celle testée sur le
+  # téléphone du réseau local ne verraient pas la même.
+  CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
+  CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
+  # Sentry. `:-` sur le DSN et pas sur le taux, et l'asymétrie est le sujet : un DSN absent est un
+  # état légitime — Sentry désactivé, le défaut du poste — là où un taux absent est une
+  # configuration trouée que `Settings` doit refuser en nommant le champ. Le worker en a autant
+  # besoin que l'api : un tour de tâche qui échoue est exactement ce qu'on veut voir remonter.
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_SAMPLE_RATE: ${SENTRY_SAMPLE_RATE}
+
 services:
   postgres:
     # PostgreSQL 17 : même majeure que la CI et que le service managé à commander (§13.6).
@@ -73,37 +110,32 @@ services:
     # Balise `dev` et non `latest` : ce n'est pas une image publiée, et §13.10 proscrit `latest`.
     image: arpendo-api:dev
     environment:
-      # Les conteneurs se joignent par nom de service, jamais par `localhost` — d'où des URL
-      # différentes de celles du `.env`, qui sont le point de vue de l'hôte. Seul le mot de passe
-      # est un secret, donc seul lui est interpolé.
-      DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
-      VALKEY_URL: redis://valkey:6379/0
-      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
-      # Les seuils du limiteur, interpolés plutôt que littéraux : le conteneur et le poste
-      # limitent à l'identique, et changer un quota ne demande pas de toucher à ce fichier. Pas
-      # de `:?` — `Settings` refuse déjà de démarrer sur une valeur absente, en nommant le champ ;
-      # un second garde dirait la même chose plus tôt et moins bien.
-      RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
-      RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
-      # Les deux seuils que `GET /version` publie. Interpolés comme les précédents : le conteneur
-      # et le poste annoncent la même cible, sinon l'app testée dans l'émulateur et celle testée
-      # sur le téléphone du réseau local ne verraient pas la même.
-      CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
-      CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
-      # Sentry. `:-` sur le DSN et pas sur le taux, et l'asymétrie est le sujet : un DSN absent est
-      # un état légitime — Sentry désactivé, le défaut du poste — là où un taux absent est une
-      # configuration trouée que `Settings` doit refuser en nommant le champ.
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_SAMPLE_RATE: ${SENTRY_SAMPLE_RATE}
+      <<: *env
       # Lue par uvicorn, pas par `Settings` — d'où un défaut ici, à l'inverse des seuils : cette
       # pile n'a pas de reverse proxy, donc personne n'est de confiance, `X-Forwarded-For` est
       # ignoré et `request.client` reste le pair réel. L'api démarre même si le `.env` est muet.
       # En production, ce sera le réseau de caddy (#45).
       FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
+      # Le temps qu'uvicorn accorde aux connexions déjà ouvertes avant de les fermer lui-même.
+      # Sans elle il attend **sans borne**, et c'est Docker qui tranche au SIGKILL — une SSE,
+      # demain, tiendrait jusque-là. Elle doit rester **sous** le `stop_grace_period` ci-dessous,
+      # sinon uvicorn ne ferme jamais le premier et la marge ne sert à rien ; `--reload` compris.
+      # La valeur est dans le `.env`, l'ordre est gardé par `api/tests/test_compose.py`.
+      #
+      # `:?` et non un défaut : la valeur est déclarée une seule fois, dans le `.env` (le poste, ce
+      # compose et #45 la lisent là). Et **mesuré** : click ignore silencieusement une valeur vide
+      # et retombe sur « sans borne » — un `.env` antérieur à ce lot perdrait la borne sans un mot.
+      # Ce garde le dit à voix haute, comme celui de `VALKEY_PASSWORD`.
+      UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN: ${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:?UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN est requis — copier .env.example en .env}
     # Rechargement à chaud sur les sources montées. `--reload-dir` borne la surveillance à `src/` :
     # sans lui, uvicorn scrute aussi `/app/.venv`, des milliers de fichiers relus en boucle.
     command: ["uvicorn", "arpendo_api.main:create_app", "--factory", "--host", "0.0.0.0",
               "--port", "8000", "--reload", "--reload-dir", "/app/src"]
+    # Déclaré, parce que le défaut de Docker est trop court pour des flux ouverts (§13.7
+    # troisième piège, §13.9 règle 6) : c'est le temps qu'uvicorn a pour laisser partir ce qui est
+    # en cours avant que Docker ne l'abrège au SIGKILL. `docker compose stop api` doit rendre 0,
+    # jamais 137.
+    stop_grace_period: 30s
     volumes:
       - ../api/src:/app/src
     ports:
@@ -126,25 +158,11 @@ services:
     build: ../api
     image: arpendo-api:dev
     environment:
-      # **Les sept** variables que `Settings` exige, recopiées depuis `api` : la classe valide la
-      # configuration entière au démarrage, quel que soit l'hôte, et un worker à qui il en manque
-      # une refuse de démarrer. Les deux seuils du limiteur et les deux seuils de version du
-      # client ne servent à aucune tâche d'ici, mais ils sont requis et sans défaut — les omettre
-      # empêcherait le conteneur de démarrer. Sentry, lui, sert bien ici : un tour de tâche qui
-      # échoue est exactement ce qu'on veut voir remonter. `FORWARDED_ALLOW_IPS`, en revanche,
-      # n'est pas reprise : elle est lue par uvicorn, que ce point d'entrée n'exécute pas. Pas
-      # d'ancre YAML pour factoriser cette recopie — elle arrive avec le lot 3 de #42, qui
-      # absorbera ces lignes.
-      DATABASE_URL: postgresql+asyncpg://arpendo:arpendo@postgres:5432/arpendo
-      VALKEY_URL: redis://valkey:6379/0
-      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
-      RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
-      RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
-      CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
-      CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
-      SENTRY_DSN: ${SENTRY_DSN:-}
-      SENTRY_SAMPLE_RATE: ${SENTRY_SAMPLE_RATE}
+      <<: *env
     command: ["python", "-m", "arpendo_api.worker"]
+    # Même délai qu'`api`, pour la même raison : #44 arrête la boucle sur SIGTERM, mais le tour
+    # de tâche en cours doit pouvoir finir. Rien à borner côté applicatif — pas d'uvicorn ici.
+    stop_grace_period: 30s
     volumes:
       # Sources montées comme pour `api`, mais **sans rechargement à chaud** : il n'y a pas
       # d'équivalent de `--reload` pour une boucle asyncio, et en inventer un serait du code de

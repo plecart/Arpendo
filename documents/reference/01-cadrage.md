@@ -1333,8 +1333,10 @@ de valider une migration. **À réexaminer le jour où la production a de vrais 
   transmis par `caddy` doit être lu, et **n'être considéré comme fiable que parce que `caddy` est
   le seul point d'entrée**.
 - ⚠️ **L'arrêt gracieux doit couvrir les connexions SSE longues** (§13.9, règle 6). Le délai
-  d'arrêt Docker par défaut est de 10 secondes : trop court pour fermer proprement des flux
-  ouverts. À porter explicitement dans le fichier compose.
+  d'arrêt appliqué par Docker à défaut est court et **dépend de la version** — mesuré à 1 seconde
+  sur Docker 29.2.1 (4 septembre 2026), quand la documentation en annonce 10 : trop court pour
+  fermer proprement des flux ouverts, dans un cas comme dans l'autre. À porter explicitement dans
+  le fichier compose, et ne jamais s'en remettre au défaut.
 
 #### Ce qui n'est pas activé aujourd'hui, et à quel signal l'activer
 
@@ -1748,6 +1750,7 @@ Ces décisions de l'ancien document ont été **remplacées**. Ne pas s'y réfé
 | « application sans cache » (formulation erronée en cours de session) | **« application sans état »** — trois niveaux de cache documentés (§13.8) |
 | Nombre de joueurs « paramétrable par le créateur » | **Supprimé.** 10 en dur, aucun curseur — cohérent avec l'absence de rôles (§8.1) |
 | « le plafond de 50 km/h exclut la voiture » | **Faux, corrigé.** Il exclut route, autoroute et train ; la conduite urbaine passe (§4.3) |
+| « Le délai d'arrêt Docker par défaut est de 10 secondes » (§13.7) | **Faux sur la chaîne d'outils du projet, corrigé.** Le défaut dépend de la version — mesuré à 1 seconde sur Docker 29.2.1. La conclusion est inchangée et renforcée : porter le délai explicitement dans le compose |
 
 ### 18.1 Révision d'architecture du 10 août 2026, après chiffrage
 
