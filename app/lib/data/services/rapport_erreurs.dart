@@ -244,37 +244,55 @@ void _capturerParSentry(Object erreur, StackTrace? trace) {
 /// **mesures de performance** : celui-là reste absent, aucune mesure n'étant
 /// demandée, et l'activer facturerait des spans que personne ne lit.
 ///
+/// **Cette fonction ne lève jamais, et c'est sa propriété la plus
+/// importante.** Elle s'exécute dans la closure de configuration de
+/// `SentryFlutter.init`, que le SDK enveloppe dans un `try` qui **avale**
+/// (`rethrow` seulement en `automatedTestMode` — lu dans `Sentry.init`, sentry
+/// 9.29.0). Une exception ici ne remonte donc à personne, et laisse un SDK
+/// **à moitié configuré** : le DSN a déjà été posé en amont par
+/// `_setEnvironmentVariables`, depuis le `--dart-define` que le justfile passe
+/// toujours, si bien que le garde `dsn == null` du SDK ne rattrape rien.
+/// Sentry s'initialiserait alors avec le vrai DSN et **sans `beforeSend`** —
+/// [assainir] ne tournerait jamais, et rien ne le dirait. C'est l'incident du
+/// cadrage §13.10 déclenché par une faute de frappe dans un `.env`.
+///
+/// D'où la répartition : les bornes sont vérifiées **en amont**, par
+/// [tauxEnvoiValide], à la racine de composition, avant tout contact avec le
+/// SDK. Ce qui reste ici est un filet de dernier recours qui **normalise au
+/// lieu de refuser** — une valeur impossible qui arriverait malgré tout devient
+/// « tout envoyer », jamais une exception.
+///
 /// Args:
 ///   options: les options que le SDK s'apprête à utiliser.
 ///   dsn: le point de collecte, non vide — l'appelant a déjà tranché.
 ///   tauxEnvoi: la part des événements réellement envoyés, dans `]0, 1]`.
-///     `null` vaut « tout envoyer » : l'échantillonnage borne un coût, il
-///     n'éteint pas la collecte.
-///
-/// Raises:
-///   ArgumentError: si [tauxEnvoi] sort de `]0, 1]`. Mêmes bornes que le
-///     `SampleRate` de l'api, et pour les deux mêmes raisons : zéro ne veut
-///     pas dire « moins d'événements » mais **aucun** — un Sentry configuré,
-///     facturé et muet —, et au-dessus de 1 le SDK ne rogne pas, il retient la
-///     valeur et se comporte comme à 1, donc sans effet et sans signal.
+///     `null`, ou toute valeur hors bornes, vaut « tout envoyer » :
+///     l'échantillonnage borne un coût, il n'éteint jamais la collecte et il
+///     n'empêche jamais la configuration d'aboutir.
 @visibleForTesting
 void configurerSentry(
   SentryFlutterOptions options,
   String dsn, {
   double? tauxEnvoi,
 }) {
-  if (tauxEnvoi != null && (tauxEnvoi <= 0 || tauxEnvoi > 1)) {
-    throw ArgumentError.value(
-      tauxEnvoi,
-      'tauxEnvoi',
-      'doit être dans ]0, 1] — zéro rendrait Sentry muet, au-delà de 1 sans effet',
-    );
-  }
   options.dsn = dsn;
   options.sendDefaultPii = false;
-  options.sampleRate = tauxEnvoi ?? 1.0;
+  // Forme **positive** : `NaN` ne satisfait aucune comparaison, donc il tombe
+  // ici sur « tout envoyer » au lieu de traverser. Posé tel quel, il rendrait
+  // l'échantillonnage silencieusement inopérant — `NaN < x` est toujours faux,
+  // donc aucun événement ne serait jamais écarté.
+  options.sampleRate = _dansLesBornes(tauxEnvoi) ? tauxEnvoi : 1.0;
   options.beforeSend = (evenement, _) => assainir(evenement);
 }
+
+/// Dit si ce taux est utilisable — en forme **positive**, seule qui rejette
+/// `NaN`.
+///
+/// C'est aussi ce qui rend vraie la promesse « mêmes bornes que le
+/// `SampleRate` de l'api » : la contrainte pydantic `gt=0` exige elle aussi
+/// que la comparaison soit *vraie*, là où un `x <= 0 || x > 1` laisserait
+/// passer `NaN`, dont les deux membres sont faux.
+bool _dansLesBornes(double? taux) => taux != null && taux > 0 && taux <= 1;
 
 /// Met Sentry en place, puis lui confie le lancement de l'application.
 Future<void> _initialiserSentry(
@@ -293,11 +311,17 @@ Future<void> _initialiserSentry(
 /// forme, que `baseUrlValidee` et `numeroDeBuildValide`.
 ///
 /// La chaîne **vide** rend `null` — la variable n'est pas configurée, on
-/// envoie tout. Une chaîne qui n'est pas un nombre, en revanche, est une
-/// configuration cassée et non un choix : la laisser passer enverrait
-/// silencieusement 100 % là où quelqu'un croyait avoir posé un plafond de
-/// coût. Les **bornes**, elles, sont vérifiées par [configurerSentry], qui les
-/// tient pour tous ses appelants.
+/// envoie tout. Toute autre valeur inutilisable — pas un nombre, hors de
+/// `]0, 1]`, `NaN`, un infini — est une configuration cassée et non un choix :
+/// la laisser passer enverrait silencieusement 100 % là où quelqu'un croyait
+/// avoir posé un plafond de coût.
+///
+/// **C'est ici que les bornes sont tenues, et nulle part en aval.** Le seul
+/// autre endroit possible serait [configurerSentry], qui s'exécute dans la
+/// closure de `SentryFlutter.init` — où lever revient à désactiver
+/// l'assainissement en silence. Ici, en revanche, l'exception traverse `main`
+/// avant le moindre contact avec le SDK : elle arrête le démarrage avec un
+/// message, exactement comme `baseUrlValidee` le fait pour `API_BASE_URL`.
 ///
 /// Args:
 ///   brut: la valeur de `--dart-define=SENTRY_SAMPLE_RATE`.
@@ -306,11 +330,11 @@ Future<void> _initialiserSentry(
 ///   Le taux, ou `null` si la variable est absente.
 ///
 /// Raises:
-///   ArgumentError: si la valeur est présente mais n'est pas un nombre.
+///   ArgumentError: si la valeur est présente et inutilisable.
 double? tauxEnvoiValide(String brut) {
   if (brut.isEmpty) return null;
   final taux = double.tryParse(brut);
-  if (taux == null) {
+  if (!_dansLesBornes(taux)) {
     throw ArgumentError.value(
       brut,
       'SENTRY_SAMPLE_RATE',

@@ -27,6 +27,12 @@ import 'ui/demarrage/etat_demarrage.dart';
 /// désactivé ; sans taux d'envoi on envoie tout, l'échantillonnage bornant un
 /// coût sans jamais éteindre la collecte (cadrage §16).
 ///
+/// Un taux **présent mais inutilisable** s'arrête en revanche ici, comme une
+/// url d'api manquante : ces trois valeurs sont figées à la compilation, donc
+/// une valeur fautive est un build cassé, vu au premier lancement. La refuser
+/// plus tard — dans la closure de configuration du SDK — désactiverait
+/// l'assainissement en silence.
+///
 /// Tout le reste du démarrage vit dans [_construireEtLancer], que
 /// [demarrerAvecRapport] exécute — sous la zone de capture du SDK quand un DSN
 /// est fourni. Rien qui puisse échouer ne se produit donc avant que le filet

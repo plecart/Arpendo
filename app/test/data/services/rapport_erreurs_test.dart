@@ -375,21 +375,59 @@ void main() {
       expect(options.sampleRate, 1.0);
     });
 
-    test('refuse un taux hors des bornes plutôt que de le subir', () {
-      // Mêmes bornes que le `SampleRate` de l'api, et pour les deux mêmes
-      // raisons : zéro n'est pas « moins d'événements » mais aucun — un Sentry
-      // configuré, facturé et muet — et au-dessus de 1 le SDK ne rogne pas, il
-      // retient la valeur telle quelle et se comporte comme à 1.
-      for (final horsBornes in [0.0, -0.5, 1.5]) {
+    test('ne lève JAMAIS, quelle que soit l\'entrée', () {
+      // Le garde de la classe entière, et il vaut plus que la somme des
+      // suivants. Cette fonction s'exécute **dans la closure de configuration
+      // de `SentryFlutter.init`**, et le SDK avale ce qu'elle lève
+      // (`sentry.dart`, `rethrow` seulement en `automatedTestMode`). Une
+      // exception ici laisse donc Sentry s'initialiser AVEC le vrai DSN et
+      // SANS `beforeSend` : `assainir` ne tourne plus, et rien ne le dit.
+      // Le DSN est déjà posé à ce moment-là par `_setEnvironmentVariables`,
+      // depuis le `--dart-define` que le justfile passe toujours — le garde
+      // `dsn == null` du SDK ne rattrape donc rien.
+      for (final entree in [
+        null,
+        1.0,
+        0.5,
+        0.0,
+        -0.5,
+        1.5,
+        1e9,
+        double.nan,
+        double.infinity,
+        double.negativeInfinity,
+      ]) {
+        final options = SentryFlutterOptions();
+
         expect(
           () => configurerSentry(
-            SentryFlutterOptions(),
+            options,
             'https://cle@sentry.test/1',
-            tauxEnvoi: horsBornes,
+            tauxEnvoi: entree,
           ),
-          throwsArgumentError,
-          reason: '$horsBornes doit être refusé',
+          returnsNormally,
+          reason: 'entrée $entree',
         );
+        expect(options.beforeSend, isNotNull, reason: 'entrée $entree');
+      }
+    });
+
+    test('ramène à « tout envoyer » un taux hors bornes reçu quand même', () {
+      // Filet de dernier recours : les bornes sont tenues en amont, par
+      // `tauxEnvoiValide`. Si une valeur impossible arrive malgré tout ici,
+      // elle ne doit ni lever ni être posée telle quelle — `NaN` rendrait
+      // l'échantillonnage silencieusement inopérant (`NaN < x` est toujours
+      // faux), et un négatif serait retenu tel quel par le SDK.
+      for (final horsBornes in [0.0, -0.5, 1.5, double.nan]) {
+        final options = SentryFlutterOptions();
+
+        configurerSentry(
+          options,
+          'https://cle@sentry.test/1',
+          tauxEnvoi: horsBornes,
+        );
+
+        expect(options.sampleRate, 1.0, reason: 'entrée $horsBornes');
       }
     });
 
@@ -451,6 +489,37 @@ void main() {
 
     test('lit un taux', () {
       expect(tauxEnvoiValide('0.25'), 0.25);
+    });
+
+    test('refuse un taux hors des bornes', () {
+      // Mêmes bornes que le `SampleRate` de l'api, et pour les deux mêmes
+      // raisons : zéro n'est pas « moins d'événements » mais aucun — un Sentry
+      // configuré, facturé et muet — et au-dessus de 1 le SDK ne rogne pas, il
+      // retient la valeur telle quelle et se comporte comme à 1.
+      for (final horsBornes in ['0', '-0.5', '1.5', '1e9']) {
+        expect(
+          () => tauxEnvoiValide(horsBornes),
+          throwsArgumentError,
+          reason: '« $horsBornes » doit être refusé',
+        );
+      }
+    });
+
+    test('refuse NaN et les infinis, que les comparaisons laissent passer', () {
+      // `NaN <= 0` et `NaN > 1` sont TOUS DEUX faux : une borne écrite en
+      // forme négative (`x <= 0 || x > 1`) laisse donc passer `NaN`, qui
+      // rendrait l'échantillonnage inopérant sans un mot — `NaN < x` étant
+      // toujours faux, aucun événement ne serait jamais écarté. La forme
+      // positive `!(x > 0 && x <= 1)` le rejette. C'est là que la promesse
+      // « mêmes bornes que l'api » se tient ou se perd : la contrainte
+      // pydantic `gt=0` exige elle aussi que la comparaison soit VRAIE.
+      for (final impossible in ['NaN', 'Infinity', '-Infinity']) {
+        expect(
+          () => tauxEnvoiValide(impossible),
+          throwsArgumentError,
+          reason: '« $impossible » doit être refusé',
+        );
+      }
     });
 
     test('refuse une valeur qui n\'est pas un nombre', () {

@@ -456,6 +456,19 @@ déduplication du SDK ne rattrape rien sur le chemin des incidents de plateforme
 
 À ne pas confondre avec `tracesSampleRate`, qui échantillonne les **mesures de performance** :
 celui-là reste absent, aucune mesure n'étant demandée.
+
+Le taux, lui, est **transmis au SDK natif** (`androidOptions.setSampleRate`), là où `beforeSend`
+ne l'est pas : l'échantillonnage couvre donc les deux voies, y compris les plantages natifs que
+`assainir` ne voit jamais. C'est l'argument le plus fort en faveur du §16, et il ne vaut que pour
+ce garde-fou-là.
+
+**`configurerSentry` ne lève jamais, et c'est sa propriété la plus importante.** Elle s'exécute
+dans la closure de configuration de `SentryFlutter.init`, que le SDK enveloppe dans un `try` qui
+**avale**. Une exception y laisserait Sentry s'initialiser avec le vrai DSN et **sans**
+`beforeSend` — `assainir` ne tournerait jamais, sans un mot. Le garde `dsn == null` du SDK ne
+rattraperait rien : le DSN est déjà posé en amont depuis le `--dart-define`. Les bornes du taux
+sont donc vérifiées **avant**, par `tauxEnvoiValide` à la racine de composition ; ce qui reste
+dans la closure normalise au lieu de refuser.
 | `assainir` | le `beforeSend` : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
 
 **Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier
