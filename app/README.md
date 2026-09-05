@@ -438,13 +438,16 @@ divergerait d'une saveur de build.
 
 ## Rapport d'erreurs — Sentry, et ce qu'on ne lui envoie jamais
 
-Un seul fichier importe `sentry_flutter` : `data/services/rapport_erreurs.dart`. Il expose deux
-choses, et la racine de composition ne connaît que la première.
+Un seul fichier importe `sentry_flutter` : `data/services/rapport_erreurs.dart`, rangé en quatre
+volets — ce qui est partagé, le démarrage, le signalement, l'assainissement. Il expose trois
+choses ; la racine de composition n'en connaît que la première, plus `tauxEnvoiValide` qui valide
+le taux avant tout contact avec le SDK.
 
 | | |
 |---|---|
 | `demarrerAvecRapport` | lance l'application, **sous Sentry seulement si `SENTRY_DSN` est non vide** |
 | `signalerIncident` | écrit un incident de plateforme au journal **et** le remonte à Sentry |
+| `assainir` | ce que le `beforeSend` applique : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
 
 Quatre réglages sont posés sur le SDK, et rien de plus : le DSN, `sendDefaultPii = false`
 (cadrage §13.10), `assainir` en `beforeSend`, et le **taux d'envoi**. Les deux derniers sont les
@@ -489,7 +492,6 @@ parcourir.
 > développement, pas un canal d'exploitation : les deux chemins qui ne s'appuient que sur lui — le
 > repli d'initialisation et l'abandon d'un événement — se voient au premier `just run`, et nulle
 > part ailleurs.
-| `assainir` | le `beforeSend` : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
 
 **Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier
 installe quand même les intégrations et le hook des exceptions non rattrapées. La différence ne se
