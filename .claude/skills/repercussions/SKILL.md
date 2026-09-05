@@ -311,8 +311,8 @@ apprend à ignorer — c'est précisément ce qu'on cherche à éviter en ne la 
   **PR ouverte** quand l'issue qu'elle développe est impactée — parce que c'est le seul canal que
   la session en cours lira.
 - **Il ne crée aucune issue.** Un besoin non couvert révélé par la clôture n'est pas une
-  répercussion, c'est du travail neuf — et il suit `.claude/rules/contraintes.md`, « Création
-  d'issues en cours de cycle ». Si une issue ouverte possède le sujet, ce skill y **ajoute le
+  répercussion, c'est du travail neuf — et il suit `.claude/rules/contraintes.md`,
+  « Création d'issues en cours de cycle ». Si une issue ouverte possède le sujet, ce skill y **ajoute le
   critère dans la même passe** — bloc marqué `[complétion]` à l'étape 4, appliqué sur le même
   « go », ligne de journal « Complétée après #<fermée> — <le vide, d'où il vient> ». Sinon,
   brouillon `vers-issues` / `bug-vers-issue` soumis au mainteneur. Le vide relevé par une clôture

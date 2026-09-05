@@ -534,10 +534,9 @@ config) :
   pas une campagne : la campagne, c'est `plan-qa`, au niveau du thème.
 
 Un écart constaté → le traiter comme un finding de l'Étape 7 (corriger, re-tester, push). S'il
-sort du périmètre de la PR : `.claude/rules/contraintes.md`, « Création d'issues en cours de
-cycle » — PR courante, puis propriétaire ouvert (une automatisation qu'on a fait taire se répare,
-elle ne se doublonne pas), puis brouillon soumis au mainteneur. Jamais un `gh issue create` de la
-session.
+sort du périmètre de la PR : `.claude/rules/contraintes.md`, « Création d'issues en cours de cycle »
+— PR courante, puis propriétaire ouvert (une automatisation qu'on a fait taire se répare, elle ne
+se doublonne pas), puis brouillon soumis au mainteneur. Jamais un `gh issue create` de la session.
 
 ### Vérification par le lead — en vague parallèle seulement
 
