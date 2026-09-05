@@ -312,11 +312,11 @@ apprend à ignorer — c'est précisément ce qu'on cherche à éviter en ne la 
   la session en cours lira.
 - **Il ne crée aucune issue.** Un besoin non couvert révélé par la clôture n'est pas une
   répercussion, c'est du travail neuf — et il suit `.claude/rules/contraintes.md`,
-  « Création d'issues en cours de cycle ». Si une issue ouverte possède le sujet, ce skill y **ajoute le
-  critère dans la même passe** — bloc marqué `[complétion]` à l'étape 4, appliqué sur le même
-  « go », ligne de journal « Complétée après #<fermée> — <le vide, d'où il vient> ». Sinon,
-  brouillon `vers-issues` / `bug-vers-issue` soumis au mainteneur. Le vide relevé par une clôture
-  a presque toujours un propriétaire ouvert.
+  « Création d'issues en cours de cycle ». Si une issue ouverte possède le sujet, ce skill y
+  **ajoute le critère dans la même passe** — bloc marqué `[complétion]` à l'étape 4, appliqué sur
+  le même « go », ligne de journal « Complétée après #<fermée> — <le vide, d'où il vient> ».
+  Sinon, brouillon `vers-issues` / `bug-vers-issue` soumis au mainteneur. Le vide relevé par une
+  clôture a presque toujours un propriétaire ouvert.
 - **Il ne re-trie pas.** La seule transition d'état qu'il applique est le retour en
   `needs-interrogation` décrit ci-dessus ; tout autre changement d'état passe par `triage`.
 - **Il ne relit pas le code.** Il confronte des specs à un delta, il n'audite pas la codebase.
