@@ -19,7 +19,13 @@
 /// seuls emplacements que le rapport de bogue du jour cite.
 library;
 
+import 'dart:developer' as developer;
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:sentry_flutter/sentry_flutter.dart';
+
+/// Le nom sous lequel ce module écrit au journal de la plateforme.
+const String _journal = 'arpendo.sentry';
 
 /// Ce qui remplace un motif retiré.
 ///
@@ -36,6 +42,13 @@ const String retire = '[retiré]';
 /// seule chose qui permet de dater une erreur. Le séparateur est délibérément
 /// large : la virgule seule laisserait passer `lat=…&lon=…`, un WKT
 /// `POINT(… …)`, un JSON sérialisé et un saut de ligne.
+///
+/// **Lacune connue, et commune aux deux langages** : le séparateur exclut le
+/// tiret, pour ne pas le confondre avec le signe de la seconde composante —
+/// si bien qu'une paire jointe par un tiret nu (`48.858370-2.294481`) passe.
+/// Aucun encodage du projet ne produit cette forme, et la corriger devrait se
+/// faire **des deux côtés à la fois**, sous peine de créer précisément la
+/// divergence que ce module refuse.
 final List<RegExp> _motifs = [
   RegExp(r'-?\d{1,3}\.\d{4,}[^\d\-]{1,20}-?\d{1,3}\.\d{4,}'),
   RegExp(r'\bBearer\s+[\w\-._~+/]+=*', caseSensitive: false),
@@ -76,12 +89,23 @@ typedef InitialisationSentry = Future<void> Function(
 /// état légitime**, et c'est le défaut du poste — à la différence
 /// d'`API_BASE_URL`, dont l'absence arrête le démarrage.
 ///
-/// [lancer] est appelé dans les deux branches, et une seule fois : sous DSN,
-/// c'est le SDK qui l'exécute, dans la zone où il capte les erreurs non
-/// rattrapées ; sans DSN, on l'appelle directement. Tout ce que fait
+/// [lancer] est appelé dans les deux branches, et **exactement une fois** :
+/// sous DSN, c'est le SDK qui l'exécute, dans la zone où il capte les erreurs
+/// non rattrapées ; sans DSN, on l'appelle directement. Tout ce que fait
 /// l'application — construction des services comprise — est donc à
 /// l'intérieur, et rien de ce qui peut échouer ne se produit avant que le
 /// filet soit tendu.
+///
+/// **Le filet lui-même peut échouer, et l'application doit démarrer quand
+/// même.** `SentryFlutter.init` n'est pas total : `Sentry.init` lève
+/// `ArgumentError` hors de son `try`, et `_initDefaultValues`,
+/// `_setDefaultConfiguration`, `createBinding` et les intégrations sont
+/// attendus hors `try` (lu dans `Sentry.init` et `Sentry._init`, sentry
+/// 9.29.0) — or `appRunner` n'est appelé qu'**après** les intégrations. Sans
+/// le repli ci-dessous, un canal natif en erreur donnerait un écran noir, en
+/// production seulement : le poste tourne DSN vide, et la CI aussi. Un outil
+/// d'observabilité qui empêche l'application de démarrer coûte infiniment plus
+/// que ce qu'il rapporte.
 ///
 /// Args:
 ///   dsn: le point de collecte, ou la chaîne vide pour ne rien initialiser.
@@ -94,28 +118,61 @@ Future<void> demarrerAvecRapport({
   required AppRunner lancer,
   InitialisationSentry initialiser = _initialiserSentry,
 }) async {
-  if (dsn.isEmpty) {
+  var lance = false;
+  Future<void> lancerUneFois() async {
+    if (lance) return;
+    lance = true;
     await lancer();
+  }
+
+  if (dsn.isEmpty) {
+    await lancerUneFois();
     return;
   }
-  await initialiser(dsn, lancer);
+  try {
+    await initialiser(dsn, lancerUneFois);
+  } on Object catch (erreur, trace) {
+    // Le repli est silencieux à l'écran et bruyant au journal : il n'y a rien
+    // à proposer au joueur, et Sentry — précisément indisponible — ne peut pas
+    // rapporter sa propre panne.
+    developer.log(
+      'Sentry non initialisé, l\'application démarre sans rapport d\'erreurs',
+      name: _journal,
+      error: erreur,
+      stackTrace: trace,
+    );
+  }
+  await lancerUneFois();
+}
+
+/// Pose les réglages du SDK — **et rien d'autre**, pour être éprouvable.
+///
+/// Séparée de [_initialiserSentry] à dessein : `SentryFlutter.init` parle au
+/// canal natif, donc aucun test ne l'appelle, et une configuration écrite
+/// *dans* sa closure serait la seule ligne du module que rien n'exerce. Or
+/// c'est précisément la ligne dont l'absence est l'incident visé par le
+/// cadrage §13.10 — la mesure l'a montré : retirer le `beforeSend` laissait
+/// toute la suite verte. [SentryFlutterOptions] s'instancie sans réseau, un
+/// test lit donc chaque réglage et fait passer un événement par le
+/// `beforeSend` posé ici.
+///
+/// Trois réglages, et rien de plus : le DSN, `sendDefaultPii` **faux**
+/// (cadrage §13.10), et [assainir] en `beforeSend`. Pas de
+/// `tracesSampleRate` — aucune mesure de performance n'est demandée, et
+/// l'activer facturerait des spans que personne ne lit.
+@visibleForTesting
+void configurerSentry(SentryFlutterOptions options, String dsn) {
+  options.dsn = dsn;
+  options.sendDefaultPii = false;
+  options.beforeSend = (evenement, _) => assainir(evenement);
 }
 
 /// Met Sentry en place, puis lui confie le lancement de l'application.
-///
-/// Trois réglages, et rien de plus : `sendDefaultPii` **faux** (cadrage
-/// §13.10), [assainir] en `beforeSend`, et le lanceur. Pas de
-/// `tracesSampleRate` — aucune mesure de performance n'est demandée, et
-/// l'activer facturerait des spans que personne ne lit.
-///
-/// `beforeSend` **est** le filtrage entrant : le SDK Dart n'a pas
-/// d'`EventScrubber`, à la différence du SDK Python.
 Future<void> _initialiserSentry(String dsn, AppRunner lancer) =>
-    SentryFlutter.init((options) {
-      options.dsn = dsn;
-      options.sendDefaultPii = false;
-      options.beforeSend = (evenement, _) => assainir(evenement);
-    }, appRunner: lancer);
+    SentryFlutter.init(
+      (options) => configurerSentry(options, dsn),
+      appRunner: lancer,
+    );
 
 /// Rend cet événement débarrassé de ce qu'on n'a pas le droit d'envoyer.
 ///
@@ -129,22 +186,39 @@ Future<void> _initialiserSentry(String dsn, AppRunner lancer) =>
 /// l'affectation directe (`copyWith` y est `@Deprecated`). Les deux autres
 /// voies ont été écartées — reconstruire champ par champ recopierait un
 /// constructeur qui bougera, et un aller-retour `toJson`/`fromJson`, pourtant
-/// possible (vérifié : `SentryClient` ne relit plus `throwable` après
-/// `beforeSend`, `sentry_client.dart:174`), rendrait la fidélité de
-/// `fromJson` responsable de tout ce que l'événement transporte.
+/// possible (vérifié : `SentryClient.captureEvent` ne relit plus `throwable`
+/// après son `beforeSend`), rendrait la fidélité de `fromJson` responsable de
+/// tout ce que l'événement transporte.
 ///
-/// **Emplacements couverts**, et pourquoi ceux-là — l'énumération est le prix
-/// d'un protocole typé, et elle est tenue ici plutôt que laissée implicite :
-/// [SentryEvent.message] (gabarit et paramètres compris), les valeurs
-/// d'exception, les fils d'Ariane (texte et données), `extra` et son
-/// successeur [SentryEvent.contexts], et les étiquettes.
+/// La mutation porte sur des objets que le `Scope` **partage** : sa copie de
+/// la liste des fils d'Ariane est superficielle, si bien qu'un `Breadcrumb`
+/// assaini l'est durablement. Sans conséquence tant que les règles sont
+/// idempotentes — elles le sont, `[retiré]` ne contient aucun motif —, mais
+/// une règle future qui ne le serait pas se composerait sur elle-même.
 ///
-/// ponytail: `request`, `transaction` et `culprit` ne sont **pas** assainis —
-/// rien ne les remplit aujourd'hui : l'application n'installe ni
-/// `SentryHttpClient` ni `SentryNavigatorObserver`, et son client HTTP est un
-/// `http.Client` nu. **À reprendre par qui installera l'une de ces deux
-/// intégrations, dans le même lot** : `request.headers` porte alors
-/// l'en-tête d'autorisation, et `transaction` le nom de route.
+/// **Tous les emplacements porteurs de texte sont couverts**, et non les
+/// seuls que le critère d'acceptation cite : le message (gabarit et
+/// paramètres compris), les exceptions (valeur et mécanisme), les fils
+/// d'Ariane, les fils d'exécution, l'utilisateur, la requête, les contextes,
+/// `transaction`, `culprit`, `logger`, `serverName`, `fingerprint`,
+/// `modules`, les étiquettes et `extra`. L'énumération est le prix d'un
+/// protocole typé ; ce qui la rend tenable est le test de **population** qui
+/// l'accompagne — un événement dont chaque emplacement porte une donnée
+/// interdite, sérialisé puis relu. Un champ ajouté au fixture sans être
+/// assaini fait rougir la suite ; un `expect` par champ ne l'aurait pas fait.
+///
+/// Restent en dehors, et c'est délibéré : `type` d'exception et piles
+/// d'appels (du **code**, jamais une donnée de joueur), `id` d'utilisateur
+/// (ce qui rend un rapport attribuable), `release`, `dist`, `environment` et
+/// `platform` (des métadonnées de build que l'application choisit).
+///
+/// **Une voie échappe entièrement à cette fonction** : les plantages
+/// **natifs**. `SentryFlutter.init` installe `NativeSdkIntegration` et laisse
+/// `enableNativeCrashHandling` vrai ; le SDK Android envoie alors ses propres
+/// enveloppes, et le SDK le dit lui-même — « captureEnvelope does not call the
+/// beforeSend callback ». Ce que le natif reçoit du Dart, c'est
+/// `sendDefaultPii`, transmis à `androidOptions.setSendDefaultPii`. [assainir]
+/// est donc le filet de la **voie Dart**, pas de toutes les voies.
 ///
 /// Rend toujours un événement, jamais `null` : ce module ne décide pas
 /// d'abandonner un envoi — c'est le rôle de l'échantillonnage.
@@ -152,14 +226,21 @@ SentryEvent assainir(SentryEvent evenement) {
   _assainirMessage(evenement.message);
   evenement.exceptions?.forEach(_assainirException);
   evenement.breadcrumbs?.forEach(_assainirFilDAriane);
-  // Les deux seuls champs *remplacés* plutôt que modifiés : ce sont du JSON
-  // quelconque, et [_assainirValeur] reconstruit les cartes qu'il traverse.
+  evenement.threads?.forEach(_assainirFilDExecution);
+  _assainirUtilisateur(evenement.user);
+  evenement.request = _assainirRequete(evenement.request);
+  _assainirContextes(evenement.contexts);
+  evenement.transaction = _assainirFacultatif(evenement.transaction);
+  evenement.culprit = _assainirFacultatif(evenement.culprit);
+  evenement.logger = _assainirFacultatif(evenement.logger);
+  evenement.serverName = _assainirFacultatif(evenement.serverName);
+  evenement.fingerprint = evenement.fingerprint?.map(_assainirTexte).toList();
+  evenement.modules = _assainirTable(evenement.modules);
+  evenement.tags = _assainirTable(evenement.tags);
+  // Le seul champ *remplacé* plutôt que modifié : c'est du JSON quelconque, et
+  // [_assainirValeur] reconstruit les cartes qu'il traverse.
   // ignore: deprecated_member_use
   evenement.extra = _assainirJson(evenement.extra);
-  evenement.tags = evenement.tags?.map(
-    (clef, valeur) => MapEntry(clef, _assainirTexte(valeur)),
-  );
-  _assainirContextes(evenement.contexts);
   return evenement;
 }
 
@@ -172,13 +253,70 @@ void _assainirMessage(SentryMessage? message) {
   message.params = _assainirJson(message.params);
 }
 
-/// Assainit ce qu'une exception dit d'elle-même.
+/// Assainit ce qu'une exception dit d'elle-même, mécanisme compris.
 ///
-/// `stackTrace` n'est pas traversée : elle porte des noms de fichiers, de
-/// classes et de fonctions — du code, jamais une donnée de joueur.
+/// `type` reste : c'est le nom d'une classe. `stackTrace` non plus n'est pas
+/// traversée — elle porte des noms de fichiers, de classes et de fonctions,
+/// du code et jamais une donnée de joueur.
 void _assainirException(SentryException exception) {
-  final valeur = exception.value;
-  if (valeur != null) exception.value = _assainirTexte(valeur);
+  exception.value = _assainirFacultatif(exception.value);
+  final mecanisme = exception.mechanism;
+  if (mecanisme == null) return;
+  mecanisme.description = _assainirFacultatif(mecanisme.description);
+  mecanisme.data = _assainirJson(Map<String, dynamic>.of(mecanisme.data));
+}
+
+/// Assainit le nom d'un fil d'exécution.
+void _assainirFilDExecution(SentryThread fil) {
+  fil.name = _assainirFacultatif(fil.name);
+}
+
+/// Assainit l'identité du joueur attachée à l'événement.
+///
+/// Le seul champ du protocole qui s'appelle littéralement « email », plus un
+/// pseudonyme, un nom et une carte libre — et c'est précisément celui que le
+/// domaine Compte remplira. `id` reste : c'est ce qui rend un rapport
+/// attribuable, et c'est un identifiant technique, pas une donnée de contact.
+void _assainirUtilisateur(SentryUser? utilisateur) {
+  if (utilisateur == null) return;
+  utilisateur.email = _assainirFacultatif(utilisateur.email);
+  utilisateur.username = _assainirFacultatif(utilisateur.username);
+  utilisateur.name = _assainirFacultatif(utilisateur.name);
+  utilisateur.data = _assainirJson(utilisateur.data);
+}
+
+/// Assainit une requête HTTP jointe à l'événement.
+///
+/// Rien ne la remplit tant que `SentryHttpClient` n'est pas installé, mais
+/// elle est l'emplacement qui porterait l'en-tête d'autorisation : la couvrir
+/// coûte cinq lignes, et l'oublier se paierait au premier lot qui installe
+/// l'intégration, sans que rien ne le signale.
+/// C'est le seul emplacement **reconstruit** et non modifié : `env` et `data`
+/// n'ont pas de mutateur, seulement des vues non modifiables et un paramètre
+/// de constructeur (lu dans `SentryRequest`, sentry 9.29.0). Tous les champs
+/// publics sont recopiés, `apiTarget` déprécié compris.
+///
+/// **Un seul se perd, et il faut le dire** : `unknown`, que le SDK marque
+/// `@internal` — l'analyseur refuse de le lire hors du paquet. Il ne porte que
+/// les clés JSON qu'une désérialisation n'a pas reconnues, donc il est nul
+/// pour une requête construite côté Dart. C'est le prix exact qu'on a refusé
+/// de payer sur l'événement entier en écartant l'aller-retour
+/// `toJson`/`fromJson` : ici il porte sur un champ nul en pratique, et la
+/// seule autre issue serait de laisser `env` et `data` non assainis.
+SentryRequest? _assainirRequete(SentryRequest? requete) {
+  if (requete == null) return null;
+  return SentryRequest(
+    url: _assainirFacultatif(requete.url),
+    method: requete.method,
+    queryString: _assainirFacultatif(requete.queryString),
+    cookies: _assainirFacultatif(requete.cookies),
+    fragment: _assainirFacultatif(requete.fragment),
+    data: _assainirValeur(requete.data),
+    headers: _assainirTable(Map<String, String>.of(requete.headers)),
+    env: _assainirTable(Map<String, String>.of(requete.env)),
+    // ignore: deprecated_member_use
+    apiTarget: requete.apiTarget,
+  );
 }
 
 /// Assainit le texte d'un fil d'Ariane et les données qu'il transporte.
@@ -203,12 +341,25 @@ void _assainirContextes(Contexts contextes) {
 }
 
 /// Retire de ce texte chaque motif sensible.
+///
+/// Rend **la chaîne reçue elle-même** quand rien n'a bougé, et non une copie
+/// égale : c'est ce qui permet à [_assainirValeur] de savoir, par `identical`,
+/// qu'un conteneur est resté intact et de préserver son type.
 String _assainirTexte(String texte) {
+  var resultat = texte;
   for (final motif in _motifs) {
-    texte = texte.replaceAll(motif, retire);
+    resultat = resultat.replaceAll(motif, retire);
   }
-  return texte;
+  return resultat == texte ? texte : resultat;
 }
+
+/// Assainit un texte qui peut être absent.
+String? _assainirFacultatif(String? texte) =>
+    texte == null ? null : _assainirTexte(texte);
+
+/// Assainit les valeurs d'une table de chaînes, en gardant ses clés.
+Map<String, String>? _assainirTable(Map<String, String>? table) =>
+    table?.map((clef, valeur) => MapEntry(clef, _assainirTexte(valeur)));
 
 /// Descend dans une structure et n'assainit que ce qu'elle sait reconnaître.
 ///
@@ -216,20 +367,32 @@ String _assainirTexte(String texte) {
 /// d'Ariane est du JSON quelconque, dont la forme n'est pas connue à
 /// l'écriture. Ce qui n'est ni chaîne, ni carte, ni liste — un nombre isolé,
 /// un booléen, un objet typé du protocole — est rendu tel quel.
+/// Un conteneur dont **rien** n'a bougé est rendu tel quel, jamais recopié :
+/// sans cette précaution, traverser les contextes du SDK dégraderait un
+/// `List<SentryRuntime>` en `List<dynamic>` pour ne rien y avoir changé.
 Object? _assainirValeur(Object? valeur) {
   if (valeur is String) return _assainirTexte(valeur);
   if (valeur is Map) {
     final paire = _formeUnePaire(valeur.values);
-    return <String, dynamic>{
-      for (final entree in valeur.entries)
-        entree.key.toString(): _assainirEnfant(entree.value, paire),
-    };
+    var modifie = false;
+    final assainie = <String, dynamic>{};
+    for (final entree in valeur.entries) {
+      final apres = _assainirEnfant(entree.value, paire);
+      modifie |= !identical(apres, entree.value);
+      assainie[entree.key.toString()] = apres;
+    }
+    return modifie ? assainie : valeur;
   }
   if (valeur is List) {
     final paire = _formeUnePaire(valeur);
-    return <dynamic>[
-      for (final element in valeur) _assainirEnfant(element, paire),
-    ];
+    var modifie = false;
+    final assainie = <dynamic>[];
+    for (final element in valeur) {
+      final apres = _assainirEnfant(element, paire);
+      modifie |= !identical(apres, element);
+      assainie.add(apres);
+    }
+    return modifie ? assainie : valeur;
   }
   return valeur;
 }
