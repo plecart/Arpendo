@@ -431,6 +431,24 @@ void main() {
       }
     });
 
+    test('abandonne un événement qu\'il ne sait pas assainir', () {
+      // **Le SDK Dart échoue OUVERT**, à l'inverse du Python. Son
+      // `_runBeforeSend` initialise `processedEvent` avec l'événement
+      // d'origine, et son `catch` ne le remet pas à `null` : un `beforeSend`
+      // qui lève laisse donc partir l'événement **brut**. Côté serveur,
+      // `sentry_sdk` part de `None` et abandonne. La divergence qui compte
+      // entre les deux n'est pas dans les motifs, elle est ici.
+      final cycle = <String, dynamic>{};
+      cycle['moi'] = cycle;
+      final options = SentryFlutterOptions();
+      configurerSentry(options, 'https://cle@sentry.test/1');
+
+      // ignore: deprecated_member_use
+      final verdict = options.beforeSend!(SentryEvent(extra: cycle), Hint());
+
+      expect(verdict, isNull);
+    });
+
     test('ne demande aucune mesure de performance', () {
       final options = SentryFlutterOptions();
 
@@ -489,6 +507,16 @@ void main() {
 
     test('lit un taux', () {
       expect(tauxEnvoiValide('0.25'), 0.25);
+    });
+
+    test('accepte 1, la borne haute — et la valeur livrée par défaut', () {
+      // L'intervalle est fermé à droite, et `1.0` est ce que `.env.example`
+      // livre. Une borne rendue exclusive par mégarde ferait refuser le
+      // démarrage **sur la configuration par défaut du projet**, sans qu'un
+      // seul test rougisse : c'est la seule valeur de bord réellement
+      // expédiée, et elle mérite d'être piquée.
+      expect(tauxEnvoiValide('1.0'), 1.0);
+      expect(tauxEnvoiValide('1'), 1.0);
     });
 
     test('refuse un taux hors des bornes', () {

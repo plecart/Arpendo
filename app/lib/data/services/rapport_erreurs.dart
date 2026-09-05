@@ -258,9 +258,17 @@ void _capturerParSentry(Object erreur, StackTrace? trace) {
 ///
 /// D'où la répartition : les bornes sont vérifiées **en amont**, par
 /// [tauxEnvoiValide], à la racine de composition, avant tout contact avec le
-/// SDK. Ce qui reste ici est un filet de dernier recours qui **normalise au
-/// lieu de refuser** — une valeur impossible qui arriverait malgré tout devient
-/// « tout envoyer », jamais une exception.
+/// SDK. Ce qui reste ici **normalise au lieu de refuser** — une valeur
+/// impossible devient « tout envoyer », jamais une exception.
+///
+/// Cette normalisation est **inatteignable depuis `main`**, et c'est voulu :
+/// mesuré, le seul appelant de production est [_initialiserSentry], alimenté
+/// par [tauxEnvoiValide], qui rend `null`, une valeur de `]0, 1]`, ou lève.
+/// Elle n'est pas là pour un cas d'usage — elle est là pour que cette fonction
+/// soit **totale**, quel que soit l'appelant, `tauxEnvoi` étant un paramètre
+/// public. La totalité est la propriété sur laquelle repose tout ce qui
+/// précède ; une garde qui la produit n'est pas morte parce qu'aucun chemin
+/// connu ne l'emprunte.
 ///
 /// Args:
 ///   options: les options que le SDK s'apprête à utiliser.
@@ -282,7 +290,45 @@ void configurerSentry(
   // l'échantillonnage silencieusement inopérant — `NaN < x` est toujours faux,
   // donc aucun événement ne serait jamais écarté.
   options.sampleRate = _dansLesBornes(tauxEnvoi) ? tauxEnvoi : 1.0;
-  options.beforeSend = (evenement, _) => assainir(evenement);
+  options.beforeSend = _assainirOuAbandonner;
+}
+
+/// Le `beforeSend` : l'événement assaini, ou **rien**.
+///
+/// Le `try` n'est pas une précaution de style, il retourne le mode de panne du
+/// SDK. **Le SDK Dart échoue ouvert** : son `_runBeforeSend` initialise sa
+/// variable de sortie avec l'événement *d'origine*, et son `catch` ne la remet
+/// pas à `null` (lu dans `SentryClient`, sentry 9.29.0). Un `beforeSend` qui
+/// lève laisse donc partir l'événement **brut**. Le pendant Python part de
+/// `None` et abandonne (`sentry_sdk/client.py`) — c'est-à-dire qu'il échoue
+/// **fermé**.
+///
+/// La divergence qui compte entre les deux modules n'est donc pas dans les
+/// motifs, elle est là ; et comme [assainir] modifie l'événement **sur place**,
+/// un jet à mi-parcours laisserait partir un événement à moitié nettoyé, dont
+/// la moitié restante est exactement ce que le §12.3 interdit.
+///
+/// [assainir] peut lever : mesuré, une structure cyclique ou une imbrication
+/// profonde donnent un `StackOverflowError`. Aujourd'hui ces entrées-là
+/// défont aussi `jsonEncode` en aval, donc l'événement serait perdu de toute
+/// façon — mais ce recouvrement est **fortuit**, et toute raison future de
+/// lever atterrirait dans le chemin ouvert avec un événement parfaitement
+/// sérialisable. On ferme la porte plutôt que de compter dessus.
+///
+/// Abandonner un événement qu'on ne **sait pas** nettoyer n'est pas de
+/// l'échantillonnage : c'est le filet qui se ferme.
+SentryEvent? _assainirOuAbandonner(SentryEvent evenement, Hint hint) {
+  try {
+    return assainir(evenement);
+  } on Object catch (erreur, trace) {
+    developer.log(
+      'événement Sentry abandonné : assainissement impossible',
+      name: _journal,
+      error: erreur,
+      stackTrace: trace,
+    );
+    return null;
+  }
 }
 
 /// Dit si ce taux est utilisable — en forme **positive**, seule qui rejette
@@ -319,9 +365,18 @@ Future<void> _initialiserSentry(
 /// **C'est ici que les bornes sont tenues, et nulle part en aval.** Le seul
 /// autre endroit possible serait [configurerSentry], qui s'exécute dans la
 /// closure de `SentryFlutter.init` — où lever revient à désactiver
-/// l'assainissement en silence. Ici, en revanche, l'exception traverse `main`
-/// avant le moindre contact avec le SDK : elle arrête le démarrage avec un
-/// message, exactement comme `baseUrlValidee` le fait pour `API_BASE_URL`.
+/// l'assainissement en silence. Ici, en revanche, l'appel est une **expression
+/// d'argument** de `demarrerAvecRapport`, évaluée avant d'y entrer : le jet
+/// part donc avant le moindre contact avec le SDK, exactement comme
+/// `baseUrlValidee` le fait pour `API_BASE_URL`.
+///
+/// Ce que « arrête le démarrage » veut dire précisément, `main` étant `async` :
+/// une **erreur asynchrone non rattrapée**, donc un écran noir et une ligne au
+/// journal de la plateforme — et non un refus de lancement au sens du système.
+/// Sentry n'est pas encore initialisé à ce moment, donc rien ne la capte non
+/// plus. C'est le comportement déjà en place pour `API_BASE_URL`, et la raison
+/// pour laquelle une valeur fautive se voit au **premier lancement**, jamais
+/// plus tard.
 ///
 /// Args:
 ///   brut: la valeur de `--dart-define=SENTRY_SAMPLE_RATE`.

@@ -469,6 +469,14 @@ dans la closure de configuration de `SentryFlutter.init`, que le SDK enveloppe d
 rattraperait rien : le DSN est déjà posé en amont depuis le `--dart-define`. Les bornes du taux
 sont donc vérifiées **avant**, par `tauxEnvoiValide` à la racine de composition ; ce qui reste
 dans la closure normalise au lieu de refuser.
+
+**Et le `beforeSend` échoue fermé.** Le SDK Dart, lui, échoue **ouvert** : son `_runBeforeSend`
+part de l'événement d'origine et son `catch` ne l'annule pas, si bien qu'un `beforeSend` qui lève
+laisse partir l'événement **brut** — l'inverse exact du `sentry_sdk` Python, qui part de `None` et
+abandonne. Comme `assainir` modifie l'événement **sur place**, un jet à mi-parcours laisserait
+partir un événement à moitié nettoyé. Le callback l'enveloppe donc et **abandonne** ce qu'il ne
+sait pas assainir : la divergence qui compte entre les deux modules n'est pas dans les motifs,
+elle est dans le mode de panne.
 | `assainir` | le `beforeSend` : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
 
 **Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier
