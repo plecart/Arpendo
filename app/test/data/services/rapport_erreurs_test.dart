@@ -161,6 +161,8 @@ void main() {
         cookies: 'session=Bearer abc.def_ghi',
         headers: {'Authorization': 'Bearer abc.def_ghi'},
         env: {'CONTACT': 'joueur@exemple.fr'},
+        fragment: 'joueur@exemple.fr',
+        data: {'corps': 'vu à 48.858370, 2.294481'},
       ),
       exceptions: [
         SentryException(
@@ -273,6 +275,22 @@ void main() {
 
       // ignore: deprecated_member_use
       expect(assaini.extra!['duree'], 12.345678);
+    });
+
+    test('rend le conteneur reçu lui-même quand rien n\'a bougé', () {
+      // Ce qui fait tenir la préservation de type : une chaîne inchangée est
+      // rendue **identique**, donc le conteneur qui la porte l'est aussi.
+      // Sans cette identité, chaque carte traversée serait recopiée pour rien.
+      // ignore: deprecated_member_use
+      final evenement = SentryEvent(extra: {'note': 'rien de sensible ici'});
+      // Et non la carte passée au constructeur : `SentryEvent` la recopie
+      // (`Map.from`, mesuré). C'est la carte que l'événement PORTE dont
+      // l'identité se juge.
+      // ignore: deprecated_member_use
+      final avant = evenement.extra;
+
+      // ignore: deprecated_member_use
+      expect(identical(assainir(evenement).extra, avant), isTrue);
     });
 
     test('laisse son type à un contexte typé que rien ne concerne', () {
@@ -436,16 +454,59 @@ void main() {
       },
     );
 
-    test('ne lance pas deux fois si l\'échec suit le lancement', () async {
+    test('laisse remonter une panne du lancement, pas du SDK', () async {
+      // Le SDK appelle `lancer` lui-même : une exception de l'application
+      // traverse donc `initialiser` et arrive au même `catch` qu'une panne de
+      // Sentry. Les confondre annulerait en silence le refus de démarrer sans
+      // `API_BASE_URL` — et en production seulement, où un DSN est posé.
+      final panne = StateError('API_BASE_URL absente');
+
+      await expectLater(
+        demarrerAvecRapport(
+          dsn: 'https://cle@sentry.test/1',
+          lancer: () => throw panne,
+          initialiser: (_, lancer) => lancer() as Future<void>,
+        ),
+        throwsA(same(panne)),
+      );
+    });
+
+    test('ne lance qu\'une fois même sur deux appels concurrents', () async {
+      // La garde tient parce que `lance` est posé **avant** l'attente. Le
+      // déplacer après laisserait les deux appels franchir le test ensemble —
+      // deux `runApp`, et rien pour le voir.
       var lancements = 0;
 
       await demarrerAvecRapport(
         dsn: 'https://cle@sentry.test/1',
-        lancer: () => lancements++,
-        initialiser: (_, lancer) async {
-          await lancer();
-          throw StateError('incident après le lancement');
+        lancer: () async {
+          await Future<void>.delayed(Duration.zero);
+          lancements++;
         },
+        initialiser: (_, lancer) async =>
+            Future.wait([lancer() as Future<void>, lancer() as Future<void>]),
+      );
+
+      expect(lancements, 1);
+    });
+
+    test('ne lance pas deux fois si l\'échec suit le lancement', () async {
+      var lancements = 0;
+
+      // L'application est montée, puis le SDK échoue : la panne remonte —
+      // quelque chose a bel et bien cassé — mais elle ne relance rien. Une
+      // exception après `runApp` ne défait pas l'arbre de widgets déjà
+      // attaché ; un second lancement, lui, le ferait.
+      await expectLater(
+        demarrerAvecRapport(
+          dsn: 'https://cle@sentry.test/1',
+          lancer: () => lancements++,
+          initialiser: (_, lancer) async {
+            await lancer();
+            throw StateError('incident après le lancement');
+          },
+        ),
+        throwsStateError,
       );
 
       expect(lancements, 1);

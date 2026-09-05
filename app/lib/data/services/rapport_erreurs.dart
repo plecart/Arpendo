@@ -108,6 +108,13 @@ typedef InitialisationSentry = Future<void> Function(
 /// d'observabilité qui empêche l'application de démarrer coûte infiniment plus
 /// que ce qu'il rapporte.
 ///
+/// **Le repli ne couvre que les pannes de Sentry.** Comme c'est le SDK qui
+/// appelle [lancer], une exception de l'*application* remonte par le même
+/// chemin qu'une panne du SDK : elle est distinguée sur « le lancement
+/// a-t-il commencé ? » et **relancée**. Les confondre annulerait en silence
+/// le refus de démarrer sans `API_BASE_URL`, et remplacerait son message
+/// explicite par une ligne de journal qui accuse Sentry à tort.
+///
 /// Args:
 ///   dsn: le point de collecte, ou la chaîne vide pour ne rien initialiser.
 ///   lancer: ce qui construit et fait tourner l'application.
@@ -133,9 +140,16 @@ Future<void> demarrerAvecRapport({
   try {
     await initialiser(dsn, lancerUneFois);
   } on Object catch (erreur, trace) {
-    // Le repli est silencieux à l'écran et bruyant au journal : il n'y a rien
-    // à proposer au joueur, et Sentry — précisément indisponible — ne peut pas
-    // rapporter sa propre panne.
+    // `lance` discrimine les deux pannes que ce `catch` reçoit, et il faut les
+    // traiter à l'opposé. Le SDK appelle [lancer] lui-même : une exception de
+    // l'**application** traverse donc [initialiser] et arrive ici comme une
+    // panne de Sentry. L'avaler annulerait en silence le refus de démarrer
+    // sans `API_BASE_URL` — et en production seulement, là où un DSN est posé.
+    if (lance) rethrow;
+    // Sentry, lui, a échoué avant d'avoir rien lancé : repli silencieux à
+    // l'écran et bruyant au journal. Il n'y a rien à proposer au joueur, et
+    // Sentry — précisément indisponible — ne peut pas rapporter sa propre
+    // panne.
     developer.log(
       'Sentry non initialisé, l\'application démarre sans rapport d\'erreurs',
       name: _journal,
@@ -263,10 +277,18 @@ Future<void> _initialiserSentry(String dsn, AppRunner lancer) =>
 /// interdite, sérialisé puis relu. Un champ ajouté au fixture sans être
 /// assaini fait rougir la suite ; un `expect` par champ ne l'aurait pas fait.
 ///
-/// Restent en dehors, et c'est délibéré : `type` d'exception et piles
-/// d'appels (du **code**, jamais une donnée de joueur), `id` d'utilisateur
-/// (ce qui rend un rapport attribuable), `release`, `dist`, `environment` et
-/// `platform` (des métadonnées de build que l'application choisit).
+/// Restent en dehors **par choix** : `type` d'exception et piles d'appels (du
+/// **code**, jamais une donnée de joueur), `id` d'utilisateur (ce qui rend un
+/// rapport attribuable), `release`, `dist`, `environment` et `platform` (des
+/// métadonnées de build que l'application choisit).
+///
+/// Reste en dehors **par contrainte**, et c'est le seul : `Mechanism.meta`,
+/// que le SDK expose en lecture sans mutateur (`mechanism.dart` n'a que
+/// `set data`). Son voisin `mechanism.data`, lui, est assaini. Le risque est
+/// nul en pratique — `meta` n'est rempli que par le SDK natif, dont les
+/// enveloppes ne passent pas par `beforeSend` (voir plus bas) — mais il est
+/// écrit ici plutôt que taire : une énumération qui se dit complète et ne l'est
+/// pas vaut moins qu'une énumération qui dit où elle s'arrête.
 ///
 /// **Une voie échappe entièrement à cette fonction** : les plantages
 /// **natifs**. `SentryFlutter.init` installe `NativeSdkIntegration` et laisse
@@ -401,6 +423,15 @@ void _assainirContextes(Contexts contextes) {
 /// Rend **la chaîne reçue elle-même** quand rien n'a bougé, et non une copie
 /// égale : c'est ce qui permet à [_assainirValeur] de savoir, par `identical`,
 /// qu'un conteneur est resté intact et de préserver son type.
+///
+/// **Aucun test ne peut faire rougir ce retour conditionnel**, et il faut le
+/// dire plutôt que de laisser croire l'inverse : mesuré, `String.replaceAll`
+/// rend déjà le receveur lui-même quand aucun motif ne correspond, si bien que
+/// les deux branches sont observationnellement identiques sur cette VM. Le
+/// conditionnel est là pour que la préservation de type ne **repose pas** sur
+/// ce comportement, qu'aucune spécification ne promet. S'il disparaissait, la
+/// conséquence serait cosmétique — un conteneur typé rendu en `List<dynamic>`
+/// —, jamais une fuite : [_assainirValeur] assainit d'abord et compare ensuite.
 String _assainirTexte(String texte) {
   var resultat = texte;
   for (final motif in _motifs) {

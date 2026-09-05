@@ -26,6 +26,7 @@ const _lienWeb = 'https://play.google.com/store/apps/details?id=$_identifiant';
 /// Les incidents de plateforme signalés pendant un test.
 class _SignalementsFeints {
   final incidents = <Object>[];
+  final messages = <String>[];
 
   void call(
     String message, {
@@ -33,6 +34,7 @@ class _SignalementsFeints {
     Object? erreur,
     StackTrace? trace,
   }) {
+    messages.add(message);
     if (erreur != null) incidents.add(erreur);
   }
 }
@@ -118,5 +120,22 @@ void main() {
     // Le §11.2 ne montre rien à l'écran quand un lien ne s'ouvre pas : sans
     // cette trace, l'incident n'existerait nulle part.
     expect(signalements.incidents, [panne]);
+  });
+
+  test('deux liens refusés laissent une trace finale', () async {
+    // Le §11.2 ne montre RIEN à l'écran dans ce cas : la seule trace de
+    // l'échec complet est ce signalement, et rien d'autre ne le garderait.
+    final signalements = _SignalementsFeints();
+    final magasin = _magasin(
+      _LanceurFeint([false, false]),
+      signaler: signalements.call,
+    );
+
+    await magasin.ouvrirFiche();
+
+    expect(
+      signalements.messages,
+      contains(contains('aucun lien du magasin ouvrable')),
+    );
   });
 }
