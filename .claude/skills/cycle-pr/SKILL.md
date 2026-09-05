@@ -140,7 +140,8 @@ La PR draft porte **dès sa création** :
   lot porte `Closes #<N>` — un `Closes` sur la première fermerait l'issue trop tôt. Chaque autre
   PR du lot ouvre son body par la ligne **`En vol pour #<N> (lot k/n)`**, que `repercussions` lit
   au même titre que `Closes` : sans elle, l'issue paraît dormante précisément pendant qu'on
-  travaille dessus.
+  travaille dessus. GitHub, lui, ne lit que le mot-clé : le lien des lots précédents se repose à
+  l'Étape 8, une fois l'issue close.
 - Le **briefing de l'Étape 1** comme corps provisoire — le plan devient lisible par le mainteneur
   et par les autres sessions, avant que le code n'existe.
 - **Assignee**, **labels** et **milestone** (mapping de `.claude/pipeline.config.md`).
@@ -586,6 +587,27 @@ quand même — l'amendement est tracé au journal de spec du corps. Le brief d'
 un artefact daté : on coche ses cases, on ne réécrit pas son texte. (Tant que l'issue était
 ouverte, c'était l'inverse : une réconciliation `repercussions` qui falsifiait une de ses lignes
 l'amendait — la clôture est ce qui fige le brief.)
+
+**Cas découpé : reposer le lien des lots précédents.** GitHub ne lie une PR à une issue que par un
+mot-clé de fermeture, et seul le lot final en portait un (Étape 2) ; sans ce geste, l'issue
+n'affiche qu'une PR sur les k qu'elle a coûté. Une fois l'issue close, ajouter en fin de body de
+**chaque lot précédent** (`gh pr edit <n> --body-file`) — sur une issue close, le mot-clé ne
+change aucun état :
+
+```markdown
+*Rattachement a posteriori (<date>) : lot k/n de #<N>. L'issue a bien été fermée par le lot
+final, la PR #<M> ; le mot-clé ci-dessous ne sert qu'à faire apparaître cette PR parmi les PR
+liées de l'issue.*
+
+Closes #<N>
+```
+
+Puis vérifier que l'issue affiche autant de PR liées que de lots :
+
+```
+gh api graphql -f query='{ repository(owner:"<owner>",name:"<repo>"){ issue(number:<N>){
+  closedByPullRequestsReferences(first:20, includeClosedPrs:true){ nodes{ number } } } } }'
+```
 
 **Un critère soldé par un autre lot se coche avec la trace de qui l'a joué** — le lot et le SHA.
 Un critère transverse à plusieurs lots n'appartient à aucun ; sans cette trace, chaque lot croit

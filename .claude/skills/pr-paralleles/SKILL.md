@@ -252,7 +252,9 @@ Marquer la ligne `⚪ worktree nettoyé` dans le tableau. Quand tout le lot est 
 (`gh issue list --state all --search "created:>=<date de début>"`) et justifier chacune par le
 barreau de `contraintes.md` « Création d'issues en cours de cycle » qui a échoué — gabarit,
 catégorie et thème vérifiés. Une vague qui ouvre plus d'issues qu'elle n'en ferme est un signal à
-remonter au mainteneur, pas un résultat.
+remonter au mainteneur, pas un résultat. Vérifier aussi que chaque issue réalisée en plusieurs
+lots affiche autant de PR liées que de lots (`cycle-pr` Étape 8, cas découpé) : chaque session a
+obéi à « un seul `Closes` », et le trou ne se voit qu'en regardant la population.
 
 ## Règles
 
