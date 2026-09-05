@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'data/services/api_client.dart';
 import 'data/services/connectivity_service.dart';
 import 'data/services/magasin_service.dart';
+import 'data/services/rapport_erreurs.dart';
 import 'data/services/version_client.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'ui/core/theme/theme.dart';
@@ -15,18 +16,37 @@ import 'ui/demarrage/ecran_attente.dart';
 import 'ui/demarrage/ecran_mise_a_jour.dart';
 import 'ui/demarrage/etat_demarrage.dart';
 
-/// Construit les services et lance l'application — racine de composition.
+/// Met le rapport d'erreurs en place, puis construit et lance l'application.
 ///
-/// C'est le **seul** endroit qui lise l'environnement de compilation et
-/// instancie les services partagés ; tout le reste les reçoit. `API_BASE_URL`
-/// est injectée par `--dart-define` depuis le `.env` de la racine — recettes
-/// `just run` et `just build` — et son absence arrête net, avant tout widget :
-/// une url par défaut en dur masquerait une configuration cassée.
+/// Ce fichier est le **seul** à lire l'environnement de compilation.
+/// `API_BASE_URL` et `SENTRY_DSN` sont injectées par `--dart-define` depuis le
+/// `.env` de la racine — recettes `just run` et `just build` —, et leur
+/// absence ne veut pas dire la même chose : sans url d'api on s'arrête net,
+/// car une valeur par défaut en dur masquerait une configuration cassée ;
+/// sans DSN on démarre normalement, Sentry simplement désactivé.
+///
+/// Tout le reste du démarrage vit dans [_construireEtLancer], que
+/// [demarrerAvecRapport] exécute — sous la zone de capture du SDK quand un DSN
+/// est fourni. Rien qui puisse échouer ne se produit donc avant que le filet
+/// soit tendu.
 Future<void> main() async {
-  // `PackageInfo.fromPlatform` parle à la plateforme avant `runApp` : c'est
-  // la seule attente du démarrage.
+  // Avant tout le reste : le SDK Sentry parle au canal natif dès son
+  // initialisation, et `PackageInfo.fromPlatform` en fait autant plus loin.
   WidgetsFlutterBinding.ensureInitialized();
+  await demarrerAvecRapport(
+    dsn: const String.fromEnvironment('SENTRY_DSN'),
+    lancer: _construireEtLancer,
+  );
+}
+
+/// Construit les services partagés et monte l'application.
+///
+/// Tout le reste les reçoit : c'est ici, et nulle part ailleurs, qu'ils sont
+/// instanciés.
+Future<void> _construireEtLancer() async {
   const baseUrl = String.fromEnvironment('API_BASE_URL');
+  // La seule attente de cette construction : `PackageInfo` parle à la
+  // plateforme, et son résultat est requis avant `runApp`.
   final info = await PackageInfo.fromPlatform();
   final connectivite = ConnectivityService();
   runApp(

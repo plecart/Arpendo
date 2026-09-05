@@ -163,4 +163,37 @@ void main() {
       expect(assaini.level, SentryLevel.warning);
     });
   });
+
+  group('demarrerAvecRapport', () {
+    test('sans DSN, lance l\'application sans toucher au SDK', () async {
+      var initialisations = 0;
+      var lancements = 0;
+
+      await demarrerAvecRapport(
+        dsn: '',
+        lancer: () => lancements++,
+        initialiser: (_, _) async => initialisations++,
+      );
+
+      expect(initialisations, 0);
+      expect(lancements, 1);
+    });
+
+    test('avec un DSN, confie le lancement à l\'initialisation', () async {
+      String? dsnRecu;
+      var lancements = 0;
+
+      await demarrerAvecRapport(
+        dsn: 'https://cle@sentry.test/1',
+        lancer: () => lancements++,
+        initialiser: (dsn, lancer) async {
+          dsnRecu = dsn;
+          await lancer();
+        },
+      );
+
+      expect(dsnRecu, 'https://cle@sentry.test/1');
+      expect(lancements, 1);
+    });
+  });
 }

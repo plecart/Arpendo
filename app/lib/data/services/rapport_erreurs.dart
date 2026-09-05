@@ -53,6 +53,70 @@ const double _degreMaximal = 180.0;
 /// produit partout — un `1.0`, un `0.25`.
 const int _decimalesMinimales = 4;
 
+/// Ce qui met Sentry en place autour du lancement de l'application.
+///
+/// Une fonction plutôt qu'un appel direct au SDK, pour que
+/// [demarrerAvecRapport] soit éprouvable sans réseau ni projet Sentry : le
+/// test en fournit une qui note ce qu'elle reçoit.
+typedef InitialisationSentry = Future<void> Function(
+  String dsn,
+  AppRunner lancer,
+);
+
+/// Lance l'application, sous Sentry **seulement** si un DSN est fourni.
+///
+/// « Désactivé » veut dire *aucun appel au SDK*, et non un `init` avec un DSN
+/// vide : ce dernier installe quand même les intégrations et le hook des
+/// exceptions non rattrapées. C'est une différence qu'on ne voit pas sur un
+/// poste de développement et qui compte partout ailleurs — la même décision,
+/// et pour la même raison, que `configure_sentry` côté serveur.
+///
+/// Le DSN vient de `--dart-define=SENTRY_DSN`, injecté par les recettes
+/// `just run` et `just build` depuis le `.env` de la racine. **Vide est un
+/// état légitime**, et c'est le défaut du poste — à la différence
+/// d'`API_BASE_URL`, dont l'absence arrête le démarrage.
+///
+/// [lancer] est appelé dans les deux branches, et une seule fois : sous DSN,
+/// c'est le SDK qui l'exécute, dans la zone où il capte les erreurs non
+/// rattrapées ; sans DSN, on l'appelle directement. Tout ce que fait
+/// l'application — construction des services comprise — est donc à
+/// l'intérieur, et rien de ce qui peut échouer ne se produit avant que le
+/// filet soit tendu.
+///
+/// Args:
+///   dsn: le point de collecte, ou la chaîne vide pour ne rien initialiser.
+///   lancer: ce qui construit et fait tourner l'application.
+///   initialiser: la mise en place du SDK. Le défaut est la vraie ; les tests
+///     la remplacent pour observer qu'elle est appelée — ou qu'elle ne l'est
+///     pas.
+Future<void> demarrerAvecRapport({
+  required String dsn,
+  required AppRunner lancer,
+  InitialisationSentry initialiser = _initialiserSentry,
+}) async {
+  if (dsn.isEmpty) {
+    await lancer();
+    return;
+  }
+  await initialiser(dsn, lancer);
+}
+
+/// Met Sentry en place, puis lui confie le lancement de l'application.
+///
+/// Trois réglages, et rien de plus : `sendDefaultPii` **faux** (cadrage
+/// §13.10), [assainir] en `beforeSend`, et le lanceur. Pas de
+/// `tracesSampleRate` — aucune mesure de performance n'est demandée, et
+/// l'activer facturerait des spans que personne ne lit.
+///
+/// `beforeSend` **est** le filtrage entrant : le SDK Dart n'a pas
+/// d'`EventScrubber`, à la différence du SDK Python.
+Future<void> _initialiserSentry(String dsn, AppRunner lancer) =>
+    SentryFlutter.init((options) {
+      options.dsn = dsn;
+      options.sendDefaultPii = false;
+      options.beforeSend = (evenement, _) => assainir(evenement);
+    }, appRunner: lancer);
+
 /// Rend cet événement débarrassé de ce qu'on n'a pas le droit d'envoyer.
 ///
 /// Branchée en `beforeSend` par [demarrerAvecRapport], mais **éprouvable

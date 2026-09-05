@@ -9,7 +9,7 @@ prolongera. Cet écran ne porte **aucun indicateur de progression** : le bloc de
 rôle, et le délai du client HTTP borne l'attente. Si le build installé est sous le minimum publié
 par le serveur, l'écran d'attente est **remplacé** par l'écran bloquant de mise à jour (UX §11.2),
 dont on ne sort pas ; s'il est seulement sous le recommandé, le bandeau 12 s'ajoute par-dessus,
-fermable une fois par version.
+non fermable.
 
 ## Lancer
 
@@ -26,11 +26,18 @@ just run
 **refuse de démarrer** sans elle, avec la marche à suivre dans le message. Un `flutter run` nu
 échoue donc exprès : aucune url par défaut n'est écrite en dur.
 
+La même recette injecte `SENTRY_DSN`, qui obéit à la règle **inverse** : absente ou vide, elle
+n'arrête rien — Sentry n'est simplement pas initialisé, et c'est le défaut du poste. Voir
+« Rapport d'erreurs ».
+
 ## Structure
 
-La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation
-et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `ApiClient`,
-`MagasinService`) — c'est aussi le **seul endroit qui attende** la plateforme ;
+La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation,
+met le rapport d'erreurs en place, puis construit les services (`ApiConfig`,
+`ConnectivityService`, `PackageInfo`, `ApiClient`, `MagasinService`) — c'est aussi le **seul
+endroit qui attende** la plateforme. La construction vit dans `_construireEtLancer`, que
+`demarrerAvecRapport` exécute : rien qui puisse échouer ne se produit avant que le filet soit
+tendu (voir « Rapport d'erreurs ») ;
 `ArpendoApp` les reçoit et les expose par `provider` — `Provider<ApiClient>` (le `dispose`
 appelle `close()`) et le premier ViewModel, `DemarrageViewModel` (`ChangeNotifier`), dont l'état
 scellé `EtatDemarrage` pilote un `switch` exhaustif → écran. Les écrans vivent dans
@@ -427,3 +434,59 @@ local aujourd'hui.
 `main()` reçoit l'`applicationId` de `PackageInfo` et le passe au service du magasin : c'est
 l'application **réellement installée** dont on ouvre la fiche, jamais une constante qui
 divergerait d'une saveur de build.
+
+## Rapport d'erreurs — Sentry, et ce qu'on ne lui envoie jamais
+
+Un seul fichier importe `sentry_flutter` : `data/services/rapport_erreurs.dart`. Il expose deux
+choses, et la racine de composition ne connaît que la première.
+
+| | |
+|---|---|
+| `demarrerAvecRapport` | lance l'application, **sous Sentry seulement si `SENTRY_DSN` est non vide** |
+| `assainir` | le `beforeSend` : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
+
+**Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier
+installe quand même les intégrations et le hook des exceptions non rattrapées. La différence ne se
+voit pas sur un poste de développement et compte partout ailleurs. C'est la même décision, pour la
+même raison, que `configure_sentry` côté api.
+
+`lancer` est appelé dans les deux branches et **une seule fois** : sous DSN, c'est le SDK qui
+l'exécute, dans la zone où il capte les erreurs non rattrapées. Tout le démarrage — construction
+des services comprise — est donc à l'intérieur.
+
+### Ce qu'`assainir` retire
+
+Trois motifs, **recopiés de `api/src/arpendo_api/core/sentry.py`** : une divergence de motif serait
+une divergence de protection (cadrage §13.10 — sans scrubbing explicite, on reconstruit
+l'historique de localisation que §12.3 interdit).
+
+| Motif | Règle |
+|---|---|
+| coordonnées | reconnues **à la paire**, ≥ 4 décimales — un nombre isolé est indécidable, et un horodatage ISO (`…:35.751365Z`) a exactement la même forme |
+| jeton porteur | `Bearer …`, insensible à la casse |
+| adresse e-mail | forme usuelle |
+
+La règle de la paire vaut aussi pour les **nombres** : une composante n'est retirée que si le
+conteneur qui la porte en contient une seconde de même forme. Le faux positif assumé est un
+conteneur de deux mesures fines, assaini pour rien — perdre un centile se voit et se répare,
+laisser fuir une position ne se voit pas et ne se répare pas.
+
+Emplacements couverts : le message (gabarit et paramètres compris), les valeurs d'exception, les
+fils d'Ariane (texte et données), `extra` et son successeur `contexts`, les étiquettes. **Cette
+énumération est le prix d'un protocole typé** — le `before_send` de Python reçoit un dictionnaire,
+celui de Dart un `SentryEvent`. Elle est d'autant moins évitable que le SDK Dart n'a **pas**
+d'`EventScrubber` : là où l'api superpose deux filets, `assainir` est le seul.
+
+`request`, `transaction` et `culprit` ne sont pas assainis — rien ne les remplit tant que
+`SentryHttpClient` et `SentryNavigatorObserver` ne sont pas installés. Marqué `ponytail:` dans le
+code, à reprendre dans le lot qui installera l'un des deux.
+
+### L'éprouver
+
+`assainir` ne parle à rien : ni réseau, ni `init`, ni projet Sentry. Un test la nourrit d'un
+`SentryEvent` écrit à la main. Elle **modifie l'événement reçu** et le rend, là où son homologue
+Python en construit une copie : les objets du protocole Dart sont typés et mutables, et le SDK
+lui-même déprécie `copyWith` au profit de l'affectation directe.
+
+Pour voir la collecte réellement partir, renseigner `SENTRY_DSN` dans le `.env` et relancer
+`just run` — rien d'autre à changer.
