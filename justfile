@@ -141,16 +141,18 @@ fmt-check-app:
 # `SENTRY_DSN` prend `env` et son défaut vide, PAS `env_var` : absente et vide y veulent dire la
 # même chose — Sentry désactivé —, exactement comme pour l'`OptionalSecret` que `Settings` lit
 # côté api. C'est le seul des deux réglages dont l'absence soit une décision et non un trou, et
-# c'est pourquoi il est le seul à ne pas faire échouer la recette. Il est mis entre guillemets
-# parce que sa valeur est vide sur un poste de développement : sans eux, une valeur qui
-# contiendrait une espace se découperait en deux arguments au lieu d'échouer lisiblement.
+# c'est pourquoi il est le seul à ne pas faire échouer la recette.
+#
+# Les deux valeurs sont entre guillemets : elles viennent d'un `.env` que personne ne valide, et
+# une valeur portant une espace se découperait sinon en deux arguments — le SDK recevrait un
+# réglage tronqué au lieu d'échouer lisiblement.
 [working-directory('app')]
 run:
-    "{{flutter}}" run --dart-define=API_BASE_URL={{env_var("API_BASE_URL")}} --dart-define=SENTRY_DSN="{{env("SENTRY_DSN", "")}}"
+    "{{flutter}}" run --dart-define=API_BASE_URL="{{env_var("API_BASE_URL")}}" --dart-define=SENTRY_DSN="{{env("SENTRY_DSN", "")}}"
 
 [working-directory('app')]
 build:
-    "{{flutter}}" build appbundle --dart-define=API_BASE_URL={{env_var("API_BASE_URL")}} --dart-define=SENTRY_DSN="{{env("SENTRY_DSN", "")}}"
+    "{{flutter}}" build appbundle --dart-define=API_BASE_URL="{{env_var("API_BASE_URL")}}" --dart-define=SENTRY_DSN="{{env("SENTRY_DSN", "")}}"
 
 # ─── infra/ ────────────────────────────────────────────────────────────────────
 

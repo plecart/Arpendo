@@ -471,15 +471,38 @@ conteneur qui la porte en contient une seconde de même forme. Le faux positif a
 conteneur de deux mesures fines, assaini pour rien — perdre un centile se voit et se répare,
 laisser fuir une position ne se voit pas et ne se répare pas.
 
-Emplacements couverts : le message (gabarit et paramètres compris), les valeurs d'exception, les
-fils d'Ariane (texte et données), `extra` et son successeur `contexts`, les étiquettes. **Cette
-énumération est le prix d'un protocole typé** — le `before_send` de Python reçoit un dictionnaire,
-celui de Dart un `SentryEvent`. Elle est d'autant moins évitable que le SDK Dart n'a **pas**
-d'`EventScrubber` : là où l'api superpose deux filets, `assainir` est le seul.
+**Lacune connue, et commune aux deux langages** : le séparateur du motif exclut le tiret, pour ne
+pas le confondre avec le signe de la seconde composante — une paire jointe par un tiret nu
+(`48.858370-2.294481`) passe donc. Aucun encodage du projet ne produit cette forme, et la corriger
+devrait se faire **des deux côtés à la fois**.
 
-`request`, `transaction` et `culprit` ne sont pas assainis — rien ne les remplit tant que
-`SentryHttpClient` et `SentryNavigatorObserver` ne sont pas installés. Marqué `ponytail:` dans le
-code, à reprendre dans le lot qui installera l'un des deux.
+### Où il les retire
+
+**Tous les emplacements porteurs de texte**, et pas seulement ceux qu'un rapport de bogue citerait :
+message (gabarit et paramètres compris), exceptions (valeur et mécanisme), fils d'Ariane, fils
+d'exécution, utilisateur, requête, contextes, `transaction`, `culprit`, `logger`, `serverName`,
+`fingerprint`, `modules`, étiquettes et `extra`. **Cette énumération est le prix d'un protocole
+typé** — le `before_send` de Python reçoit un dictionnaire, celui de Dart un `SentryEvent`. Elle est
+d'autant moins évitable que le SDK Dart n'a **pas** d'`EventScrubber` : là où l'api superpose deux
+filets, `assainir` est le seul de la voie Dart.
+
+Ce qui la rend tenable est le **test de population** qui l'accompagne : un événement dont chaque
+emplacement porte une donnée interdite, sérialisé comme le SDK le sérialise, puis relu. Ajouter un
+champ au fixture sans l'assainir fait rougir la suite — un `expect` par champ ne l'aurait pas fait.
+
+Restent dehors, délibérément : le `type` d'une exception et les piles d'appels (du **code**, jamais
+une donnée de joueur), l'`id` d'utilisateur (ce qui rend un rapport attribuable), et `release` /
+`dist` / `environment` / `platform` (des métadonnées de build que l'application choisit).
+
+### La voie qui échappe à `assainir`
+
+`SentryFlutter.init` installe `NativeSdkIntegration` et laisse `enableNativeCrashHandling` vrai : un
+**plantage natif ou un ANR** est envoyé par le SDK Android, dans sa propre enveloppe, sans passer
+par le `beforeSend` Dart — le SDK le dit lui-même, « captureEnvelope does not call the beforeSend
+callback ». Ce que le natif reçoit du Dart, c'est `sendDefaultPii`, transmis à
+`androidOptions.setSendDefaultPii`. Un rapport natif porte une pile, un contexte d'appareil et un
+état de mémoire, pas les chaînes de l'application — mais il faut savoir que le filet ne s'y applique
+pas.
 
 ### L'éprouver
 
@@ -487,6 +510,18 @@ code, à reprendre dans le lot qui installera l'un des deux.
 `SentryEvent` écrit à la main. Elle **modifie l'événement reçu** et le rend, là où son homologue
 Python en construit une copie : les objets du protocole Dart sont typés et mutables, et le SDK
 lui-même déprécie `copyWith` au profit de l'affectation directe.
+
+Les **réglages** posés sur le SDK s'éprouvent eux aussi : `configurerSentry` est séparée de l'appel
+à `SentryFlutter.init`, parce qu'une configuration écrite dans la closure de `init` serait la seule
+ligne du module que rien n'exerce — or c'est celle dont l'absence *est* l'incident. Un
+`SentryFlutterOptions` s'instancie sans réseau, donc un test lit chaque réglage et fait passer un
+événement par le `beforeSend` qui vient d'y être posé.
+
+Enfin, **le filet lui-même peut tomber** : `SentryFlutter.init` n'est pas total (l'`ArgumentError`
+du DSN, le binding natif et les intégrations sont hors de son `try`, et `appRunner` ne tourne
+qu'après elles). `demarrerAvecRapport` rattrape, écrit au journal de la plateforme et lance
+l'application quand même — un outil d'observabilité qui empêche de démarrer coûte plus qu'il ne
+rapporte, et la panne ne serait visible qu'en production, le poste et la CI tournant DSN vide.
 
 Pour voir la collecte réellement partir, renseigner `SENTRY_DSN` dans le `.env` et relancer
 `just run` — rien d'autre à changer.
