@@ -82,6 +82,13 @@ Quatre règles de rédaction, chacune née d'un brief qui a fait dérailler une 
   ligne « vérifié à la source le <date> : <doc du fournisseur> » — ou, à défaut, le marqueur
   « ⛔ à vérifier avant engagement ». Une contre-mesure recopiée sans vérification monte de rang
   à chaque copie et éclate au moment le plus coûteux, la console ouverte.
+- **Un ordre de gestes chez un tiers cite sa source, geste par geste.** Pour une issue HITL dont
+  les gestes s'exécutent dans une console, chez un registrar ou un fournisseur de paiement, ne
+  jamais écrire d'« ordre conseillé » de mémoire : soit chaque geste porte l'URL officielle qui
+  fixe ses préconditions (« réserver le nom de package exige le certificat de la clé d'upload,
+  donc geste 2 avant geste 1 »), soit l'ordre est marqué « ⚠️ non vérifié — à confronter à la doc
+  du fournisseur avant exécution ». Rien dans le dépôt ne rougit quand l'ordre devient faux, et
+  `cycle-pr` le retraite à son Étape 1 comme une hypothèse.
 
 ## Modèle
 

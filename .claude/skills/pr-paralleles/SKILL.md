@@ -39,6 +39,12 @@ Ne retenir que des issues :
   bloqueur doit être déjà mergé.
 - **à faible recouvrement de fichiers/zones** entre elles — deux issues qui touchent le même
   module sont des candidates au conflit de merge ; les exécuter en série, pas en parallèle.
+- **à faible recouvrement sur les ressources à état partagées** — l'isolation par worktree ne
+  couvre que le système de fichiers. Recenser les services à état que les commandes de test
+  touchent (base, cache, broker, ports du compose du poste) et vérifier que chaque suite s'y
+  présente sous une clé propre — sur l'**écriture et l'observation** : partitionner ce qu'on écrit
+  sans partitionner ce qu'on lit ou purge ne suffit pas. Sinon, deux issues dont les suites
+  touchent le même magasin sont un recouvrement au même titre qu'un fichier partagé : en série.
 
 Présenter le lot proposé à l'utilisateur sous forme de tableau (issue, titre, zones touchées,
 risque de recouvrement), suivi pour chaque issue de **deux ou trois phrases en langage courant**
@@ -146,6 +152,13 @@ vaut demande de l'utilisateur.
 autre PR du lot et ordre de merge, décision verrouillée à ne pas rouvrir>
 ```
 
+**Une consigne du lead cite l'artefact qui la porte.** Un point de vigilance transmis comme
+invariant (« telle valeur reste littérale, ne l'assouplis pas ») nomme le fichier, le test et le §
+d'issue qui le gardent — jamais l'énoncé seul. Une reformulation dérive vers le plus strict, celui
+qui transmet ajoutant de la marge parce qu'il porte le risque sans porter le détail ; et une
+consigne fermée à double tour décourage précisément la vérification. La session confronte la
+consigne à l'artefact à son Étape 1, et une divergence remonte au mainteneur.
+
 Les skills s'invoquent **par l'outil Skill, jamais par `/commande`** : un `/nom` dans un message
 de pair n'est pas une saisie de l'utilisateur, la session peut ne pas le déclencher. Ne jamais
 inscrire dans le prompt un skill marqué `disable-model-invocation` (frontmatter à vérifier avant
@@ -168,7 +181,12 @@ sa PR ; rien ne part sans son accord. Quand ce message arrive :
    sur les artefacts : `gh pr diff <PR>`, `gh pr checks <PR>`, `gh pr view <PR> --comments`, et le
    worktree sur disque si le diff ne suffit pas. Relire le diff avec le prompt de
    `cleanup-verbatim.md` et contre les critères d'acceptation de l'issue ; confronter les décisions
-   rapportées aux sources de vérité (`decisions-vs-doc`).
+   rapportées aux sources de vérité (`decisions-vs-doc`). **Dater le verdict par sa base** :
+   `git merge-base origin/main <branche>` au moment de la vérification, inscrit dans la réponse.
+   Si le trunk avance ensuite — une autre PR de la vague mergée —, le verdict est périmé avec
+   toutes les preuves de la PR : le redemander plutôt que le consommer. `git merge-tree
+   --write-tree origin/main <branche>` dit s'il y a conflit ; l'état `MERGEABLE` de la forge se met
+   à jour en différé.
 2. **Répondre à la session** (`SendMessage`, au `from` du message), sous l'une des deux formes :
    `Verdict : rien à corriger.` — ou `À corriger avant merge :` suivi d'une liste numérotée, chaque
    point avec fichier et raison. Le lead ne donne **jamais** le « go merge » : c'est l'utilisateur,
@@ -200,8 +218,14 @@ c'est le seul autre canal, et il passe par lui.
     `SendMessage` (« arrête-toi après l'outil en cours, signalement bloquant : … ») — une session
     occupée lit ses messages entre deux appels d'outils, pas seulement en fin de tâche. Le temps
     d'arbitrer, elle ne produit pas de travail à jeter.
-- En cas de conflit de merge entre deux PR du lot (recouvrement sous-estimé) : merger la première,
-  puis rebaser la seconde sur `main` à jour avant de la finaliser.
+- **Après chaque merge du lot, avant toute consigne aux sessions encore en vol** : lister les
+  fichiers **réellement mergés** (`gh pr diff <PR> --name-only`) et les croiser avec ceux de chaque
+  branche en vol (`git diff --name-only origin/main...<branche>`). La consigne se fonde sur ce
+  croisement, jamais sur la carte de recouvrement de l'étape 2 — elle décrit des issues entières,
+  un merge livre un lot, et le recouvrement réel (un fichier de tests touché par les deux) n'est
+  souvent sur aucune carte. Une branche qui recouvre **fusionne `origin/main` dans sa branche**
+  — jamais de rebase d'une branche poussée, `contraintes.md` interdit le force-push — et relance
+  ses gates sur l'état combiné.
 
 ### 8. Nettoyer après merge
 
@@ -223,6 +247,12 @@ commande de fumée).
 
 Marquer la ligne `⚪ worktree nettoyé` dans le tableau. Quand tout le lot est nettoyé, supprimer
 `PR-PARALLELES.md` (ou archiver le tableau dans les notes du projet).
+
+**Bilan de vague.** Compter les issues ouvertes pendant la vague
+(`gh issue list --state all --search "created:>=<date de début>"`) et justifier chacune par le
+barreau de `contraintes.md` « Création d'issues en cours de cycle » qui a échoué — et vérifier
+qu'elle porte gabarit, catégorie et thème. Une vague qui ouvre plus d'issues qu'elle n'en ferme
+est un signal à remonter au mainteneur, pas un résultat.
 
 ## Règles
 
