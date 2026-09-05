@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
 
+import 'rapport_erreurs.dart';
+
 /// Lit l'état du réseau du téléphone.
 ///
 /// **Seul point de l'application qui connaît `connectivity_plus`.** Tout le
@@ -14,6 +16,19 @@ import 'package:flutter/services.dart';
 /// captif, le téléphone est « en ligne » et le serveur reste injoignable. C'est
 /// assumé — le message « serveur indisponible » reste juste dans ce cas.
 class ConnectivityService {
+  /// Crée le service, en lui disant où signaler ses incidents de plateforme.
+  ///
+  /// [signaler] a pour défaut [signalerIncident], qui écrit au journal et
+  /// remonte à Sentry. Le passer explicitement sert au test : c'est la seule
+  /// façon d'observer une trace que rien n'affiche.
+  ConnectivityService({Signalement? signaler})
+    : _signaler = signaler ?? signalerIncident;
+
+  final Signalement _signaler;
+
+  /// Le nom sous lequel ce service écrit au journal de la plateforme.
+  static const String _journal = 'arpendo.reseau';
+
   /// Le téléphone a-t-il au moins une interface réseau active ?
   ///
   /// Renvoie `true` dès qu'une interface est active, quel que soit son type
@@ -29,18 +44,33 @@ class ConnectivityService {
   ///
   /// Toute **autre** erreur remonte. Rattraper `Exception` en bloc ferait
   /// répondre « en ligne » à un bogue de cette classe aussi bien qu'à un
-  /// incident natif, et le mensonge serait indiscernable de la vérité. Ces
-  /// incidents ne laissent encore aucune trace : elle viendra avec le Sentry
-  /// de l'app (#46), et surtout pas par un `print`.
+  /// incident natif, et le mensonge serait indiscernable de la vérité. Un
+  /// incident **présumé en ligne**, lui, laisse une trace par
+  /// [signalerIncident] — journal de la plateforme et Sentry —, et surtout
+  /// pas par un `print`.
   Future<bool> isOnline() async {
     try {
       return (await Connectivity().checkConnectivity()).hasConnectivity;
-    } on PlatformException {
+    } on PlatformException catch (incident, trace) {
+      _tracer(incident, trace);
       return true;
-    } on MissingPluginException {
+    } on MissingPluginException catch (incident, trace) {
+      _tracer(incident, trace);
       return true;
     }
   }
+
+  /// Laisse la trace d'un incident que le §10.3 fait passer pour « en ligne ».
+  ///
+  /// Sans elle, l'incident serait **indiscernable d'un réseau qui marche** :
+  /// c'est le prix du choix le moins nuisible, et la seule façon de le payer
+  /// est de l'écrire ailleurs qu'à l'écran.
+  void _tracer(Object incident, StackTrace trace) => _signaler(
+    'incident de plateforme du réseau — présumé en ligne (§10.3)',
+    source: _journal,
+    erreur: incident,
+    trace: trace,
+  );
 
   /// Le téléphone est-il en ligne, et le reste-t-il ? Un événement par
   /// changement d'état, et rien tant que l'état ne change pas.
@@ -91,6 +121,7 @@ class ConnectivityService {
         StreamTransformer<bool, bool>.fromHandlers(
           handleError: (erreur, trace, sortie) {
             if (erreur is PlatformException) {
+              _tracer(erreur, trace);
               sortie.add(true);
             } else {
               sortie.addError(erreur, trace);

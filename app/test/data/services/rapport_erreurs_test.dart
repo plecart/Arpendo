@@ -347,6 +347,48 @@ void main() {
     });
   });
 
+  group('signalerIncident', () {
+    test('confie l\'erreur au rapport', () {
+      final capturees = <Object>[];
+      final panne = StateError('canal natif absent');
+
+      signalerIncident(
+        'sonde réseau refusée',
+        source: 'arpendo.reseau',
+        erreur: panne,
+        capturer: (erreur, _) => capturees.add(erreur),
+      );
+
+      expect(capturees, [panne]);
+    });
+
+    test('ne rapporte rien quand il n\'y a pas d\'erreur à rapporter', () {
+      var captures = 0;
+
+      signalerIncident(
+        'aucun lien du magasin ouvrable',
+        source: 'arpendo.magasin',
+        capturer: (_, _) => captures++,
+      );
+
+      expect(captures, 0);
+    });
+
+    test('ne lève pas quand Sentry n\'est pas initialisé', () {
+      // Le capteur réel : `Sentry.captureException` sur un hub encore
+      // `NoOpHub` — l'état du processus tant qu'aucun `init` n'a eu lieu, et
+      // celui de tout poste de développement.
+      expect(
+        () => signalerIncident(
+          'incident sans Sentry',
+          source: 'arpendo.test',
+          erreur: StateError('panne'),
+        ),
+        returnsNormally,
+      );
+    });
+  });
+
   group('demarrerAvecRapport', () {
     test('sans DSN, lance l\'application sans toucher au SDK', () async {
       var initialisations = 0;

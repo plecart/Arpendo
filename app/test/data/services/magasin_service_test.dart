@@ -1,4 +1,6 @@
 import 'package:arpendo/data/services/magasin_service.dart';
+import 'package:arpendo/data/services/rapport_erreurs.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Un lanceur feint : enregistre les liens tentés, et rend ce qu'on lui dit.
@@ -21,8 +23,26 @@ class _LanceurFeint {
 const _identifiant = 'com.arpendo.game';
 const _lienWeb = 'https://play.google.com/store/apps/details?id=$_identifiant';
 
-MagasinService _magasin(_LanceurFeint lanceur) =>
-    MagasinService(identifiantApplication: _identifiant, lancer: lanceur.call);
+/// Les incidents de plateforme signalés pendant un test.
+class _SignalementsFeints {
+  final incidents = <Object>[];
+
+  void call(
+    String message, {
+    required String source,
+    Object? erreur,
+    StackTrace? trace,
+  }) {
+    if (erreur != null) incidents.add(erreur);
+  }
+}
+
+MagasinService _magasin(_LanceurFeint lanceur, {Signalement? signaler}) =>
+    MagasinService(
+      identifiantApplication: _identifiant,
+      lancer: lanceur.call,
+      signaler: signaler,
+    );
 
 void main() {
   test('ouvre le lien du magasin, et rien de plus', () async {
@@ -83,5 +103,20 @@ void main() {
     );
 
     await expectLater(magasin.ouvrirFiche(), completes);
+  });
+
+  test('un refus de plateforme laisse une trace', () async {
+    final signalements = _SignalementsFeints();
+    final panne = PlatformException(code: 'ACTIVITY_NOT_FOUND');
+    final magasin = _magasin(
+      _LanceurFeint([panne, true]),
+      signaler: signalements.call,
+    );
+
+    await magasin.ouvrirFiche();
+
+    // Le §11.2 ne montre rien à l'écran quand un lien ne s'ouvre pas : sans
+    // cette trace, l'incident n'existerait nulle part.
+    expect(signalements.incidents, [panne]);
   });
 }

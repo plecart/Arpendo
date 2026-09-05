@@ -1,6 +1,6 @@
-import 'dart:developer' as developer;
-
 import 'package:url_launcher/url_launcher.dart';
+
+import 'rapport_erreurs.dart';
 
 /// Ouvre un lien hors de l'application. Injecté pour que le service se teste
 /// sans plateforme — aucun canal de méthode dans un test de widget.
@@ -22,18 +22,30 @@ typedef LanceurUrl = Future<bool> Function(Uri uri);
 /// bouton reste tapable. C'est l'exception motivée à la règle du §13.3
 /// (« toute erreur récupérable porte "Réessayer" ») : il n'y a rien à
 /// récupérer dans l'application, le seul geste utile se fait dehors. L'échec
-/// part au journal — le lot 3 de #46 y branchera Sentry.
+/// part par [signalerIncident] — journal de la plateforme et Sentry —, seul
+/// endroit où il laisse une trace.
 class MagasinService {
   /// Crée le service pour [identifiantApplication] — le `packageName` que la
   /// racine lit dans `PackageInfo`, jamais une constante écrite en dur : c'est
   /// l'identifiant réellement installé qui doit être ouvert.
-  MagasinService({required this.identifiantApplication, LanceurUrl? lancer})
-    : _lancer = lancer ?? launchUrl;
+  ///
+  /// [signaler] a pour défaut [signalerIncident]. Le passer explicitement sert
+  /// au test : c'est la seule façon d'observer une trace que rien n'affiche.
+  MagasinService({
+    required this.identifiantApplication,
+    LanceurUrl? lancer,
+    Signalement? signaler,
+  }) : _lancer = lancer ?? launchUrl,
+       _signaler = signaler ?? signalerIncident;
 
   /// L'`applicationId` Android de l'application installée.
   final String identifiantApplication;
 
   final LanceurUrl _lancer;
+  final Signalement _signaler;
+
+  /// Le nom sous lequel ce service écrit au journal de la plateforme.
+  static const String _journal = 'arpendo.magasin';
 
   /// Les deux liens, dans l'ordre de préférence.
   Iterable<Uri> get _liens sync* {
@@ -52,17 +64,18 @@ class MagasinService {
     for (final lien in _liens) {
       try {
         if (await _lancer(lien)) return;
-      } on Exception catch (erreur) {
-        developer.log(
+      } on Exception catch (erreur, trace) {
+        _signaler(
           'lien du magasin refusé par la plateforme',
-          name: 'arpendo.magasin',
-          error: erreur,
+          source: _journal,
+          erreur: erreur,
+          trace: trace,
         );
       }
     }
-    developer.log(
+    _signaler(
       'aucun lien du magasin ouvrable — écran inchangé (§11.2)',
-      name: 'arpendo.magasin',
+      source: _journal,
     );
   }
 }

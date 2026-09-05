@@ -420,7 +420,7 @@ la règle qui vaut déjà pour `api_client.dart` et `connectivity_service.dart` 
 
 | Fichier | Plugin | Ce qu'il fait |
 |---|---|---|
-| `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part au journal |
+| `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part par `signalerIncident` |
 
 **La condition de la ligne 12 vit dans `DemarrageViewModel`, pas ailleurs** : elle n'est vraie
 qu'en état `Pret` et sous le build recommandé. La borner à `Pret` n'est pas cosmétique — sans
@@ -443,6 +443,7 @@ choses, et la racine de composition ne connaît que la première.
 | | |
 |---|---|
 | `demarrerAvecRapport` | lance l'application, **sous Sentry seulement si `SENTRY_DSN` est non vide** |
+| `signalerIncident` | écrit un incident de plateforme au journal **et** le remonte à Sentry |
 | `assainir` | le `beforeSend` : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
 
 **Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier
@@ -453,6 +454,22 @@ même raison, que `configure_sentry` côté api.
 `lancer` est appelé dans les deux branches et **une seule fois** : sous DSN, c'est le SDK qui
 l'exécute, dans la zone où il capte les erreurs non rattrapées. Tout le démarrage — construction
 des services comprise — est donc à l'intérieur.
+
+### Les incidents qu'aucun écran ne montre
+
+Deux services avalent délibérément une panne de plateforme : `ConnectivityService` présume le
+réseau **présent** sur un canal natif en erreur (§10.3), et `MagasinService` ne montre **rien** à
+l'écran quand aucun lien ne s'ouvre (§11.2). Dans les deux cas le choix est bon et le silence ne
+l'est pas : l'incident devient indiscernable du fonctionnement normal. Ils appellent donc
+`signalerIncident`, qui écrit au journal de la plateforme **et** remonte l'exception à Sentry.
+
+Ils ne l'importent pas depuis `sentry_flutter` : ils reçoivent un `Signalement` en paramètre, dont
+le défaut est `signalerIncident`. C'est ce qui garde **un seul importeur du plugin** et ce qui rend
+la trace observable en test — sans quoi rien ne prouverait qu'elle part.
+
+Sans Sentry initialisé, l'appel ne coûte rien et ne lève pas : le hub et la file de tâches du SDK
+valent `NoOpHub` et `NoOpTaskQueue` tant qu'aucun `init` n'a eu lieu. Aucun appelant n'a donc à
+savoir si le rapport d'erreurs tourne.
 
 ### Ce qu'`assainir` retire
 
