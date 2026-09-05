@@ -477,6 +477,18 @@ abandonne. Comme `assainir` modifie l'événement **sur place**, un jet à mi-pa
 partir un événement à moitié nettoyé. Le callback l'enveloppe donc et **abandonne** ce qu'il ne
 sait pas assainir : la divergence qui compte entre les deux modules n'est pas dans les motifs,
 elle est dans le mode de panne.
+
+**Abandonner ne fait pas perdre le signal.** Le SDK compte l'événement écarté
+(`DiscardReason.beforeSend`) et attache le rapport à la prochaine enveloppe : l'incident apparaît
+dans les statistiques d'événements écartés de l'organisation. C'est ce qui permet de rendre `null`
+plutôt que de bricoler un « événement minimal » à partir d'une structure qu'on vient d'échouer à
+parcourir.
+
+> **`developer.log` n'écrit pas dans logcat** — son contrat est d'émettre vers la vue Logging de
+> DevTools. En release, sans service VM, l'appel ne fait rien (il ne lève pas). C'est un confort de
+> développement, pas un canal d'exploitation : les deux chemins qui ne s'appuient que sur lui — le
+> repli d'initialisation et l'abandon d'un événement — se voient au premier `just run`, et nulle
+> part ailleurs.
 | `assainir` | le `beforeSend` : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
 
 **Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier

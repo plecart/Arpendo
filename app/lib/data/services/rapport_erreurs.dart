@@ -25,7 +25,14 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-/// Le nom sous lequel ce module écrit au journal de la plateforme.
+/// Le nom sous lequel ce module écrit au journal de développement.
+///
+/// **`developer.log` n'écrit pas dans logcat**, contrairement à ce que
+/// « journal » laisse croire : son contrat est d'émettre vers la vue Logging
+/// de DevTools. En **release**, sans service VM attaché, personne n'écoute et
+/// l'appel ne fait rien — il ne lève pas pour autant. C'est donc un confort de
+/// développement, jamais un canal d'exploitation : aucun chemin de ce module ne
+/// doit compter dessus pour être vu en production.
 const String _journal = 'arpendo.sentry';
 
 /// Ce qui remplace un motif retiré.
@@ -149,9 +156,12 @@ Future<void> demarrerAvecRapport({
     // sans `API_BASE_URL` — et en production seulement, là où un DSN est posé.
     if (lance) rethrow;
     // Sentry, lui, a échoué avant d'avoir rien lancé : repli silencieux à
-    // l'écran et bruyant au journal. Il n'y a rien à proposer au joueur, et
-    // Sentry — précisément indisponible — ne peut pas rapporter sa propre
-    // panne.
+    // l'écran, tracé au journal de développement. Il n'y a rien à proposer au
+    // joueur, et Sentry — précisément indisponible — ne peut pas rapporter sa
+    // propre panne. C'est donc le seul chemin du module qui n'ait AUCUN canal
+    // en production : la trace se voit au premier `just run`, et nulle part
+    // ailleurs. Assumé — l'alternative serait un `print`, que
+    // `.claude/rules/contraintes.md` proscrit.
     developer.log(
       'Sentry non initialisé, l\'application démarre sans rapport d\'erreurs',
       name: _journal,
@@ -180,8 +190,10 @@ typedef CaptureIncident = void Function(Object erreur, StackTrace? trace);
 
 /// Écrit un incident de plateforme au journal, **et** le remonte à Sentry.
 ///
-/// Le journal de la plateforme reste : il est le seul canal lisible pendant
-/// un développement, où Sentry est désactivé. Sentry s'y ajoute pour les
+/// Le journal de développement reste : il est le seul canal lisible pendant
+/// un développement, où Sentry est désactivé. En release il ne porte rien
+/// (voir le nom de journal du module) — c'est Sentry qui prend le relais, et
+/// c'est pourquoi ce couple existe plutôt qu'un `developer.log` seul. Sentry s'y ajoute pour les
 /// incidents qu'aucun écran ne montre — une sonde réseau qui échoue
 /// silencieusement, une fiche de magasin qu'aucune activité n'ouvre — et qui
 /// resteraient donc invisibles depuis la production. C'est la promesse que
@@ -317,6 +329,20 @@ void configurerSentry(
 ///
 /// Abandonner un événement qu'on ne **sait pas** nettoyer n'est pas de
 /// l'échantillonnage : c'est le filet qui se ferme.
+///
+/// **Le rapport n'est pas perdu pour autant**, et c'est ce qui rend `null`
+/// acceptable plutôt que résigné : le SDK compte l'abandon
+/// (`recordLostEvent(DiscardReason.beforeSend, …)`) et l'attache à la
+/// prochaine enveloppe via `ClientReportTransport`. L'incident apparaît donc
+/// dans les statistiques d'événements écartés de l'organisation, sous le motif
+/// `before_send` — c'est-à-dire exactement l'observabilité qu'un « événement
+/// minimal » chercherait à récupérer, obtenue sans construire quoi que ce soit
+/// à partir d'une structure qu'on vient d'échouer à parcourir.
+///
+/// [assainir] modifiant l'événement **sur place**, celui qu'on abandonne a été
+/// partiellement nettoyé au passage. Sans conséquence — la mutation ne fait que
+/// retirer, elle est idempotente, et les objets partagés avec le `Scope` en
+/// sortent plus propres — mais il vaut mieux le lire ici que le découvrir.
 SentryEvent? _assainirOuAbandonner(SentryEvent evenement, Hint hint) {
   try {
     return assainir(evenement);
@@ -372,7 +398,7 @@ Future<void> _initialiserSentry(
 ///
 /// Ce que « arrête le démarrage » veut dire précisément, `main` étant `async` :
 /// une **erreur asynchrone non rattrapée**, donc un écran noir et une ligne au
-/// journal de la plateforme — et non un refus de lancement au sens du système.
+/// journal de développement — et non un refus de lancement au sens du système.
 /// Sentry n'est pas encore initialisé à ce moment, donc rien ne la capte non
 /// plus. C'est le comportement déjà en place pour `API_BASE_URL`, et la raison
 /// pour laquelle une valeur fautive se voit au **premier lancement**, jamais

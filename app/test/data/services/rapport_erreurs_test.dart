@@ -1,8 +1,32 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:arpendo/data/services/rapport_erreurs.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+
+/// Une carte qui lève une **`Exception`** — et non une `Error` — dès qu'on
+/// tente de la parcourir.
+///
+/// Le seul moyen de faire lever `assainir` autre chose qu'un débordement de
+/// pile : la traversée générique descend dans tout ce qui est une `Map`, sans
+/// savoir que celle-ci refuse d'être lue.
+class _CarteHostile extends MapBase<String, dynamic> {
+  @override
+  Iterable<String> get keys => throw const FormatException('carte hostile');
+
+  @override
+  dynamic operator [](Object? clef) => null;
+
+  @override
+  void operator []=(String clef, dynamic valeur) {}
+
+  @override
+  dynamic remove(Object? clef) => null;
+
+  @override
+  void clear() {}
+}
 
 void main() {
   group('assainir — le message', () {
@@ -445,6 +469,24 @@ void main() {
 
       // ignore: deprecated_member_use
       final verdict = options.beforeSend!(SentryEvent(extra: cycle), Hint());
+
+      expect(verdict, isNull);
+    });
+
+    test('abandonne aussi sur une Exception, pas seulement une Error', () {
+      // Le test précédent passe par un cycle, donc un `StackOverflowError` :
+      // il prouverait autant un `on Error` qu'un `on Object`. Or la **largeur**
+      // du `catch` est justement la seule chose que ce chemin ait à garantir —
+      // `assainir` ne peut lever que des `Error` aujourd'hui, mais rien
+      // n'oblige une règle future à en faire autant.
+      final options = SentryFlutterOptions();
+      configurerSentry(options, 'https://cle@sentry.test/1');
+
+      final verdict = options.beforeSend!(
+        // ignore: deprecated_member_use
+        SentryEvent(extra: {'hostile': _CarteHostile()}),
+        Hint(),
+      );
 
       expect(verdict, isNull);
     });
