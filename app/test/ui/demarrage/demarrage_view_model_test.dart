@@ -58,6 +58,9 @@ class _ConnectiviteRetardee implements ConnectivityService {
   }
 }
 
+/// Nombre d'ouvertures du magasin demandées par le modèle.
+late int ouverturesMagasin;
+
 DemarrageViewModel _modele({
   Object? versions,
   _ConnectivitePilotee? connectivite,
@@ -69,12 +72,15 @@ DemarrageViewModel _modele({
     ),
     connectivite: connectivite ?? _ConnectivitePilotee(),
     buildActuel: build,
+    ouvrirMagasin: () => ouverturesMagasin++,
   );
   addTearDown(vm.dispose);
   return vm;
 }
 
 void main() {
+  setUp(() => ouverturesMagasin = 0);
+
   test('build au niveau : Pret sans mise à jour recommandée', () async {
     final vm = _modele(
       versions: const Versions(minBuild: 3, recommendedBuild: 5),
@@ -132,6 +138,7 @@ void main() {
       versions: versions,
       connectivite: _ConnectivitePilotee(),
       buildActuel: 5,
+      ouvrirMagasin: () {},
     );
     addTearDown(vm.dispose);
     await vm.demarrer();
@@ -188,6 +195,7 @@ void main() {
       ),
       connectivite: _ConnectiviteRetardee(),
       buildActuel: 5,
+      ouvrirMagasin: () {},
     );
     addTearDown(vm.dispose);
 
@@ -204,6 +212,7 @@ void main() {
       ),
       connectivite: connectivite,
       buildActuel: 5,
+      ouvrirMagasin: () {},
     );
     await vm.demarrer();
     expect(connectivite.controleur.hasListener, isTrue);
@@ -211,5 +220,73 @@ void main() {
     vm.dispose();
 
     expect(connectivite.controleur.hasListener, isFalse);
+  });
+
+  group('bandeau 12 — mise à jour recommandée', () {
+    const sousLeRecommande = Versions(minBuild: 1, recommendedBuild: 9);
+
+    test('build sous le recommandé : le bandeau 12 est proposé', () async {
+      final vm = _modele(versions: sousLeRecommande);
+
+      await vm.demarrer();
+
+      expect(vm.entreeBandeau?.priorite, 12);
+    });
+
+    test('le bandeau 12 porte son geste sur son message', () async {
+      // Aucun bouton : ni « Mettre à jour », qui répétait le message, ni
+      // « Fermer », repoussé après le MVP (cadrage §20).
+      final vm = _modele(versions: sousLeRecommande);
+
+      await vm.demarrer();
+
+      expect(vm.entreeBandeau!.actions, isEmpty);
+      expect(vm.entreeBandeau!.onTexteTape, isNotNull);
+    });
+
+    test('un échec après une lecture réussie efface la proposition', () async {
+      // Sinon une recommandation lue avant un « Réessayer » raté continuerait
+      // de piloter le bandeau 12 par-dessus l'écran de panne — deux messages
+      // dont l'un est la cause de l'autre (§2.4).
+      final versions = _VersionsFigees(sousLeRecommande);
+      final vm = DemarrageViewModel(
+        versions: versions,
+        connectivite: _ConnectivitePilotee(),
+        buildActuel: 5,
+        ouvrirMagasin: () {},
+      );
+      addTearDown(vm.dispose);
+      await vm.demarrer();
+      expect(vm.entreeBandeau?.priorite, 12);
+
+      versions.reponse = const ServeurInjoignable();
+      await vm.reessayer();
+
+      expect(vm.etat, const Injoignable());
+      expect(vm.entreeBandeau, isNull);
+    });
+
+    test('hors ligne, la ligne 5 masque la 12', () async {
+      // Règle d'unicité du §2.4 : la plus prioritaire gagne, et le rang le
+      // plus bas est le plus prioritaire. Sans réseau, proposer une mise à
+      // jour qu'on ne peut pas télécharger serait une impasse.
+      final vm = _modele(
+        versions: sousLeRecommande,
+        connectivite: _ConnectivitePilotee(initial: false),
+      );
+
+      await vm.demarrer();
+
+      expect(vm.entreeBandeau?.priorite, 5);
+    });
+
+    test('taper le message ouvre la fiche du magasin', () async {
+      final vm = _modele(versions: sousLeRecommande);
+      await vm.demarrer();
+
+      vm.entreeBandeau!.onTexteTape!();
+
+      expect(ouverturesMagasin, 1);
+    });
   });
 }

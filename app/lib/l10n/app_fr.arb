@@ -28,16 +28,21 @@
 
   "bandeauMiseAJourDisponible": "Une nouvelle version est disponible.",
   "@bandeauMiseAJourDisponible": {
-    "description": "Bandeau, priorité 12 de la table UX §2.4 : version recommandée non atteinte et non fermée pour cette version (UX §11.2)."
+    "description": "Bandeau, priorité 12 de la table UX §2.4 : version recommandée non atteinte (UX §11.2). Le bandeau n'est pas fermable — la fermeture est repoussée après le MVP, cadrage §20."
   },
 
-  "bandeauActionMettreAJour": "Mettre à jour",
-  "@bandeauActionMettreAJour": {
-    "description": "Bandeau, action de la priorité 12 (UX §2.4) : ouvre la fiche Play Store."
+  "miseAJourTitre": "Mise à jour nécessaire",
+  "@miseAJourTitre": {
+    "description": "Cité — spec UX §11.2, ne pas modifier. Titre de l'écran bloquant de version minimale. Préfixe `miseAJour*` et non `bandeau*` : ce dernier est réservé au composant Bandeau."
   },
 
-  "bandeauActionFermer": "Fermer",
-  "@bandeauActionFermer": {
-    "description": "Bandeau, action de la priorité 12 (UX §2.4) : masque le bandeau jusqu'à la version suivante (UX §11.2)."
+  "miseAJourCorps": "Cette version d'Arpendo n'est plus compatible avec le serveur. Installe la dernière version pour continuer à jouer.",
+  "@miseAJourCorps": {
+    "description": "Cité — spec UX §11.2, ne pas modifier. Corps de l'écran bloquant : dit la cause et le geste, sans jargon de version."
+  },
+
+  "miseAJourAction": "Mettre à jour",
+  "@miseAJourAction": {
+    "description": "Cité — spec UX §11.2, ne pas modifier. Action unique de l'écran bloquant : ouvre la fiche du magasin. Seule clé de ce libellé : le bandeau 12 n'a plus de bouton, son message porte le lien."
   }
 }

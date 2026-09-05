@@ -4,7 +4,7 @@ import '../../domain/bandeau/entree_bandeau.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../core/bandeau/emplacement_bandeau.dart';
 import '../core/boutons/bouton_pleine_largeur.dart';
-import '../core/marque/bloc_de_marque.dart';
+import '../core/marque/marque_centree.dart';
 import '../core/mise_en_page/pile_de_calques.dart';
 import '../core/theme/mesures.dart';
 import '../core/theme/typographie.dart';
@@ -20,11 +20,14 @@ import 'etat_demarrage.dart';
 /// Selon [etat], paraît **sous** le bloc, sans jamais le déplacer :
 /// - [Injoignable] — « Le serveur ne répond pas. » et « Réessayer », jamais
 ///   le Menu ;
-/// - [Verification], [Pret] et [MiseAJourRequise] — rien (l'écran bloquant
-///   de [MiseAJourRequise] est livré par le lot 2c de #46).
+/// - [Verification] et [Pret] — rien.
 ///
-/// Le bandeau (§2.4) occupe son calque : la ligne 5 quand le téléphone est
-/// hors ligne — c'est le [DemarrageViewModel] qui décide, l'écran affiche.
+/// [MiseAJourRequise] ne passe **pas** par cet écran : la racine y substitue
+/// l'écran bloquant du §11.2, qui remplace tout, bandeau compris.
+///
+/// Le bandeau (§2.4) occupe son calque — la ligne 5 hors ligne, la 12 quand
+/// une mise à jour est recommandée. C'est le [DemarrageViewModel] qui décide
+/// laquelle ; l'écran affiche ce qu'on lui donne.
 class EcranAttente extends StatelessWidget {
   /// Crée l'écran pour [etat], avec l'éventuelle ligne de bandeau active.
   const EcranAttente({
@@ -58,26 +61,18 @@ class EcranAttente extends StatelessWidget {
             child: SizedBox.expand(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Espacements.x4),
-                // Deux plans indépendants, et c'est ce qui tient l'invariant
-                // du §2.1 : le bloc est centré seul, le bouton est ancré en
-                // bas. Ni l'un ni l'autre ne peut donc déplacer le bloc.
-                child: Stack(
-                  children: [
-                    Center(child: _blocEtZoneEtat(context, textes)),
-                    if (etat is Injoignable)
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: Espacements.x6,
-                          ),
-                          child: BoutonPleineLargeur(
-                            libelle: textes.attenteActionReessayer,
-                            onPressed: onReessayer,
-                          ),
-                        ),
-                      ),
-                  ],
+                // `MarqueCentree` tient l'invariant du §2.1 : elle réserve
+                // la bande basse **même en `Pret`**, où aucun bouton ne la
+                // remplit. C'est cette réservation constante qui empêche le
+                // bloc de bouger quand « Réessayer » paraît ou disparaît.
+                child: MarqueCentree(
+                  sous: _zoneEtat(context, textes),
+                  bandeBasse: etat is Injoignable
+                      ? BoutonPleineLargeur(
+                          libelle: textes.attenteActionReessayer,
+                          onPressed: onReessayer,
+                        )
+                      : null,
                 ),
               ),
             ),
@@ -85,31 +80,6 @@ class EcranAttente extends StatelessWidget {
           Calque.bandeau: EmplacementBandeau(entree: entreeBandeau),
         },
       ),
-    );
-  }
-
-  /// Le bloc de marque, et sous lui la zone d'état — qui est **peinte sans
-  /// compter dans la hauteur** du groupe.
-  ///
-  /// C'est `heightFactor: 0` qui tient l'invariant : la colonne mesure le
-  /// seul bloc, donc le [Center] le centre et il **reste immobile** quel que
-  /// soit ce qui s'affiche dessous. Compter la zone d'état dans la hauteur,
-  /// comme le faisait la version précédente, faisait remonter le bloc de la
-  /// moitié de ce qui paraissait — 52 dp mesurés entre attente et échec.
-  Widget _blocEtZoneEtat(BuildContext context, AppLocalizations textes) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const BlocDeMarque(),
-        Align(
-          alignment: Alignment.topCenter,
-          heightFactor: 0,
-          child: Padding(
-            padding: const EdgeInsets.only(top: Espacements.x6),
-            child: _zoneEtat(context, textes),
-          ),
-        ),
-      ],
     );
   }
 

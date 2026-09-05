@@ -6,24 +6,58 @@ import 'package:provider/provider.dart';
 
 import 'data/services/api_client.dart';
 import 'data/services/connectivity_service.dart';
+import 'data/services/magasin_service.dart';
+import 'data/services/rapport_erreurs.dart';
 import 'data/services/version_client.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'ui/core/theme/theme.dart';
 import 'ui/demarrage/demarrage_view_model.dart';
 import 'ui/demarrage/ecran_attente.dart';
+import 'ui/demarrage/ecran_mise_a_jour.dart';
 import 'ui/demarrage/etat_demarrage.dart';
 
-/// Construit les services et lance l'application — racine de composition.
+/// Met le rapport d'erreurs en place, puis construit et lance l'application.
 ///
-/// C'est le **seul** endroit qui lise l'environnement de compilation et
-/// instancie les services partagés ; tout le reste les reçoit. `API_BASE_URL`
-/// est injectée par `--dart-define` depuis le `.env` de la racine — recettes
-/// `just run` et `just build` — et son absence arrête net, avant tout widget :
-/// une url par défaut en dur masquerait une configuration cassée.
+/// Ce fichier est le **seul** à lire l'environnement de compilation.
+/// `API_BASE_URL`, `SENTRY_DSN` et `SENTRY_SAMPLE_RATE` sont injectées par
+/// `--dart-define` depuis le `.env` de la racine — recettes `just run` et
+/// `just build` —, et leur absence ne veut pas dire la même chose : sans url
+/// d'api on s'arrête net, car une valeur par défaut en dur masquerait une
+/// configuration cassée ; sans DSN on démarre normalement, Sentry simplement
+/// désactivé ; sans taux d'envoi on envoie tout, l'échantillonnage bornant un
+/// coût sans jamais éteindre la collecte (cadrage §16).
+///
+/// Un taux **présent mais inutilisable** s'arrête en revanche ici, comme une
+/// url d'api manquante : ces trois valeurs sont figées à la compilation, donc
+/// une valeur fautive est un build cassé, vu au premier lancement. La refuser
+/// plus tard — dans la closure de configuration du SDK — désactiverait
+/// l'assainissement en silence.
+///
+/// Tout le reste du démarrage vit dans [_construireEtLancer], que
+/// [demarrerAvecRapport] exécute — sous la zone de capture du SDK quand un DSN
+/// est fourni. Rien qui puisse échouer ne se produit donc avant que le filet
+/// soit tendu.
 Future<void> main() async {
-  // `PackageInfo.fromPlatform` parle à la plateforme avant `runApp`.
+  // Avant tout le reste : le SDK Sentry parle au canal natif dès son
+  // initialisation, et `PackageInfo.fromPlatform` en fait autant plus loin.
   WidgetsFlutterBinding.ensureInitialized();
+  await demarrerAvecRapport(
+    dsn: const String.fromEnvironment('SENTRY_DSN'),
+    tauxEnvoi: tauxEnvoiValide(
+      const String.fromEnvironment('SENTRY_SAMPLE_RATE'),
+    ),
+    lancer: _construireEtLancer,
+  );
+}
+
+/// Construit les services partagés et monte l'application.
+///
+/// Tout le reste les reçoit : c'est ici, et nulle part ailleurs, qu'ils sont
+/// instanciés.
+Future<void> _construireEtLancer() async {
   const baseUrl = String.fromEnvironment('API_BASE_URL');
+  // La seule attente de cette construction : `PackageInfo` parle à la
+  // plateforme, et son résultat est requis avant `runApp`.
   final info = await PackageInfo.fromPlatform();
   final connectivite = ConnectivityService();
   runApp(
@@ -37,6 +71,9 @@ Future<void> main() async {
       ),
       connectivite: connectivite,
       buildActuel: numeroDeBuildValide(info.buildNumber),
+      // L'identifiant vient de la plateforme, jamais d'une constante : c'est
+      // l'application réellement installée dont il faut ouvrir la fiche.
+      magasin: MagasinService(identifiantApplication: info.packageName),
     ),
   );
 }
@@ -47,7 +84,7 @@ Future<void> main() async {
 /// entier ; sur iOS (phase 2), il peut valoir la **version** (`1.2.3`) quand
 /// aucun build n'est déclaré. Une frontière de plateforme se valide comme
 /// `API_BASE_URL` : échouer ici donne un message, échouer dans `int.parse`
-/// donnait un écran noir avant `runApp`.
+/// figeait l'application sur l'écran de démarrage d'Android.
 int numeroDeBuildValide(String brut) {
   final numero = int.tryParse(brut);
   if (numero == null) {
@@ -92,6 +129,7 @@ class ArpendoApp extends StatelessWidget {
     required this.client,
     required this.connectivite,
     required this.buildActuel,
+    required this.magasin,
     super.key,
   });
 
@@ -104,6 +142,10 @@ class ArpendoApp extends StatelessWidget {
 
   /// Le numéro de build installé, comparé aux seuils de `/version`.
   final int buildActuel;
+
+  /// L'accès à la fiche du magasin, partagé par l'écran bloquant et la ligne
+  /// 12 : un seul chemin vers le magasin, une seule paire de liens à tenir.
+  final MagasinService magasin;
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +161,7 @@ class ArpendoApp extends StatelessWidget {
               versions: VersionClient(contexte.read<ApiClient>()),
               connectivite: connectivite,
               buildActuel: buildActuel,
+              ouvrirMagasin: magasin.ouvrirFiche,
             );
             unawaited(modele.demarrer());
             return modele;
@@ -140,13 +183,15 @@ class ArpendoApp extends StatelessWidget {
         themeMode: ThemeMode.system,
         home: Consumer<DemarrageViewModel>(
           builder: (_, modele, _) => switch (modele.etat) {
-            // L'écran bloquant (calque z 500) est livré par le lot 2c de
-            // #46 ; d'ici là l'attente neutre reste affichée — jamais un
-            // Menu mensonger (§2.1).
-            MiseAJourRequise() ||
-            Verification() ||
-            Injoignable() ||
-            Pret() => EcranAttente(
+            // Le seul écran dont on ne sort pas (§11.2) : il remplace tout,
+            // bandeau compris — un client qui ne parle plus à l'api n'a rien
+            // d'utile à dire de son réseau.
+            MiseAJourRequise() => EcranMiseAJour(
+              onMettreAJour: magasin.ouvrirFiche,
+            ),
+            // Jamais un Menu mensonger (§2.1) : l'attente neutre tient les
+            // trois autres états, et le bandeau vit sur son calque.
+            Verification() || Injoignable() || Pret() => EcranAttente(
               etat: modele.etat,
               entreeBandeau: modele.entreeBandeau,
               onReessayer: modele.reessayer,

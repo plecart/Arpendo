@@ -65,11 +65,19 @@ class EntreeBandeau {
     required this.severite,
     required this.texte,
     this.actions = const [],
+    this.onTexteTape,
     this.bloquant = false,
   }) : assert(
          actions.length <= 2,
          "L'anatomie du bandeau (spec UX §2.4) admet zéro à deux boutons "
          'texte, pas davantage.',
+       ),
+       assert(
+         // `length == 0` et non `isEmpty` : dans l'initialiseur d'un
+         // constructeur `const`, seul le premier est une expression constante.
+         onTexteTape == null || actions.length == 0,
+         "Une entrée dont le message porte l'action n'a pas de bouton : les "
+         'deux offriraient le même geste deux fois (spec UX §2.4).',
        );
 
   /// Le rang de la ligne dans la table du §2.4 — **le plus bas gagne**.
@@ -104,6 +112,20 @@ class EntreeBandeau {
 
   /// Les boutons texte, de zéro à deux, dans leur ordre d'affichage.
   final List<ActionBandeau> actions;
+
+  /// Ce que déclenche un appui **sur le message lui-même**, ou `null`.
+  ///
+  /// Troisième forme d'action du §2.4, à côté des boutons : quand une entrée
+  /// n'offre qu'un seul geste et que ce geste **est** ce que le message
+  /// annonce, un bouton le répéterait. Le message devient alors le lien — en
+  /// graisse 500, sans changer de couleur, puisque le §1.5 interdit de porter
+  /// une information par la couleur seule.
+  ///
+  /// **Exclusif de [actions]**, un `assert` le refuse : offrir le même geste
+  /// deux fois n'aide personne et double la cible tactile à tenir. La cible
+  /// des 48 dp du §1.4 est le **bandeau entier**, pas la ligne de texte —
+  /// c'est ce qui permet à cette forme de ne rien coûter en hauteur.
+  final void Function()? onTexteTape;
 
   /// Vrai si l'affichage de cette entrée masque la carte et coupe le jeu.
   ///

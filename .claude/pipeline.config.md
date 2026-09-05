@@ -10,7 +10,7 @@ Ordre de normativité : **en cas de contradiction, le rang le plus haut l'emport
 
 | Rang | Fichier | Portée | Où s'inscrit un amendement |
 |---|---|---|---|
-| 1 | `documents/reference/01-cadrage.md` | produit, règles du jeu, étude technique, exploitation — **toutes sections closes** | le § concerné, **plus** une ligne dans le journal des changements (§18) |
+| 1 | `documents/reference/01-cadrage.md` | produit, règles du jeu, étude technique, exploitation — **toutes sections closes** | le § concerné, **plus** une ligne dans le journal des changements (§18) — le §18 consigne les décisions **remplacées** : un § *ajouté* s'en passe, il est visible par lui-même |
 | 2 | `documents/reference/02-specification-ux.md` | l'interface des décisions du cadrage ; n'en rouvre aucune | le § concerné seul — le document **ne porte que l'état courant**, jamais d'historique |
 | 3 | `documents/reference/03-identite-visuelle.md` | direction « Relevé », close. Ses valeurs sont **intégrées** dans la spec UX §1.2, §1.5, §1.6, §3.4.1, §4 | le § concerné **et** son § miroir dans la spec UX — sinon les deux divergent |
 | 4 | `documents/reference/04-chiffrage.md` | coûts d'hébergement et scénarios de montée en charge | le § concerné |
@@ -93,7 +93,10 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
   réelles ; à réintroduire au premier déploiement
 - hors périmètre : monétisation · analytics produit · iOS (phase 2) · modale « Mes hexagones »
   (post-MVP, cadrage §7.6) · animations de squelette via couches Three.js custom (cadrage §13.1) ·
-  exclusion géographique de zones (cadrage §16)
+  exclusion géographique de zones (cadrage §16) · animation du logo pendant le chargement et
+  animation de transition entre les écrans (**cadrage §20**, registre des reports)
+- **`triage` lit le cadrage §20 avant de créer une issue** : un sujet qui y figure est un report
+  décidé, pas un manque à ticketer
 - surfaces exposées — ce que la QA a le droit de vérifier ; ne lister que ce qui existe :
   API HTTP REST + SSE · persistance PostgreSQL · cache et pub/sub Valkey · traitements
   asynchrones (conteneur `worker`) · application mobile Android · comptes utilisateurs /

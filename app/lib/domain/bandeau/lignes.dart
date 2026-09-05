@@ -39,26 +39,23 @@ EntreeBandeau ligneReseauAbsent() => EntreeBandeau(
 
 /// Ligne 12 — une version plus récente est recommandée (§2.4, §11.2).
 ///
-/// [onMettreAJour] ouvre la fiche du magasin, [onFermer] masque le bandeau
-/// jusqu'à la version suivante. Les deux sont fournis par l'appelant : la
-/// condition de cette ligne — « recommandée non atteinte et non fermée pour
-/// cette version » — et la persistance de la fermeture appartiennent à la
-/// séquence de démarrage, pas à la table des lignes.
+/// **Aucun bouton : le message est lui-même le lien.** « Une nouvelle version
+/// est disponible. » et « Mettre à jour » disaient la même chose deux fois ;
+/// le §2.4 admet donc qu'une entrée porte son geste sur son texte, en graisse
+/// 500 et sans changer de couleur.
+///
+/// [onMettreAJour] ouvre la fiche du magasin ; il est fourni par l'appelant,
+/// parce que la condition de cette ligne — « recommandée non atteinte » —
+/// appartient à la séquence de démarrage, pas à la table des lignes.
+///
+/// Le bandeau **n'est pas fermable** : la fermeture, et la persistance qu'elle
+/// suppose, sont repoussées après le MVP (cadrage §20). Tant qu'elles n'y
+/// sont pas, la ligne reste visible tant que la recommandation vaut.
 EntreeBandeau ligneMiseAJourRecommandee({
   required void Function() onMettreAJour,
-  required void Function() onFermer,
 }) => EntreeBandeau(
   priorite: 12,
   severite: Severite.info,
   texte: (l10n) => l10n.bandeauMiseAJourDisponible,
-  actions: [
-    ActionBandeau(
-      libelle: (l10n) => l10n.bandeauActionMettreAJour,
-      onPressed: onMettreAJour,
-    ),
-    ActionBandeau(
-      libelle: (l10n) => l10n.bandeauActionFermer,
-      onPressed: onFermer,
-    ),
-  ],
+  onTexteTape: onMettreAJour,
 );

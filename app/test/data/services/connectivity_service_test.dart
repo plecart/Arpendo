@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:arpendo/data/services/connectivity_service.dart';
+import 'package:arpendo/data/services/rapport_erreurs.dart';
 import 'package:connectivity_plus_platform_interface/connectivity_plus_platform_interface.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,11 +36,12 @@ Future<List<ConnectivityResult>> _jamaisSondee() =>
 ConnectivityService _service(
   Future<List<ConnectivityResult>> Function() sonde, {
   Stream<List<ConnectivityResult>> evenements = const Stream.empty(),
+  Signalement? signaler,
 }) {
   final precedente = ConnectivityPlatform.instance;
   ConnectivityPlatform.instance = _PlateformeFeinte(sonde, evenements);
   addTearDown(() => ConnectivityPlatform.instance = precedente);
-  return ConnectivityService();
+  return ConnectivityService(signaler: signaler);
 }
 
 /// Un flux qui rejoue [evenements] : une liste d'interfaces s'émet, tout autre
@@ -55,6 +57,20 @@ Stream<List<ConnectivityResult>> _flux(Iterable<Object> evenements) {
   }
   controleur.close();
   return controleur.stream;
+}
+
+/// Les incidents de plateforme signalés pendant un test.
+class _SignalementsFeints {
+  final incidents = <Object>[];
+
+  void call(
+    String message, {
+    required String source,
+    Object? erreur,
+    StackTrace? trace,
+  }) {
+    if (erreur != null) incidents.add(erreur);
+  }
 }
 
 void main() {
@@ -185,5 +201,41 @@ void main() {
       service.enLigne(),
       emitsInOrder([emitsError(isFormatException), emitsDone]),
     );
+  });
+
+  group('signalement des incidents de plateforme', () {
+    test('une sonde en incident laisse une trace', () async {
+      final signalements = _SignalementsFeints();
+      final panne = PlatformException(code: 'canal');
+
+      await _service(() => throw panne, signaler: signalements.call).isOnline();
+
+      // Le §10.3 fait répondre « en ligne » sur un incident : sans cette
+      // trace, l'incident serait indiscernable d'un réseau qui marche.
+      expect(signalements.incidents, [panne]);
+    });
+
+    test('un plugin absent de la build laisse une trace', () async {
+      final signalements = _SignalementsFeints();
+      final panne = MissingPluginException('connectivity_plus');
+
+      await _service(() => throw panne, signaler: signalements.call).isOnline();
+
+      expect(signalements.incidents, [panne]);
+    });
+
+    test('un incident sur le flux laisse une trace', () async {
+      final signalements = _SignalementsFeints();
+      final panne = PlatformException(code: 'canal');
+      final service = _service(
+        _jamaisSondee,
+        evenements: _flux([panne]),
+        signaler: signalements.call,
+      );
+
+      await service.enLigne().first;
+
+      expect(signalements.incidents, [panne]);
+    });
   });
 }

@@ -4,6 +4,7 @@ import 'package:arpendo/ui/core/bandeau/bandeau.dart';
 import 'package:arpendo/ui/core/theme/icones.dart';
 import 'package:arpendo/ui/core/theme/mesures.dart';
 import 'package:arpendo/ui/core/theme/theme.dart';
+import 'package:arpendo/ui/core/theme/typographie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,13 +20,17 @@ EntreeBandeau _entree({
   Severite severite = Severite.info,
   String texte = 'Court.',
   int actions = 0,
+  String? libelle,
 }) => EntreeBandeau(
   priorite: 1,
   severite: severite,
   texte: (_) => texte,
   actions: List.generate(
     actions,
-    (rang) => ActionBandeau(libelle: (_) => 'Action $rang', onPressed: () {}),
+    (rang) => ActionBandeau(
+      libelle: (_) => libelle ?? 'Action $rang',
+      onPressed: () {},
+    ),
   ),
 );
 
@@ -199,17 +204,117 @@ void main() {
     expect(_hauteur(tester), 80);
   });
 
-  testWidgets('les actions descendent sur une seconde rangée', (tester) async {
+  group('message tapable (§2.4)', () {
+    EntreeBandeau lien(void Function() onTape) => EntreeBandeau(
+      priorite: 1,
+      severite: Severite.info,
+      texte: (_) => 'Court.',
+      onTexteTape: onTape,
+    );
+
+    testWidgets('taper le bandeau déclenche le geste du message', (
+      tester,
+    ) async {
+      var tapes = 0;
+      await _monter(tester, lien(() => tapes++));
+
+      // La cible est le **bandeau entier** (56 dp), pas la ligne de texte
+      // (24 dp) : c'est ce qui satisfait les 48 dp du §1.4 sans hauteur en
+      // plus. Le tap porte donc n'importe où sur la surface.
+      await tester.tap(find.byType(Bandeau));
+      await tester.pumpAndSettle();
+
+      expect(tapes, 1);
+    });
+
+    testWidgets('le message tapable est en graisse 500, sans virer de couleur', (
+      tester,
+    ) async {
+      await _monter(tester, lien(() {}));
+      final contexte = tester.element(find.byType(Bandeau));
+
+      final style = tester.widget<Text>(find.text('Court.')).style!;
+
+      expect(style.fontWeight, FontWeight.w500);
+      expect(
+        style.color,
+        Theme.of(contexte).colorScheme.onSurface,
+        reason:
+            'le §1.5 interdit de porter une information par la couleur seule ; '
+            'la graisse est le signal, le lien ne vire pas à l\'accent',
+      );
+    });
+
+    testWidgets('un message sans geste garde la graisse du corps', (
+      tester,
+    ) async {
+      await _monter(tester, _entree());
+
+      expect(
+        tester.widget<Text>(find.text('Court.')).style!.fontWeight,
+        // Comparée au **jeton**, pas à une constante recopiée : c'est le §1.2
+        // qui fixe la graisse du corps, et le test doit suivre s'il change.
+        Typographie.body.fontWeight,
+        reason: 'sinon toutes les lignes auraient l\'air cliquables',
+      );
+    });
+
+    testWidgets('la cible tactile atteint les 48 dp du §1.4', (tester) async {
+      await _monter(tester, lien(() {}));
+
+      expect(
+        tester.getSize(find.byType(Bandeau)).height,
+        greaterThanOrEqualTo(CiblesTactiles.min),
+      );
+    });
+  });
+
+  testWidgets('une action unique partage la rangée du message', (tester) async {
     await _monter(tester, _entree(actions: 1));
 
-    expect(tester.getSize(find.byType(TextButton)).height, CiblesTactiles.min);
+    // Sur la même rangée : le bouton commence avant que l'icône ne finisse.
+    expect(
+      tester.getTopLeft(find.byType(TextButton)).dy,
+      lessThan(tester.getBottomLeft(find.byType(Icon)).dy),
+    );
+    // La cible tactile du §1.4 est un **plancher**, pas une égalité : le
+    // bouton grandit quand son libellé se replie, ce qui est précisément ce
+    // qui lui permet de tenir sans déborder (§0).
+    expect(
+      tester.getSize(find.byType(TextButton)).height,
+      greaterThanOrEqualTo(CiblesTactiles.min),
+    );
+  });
+
+  testWidgets('l\'action partagée ne déborde jamais de la rangée', (
+    tester,
+  ) async {
+    // Le cas qui a fait rougir le garde `fr-XA` : un libellé long ne peut pas
+    // pousser le bandeau hors de l'écran. Mesuré ici sur un libellé
+    // volontairement démesuré, pour que le garde tienne sans dépendre de la
+    // locale allongée.
+    await _monter(
+      tester,
+      _entree(actions: 1, libelle: 'Un libellé d\'action anormalement long'),
+    );
+
+    expect(
+      tester.getBottomRight(find.byType(TextButton)).dx,
+      lessThanOrEqualTo(tester.getSize(find.byType(Bandeau)).width),
+    );
+  });
+
+  testWidgets('deux actions descendent sur une seconde rangée', (tester) async {
+    await _monter(tester, _entree(actions: 2));
+
     // 16 + 24 (une ligne) + 8 (écart) + 48 (cible tactile) + 16.
     expect(_hauteur(tester), 112);
     // La seconde rangée existe pour que le message garde toute la largeur :
-    // sur l'écran de référence, deux libellés longs et un message ne tiennent
-    // pas côte à côte, et le garde `fr-XA` les allonge encore de 30 %.
+    // sur l'écran de référence, **deux** libellés longs et un message ne
+    // tiennent pas côte à côte, et le garde `fr-XA` les allonge de 30 %. Un
+    // libellé seul, lui, y tient — d'où la règle à deux cas.
     expect(
-      tester.getTopLeft(find.byType(TextButton)).dy,
+      tester.getTopLeft(find.byType(TextButton).first).dy,
       greaterThan(tester.getBottomLeft(find.byType(Icon)).dy),
     );
   });

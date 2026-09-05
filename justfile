@@ -137,13 +137,23 @@ fmt-check-app:
 # Lance l'app sur l'émulateur ou l'appareil branché, configurée depuis le `.env` de la racine
 # (chargé par `set dotenv-load`). `env_var` échoue avec un message clair si la variable manque —
 # le pendant, côté recette, du refus de démarrer de l'app.
+#
+# Les deux réglages Sentry prennent `env` et son défaut vide, PAS `env_var` : absente et vide y
+# veulent dire la même chose — Sentry désactivé pour le DSN, tout envoyer pour le taux —, là où
+# `API_BASE_URL` manquante est un trou qui doit faire échouer la recette. Côté api, `Settings`
+# exige au contraire `SENTRY_SAMPLE_RATE` : la dissymétrie est voulue et documentée dans
+# `.env.example`, l'application ne pouvant pas refuser de démarrer pour un garde-fou de coût.
+#
+# Toutes les valeurs sont entre guillemets : elles viennent d'un `.env` que personne ne valide, et
+# une valeur portant une espace se découperait sinon en deux arguments — le SDK recevrait un
+# réglage tronqué au lieu d'échouer lisiblement.
 [working-directory('app')]
 run:
-    "{{flutter}}" run --dart-define=API_BASE_URL={{env_var("API_BASE_URL")}}
+    "{{flutter}}" run --dart-define=API_BASE_URL="{{env_var("API_BASE_URL")}}" --dart-define=SENTRY_DSN="{{env("SENTRY_DSN", "")}}" --dart-define=SENTRY_SAMPLE_RATE="{{env("SENTRY_SAMPLE_RATE", "")}}"
 
 [working-directory('app')]
 build:
-    "{{flutter}}" build appbundle --dart-define=API_BASE_URL={{env_var("API_BASE_URL")}}
+    "{{flutter}}" build appbundle --dart-define=API_BASE_URL="{{env_var("API_BASE_URL")}}" --dart-define=SENTRY_DSN="{{env("SENTRY_DSN", "")}}" --dart-define=SENTRY_SAMPLE_RATE="{{env("SENTRY_SAMPLE_RATE", "")}}"
 
 # ─── infra/ ────────────────────────────────────────────────────────────────────
 
