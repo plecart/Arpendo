@@ -25,6 +25,8 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+// ─── Ce que les trois volets partagent ─────────────────────────────────────────
+
 /// Le nom sous lequel ce module écrit au journal de développement.
 ///
 /// **`developer.log` n'écrit pas dans logcat**, contrairement à ce que
@@ -73,6 +75,8 @@ const double _degreMaximal = 180.0;
 /// plus personne, et le seuil évite d'emporter les nombres ronds que le code
 /// produit partout — un `1.0`, un `0.25`.
 const int _decimalesMinimales = 4;
+
+// ─── Démarrage : quand on initialise, et ce qu'on pose ─────────────────────────
 
 /// Ce qui met Sentry en place autour du lancement de l'application.
 ///
@@ -171,63 +175,6 @@ Future<void> demarrerAvecRapport({
     );
   }
   await lancerUneFois();
-}
-
-/// La signature par laquelle un service signale un incident de plateforme.
-///
-/// Les services de la couche Data la reçoivent en paramètre, avec
-/// [signalerIncident] pour défaut : c'est ce qui leur évite d'importer
-/// `sentry_flutter` — un seul fichier le fait — et ce qui rend leur
-/// signalement observable en test.
-typedef Signalement = void Function(
-  String message, {
-  required String source,
-  Object? erreur,
-  StackTrace? trace,
-});
-
-/// Ce qui remonte une erreur à Sentry — remplaçable en test.
-typedef CaptureIncident = void Function(Object erreur, StackTrace? trace);
-
-/// Écrit un incident de plateforme au journal, **et** le remonte à Sentry.
-///
-/// Le journal de développement reste : il est le seul canal lisible pendant
-/// un développement, où Sentry est désactivé. En release il ne porte rien
-/// (voir le nom de journal du module) — c'est Sentry qui prend le relais, et
-/// c'est pourquoi ce couple existe plutôt qu'un `developer.log` seul. Sentry s'y ajoute pour les
-/// incidents qu'aucun écran ne montre — une sonde réseau qui échoue
-/// silencieusement, une fiche de magasin qu'aucune activité n'ouvre — et qui
-/// resteraient donc invisibles depuis la production. C'est la promesse que
-/// portaient les documentations de `ConnectivityService` et de
-/// `MagasinService`.
-///
-/// **Sans Sentry initialisé, l'appel ne coûte rien et ne lève pas** : le hub
-/// et la file de tâches du SDK valent `NoOpHub` et `NoOpTaskQueue` tant
-/// qu'aucun `init` n'a eu lieu (lu dans `Sentry`, sentry 9.29.0). Aucun
-/// appelant n'a donc à savoir si le rapport d'erreurs tourne.
-///
-/// Args:
-///   message: ce qui s'est passé, en une phrase — écrit au journal.
-///   source: le nom de journal de l'appelant (`arpendo.magasin`…).
-///   erreur: l'exception d'origine, s'il y en a une. **C'est elle seule qui
-///     part à Sentry** : un message sans exception est une note d'exécution,
-///     pas un incident à instruire.
-///   trace: la pile de l'erreur, quand l'appelant l'a.
-///   capturer: la remontée à Sentry. Le défaut est la vraie.
-void signalerIncident(
-  String message, {
-  required String source,
-  Object? erreur,
-  StackTrace? trace,
-  CaptureIncident capturer = _capturerParSentry,
-}) {
-  developer.log(message, name: source, error: erreur, stackTrace: trace);
-  if (erreur != null) capturer(erreur, trace);
-}
-
-/// La remontée réelle : elle part en fond, l'appelant n'a rien à en attendre.
-void _capturerParSentry(Object erreur, StackTrace? trace) {
-  unawaited(Sentry.captureException(erreur, stackTrace: trace));
 }
 
 /// Pose les réglages du SDK — **et rien d'autre**, pour être éprouvable.
@@ -427,6 +374,67 @@ double? tauxEnvoiValide(String brut) {
   }
   return taux;
 }
+
+// ─── Signalement des incidents qu'aucun écran ne montre ────────────────────────
+
+/// La signature par laquelle un service signale un incident de plateforme.
+///
+/// Les services de la couche Data la reçoivent en paramètre, avec
+/// [signalerIncident] pour défaut : c'est ce qui leur évite d'importer
+/// `sentry_flutter` — un seul fichier le fait — et ce qui rend leur
+/// signalement observable en test.
+typedef Signalement = void Function(
+  String message, {
+  required String source,
+  Object? erreur,
+  StackTrace? trace,
+});
+
+/// Ce qui remonte une erreur à Sentry — remplaçable en test.
+typedef CaptureIncident = void Function(Object erreur, StackTrace? trace);
+
+/// Écrit un incident de plateforme au journal, **et** le remonte à Sentry.
+///
+/// Le journal de développement reste : il est le seul canal lisible pendant
+/// un développement, où Sentry est désactivé. En release il ne porte rien
+/// (voir le nom de journal du module) — c'est Sentry qui prend le relais, et
+/// c'est pourquoi ce couple existe plutôt qu'un `developer.log` seul. Sentry s'y ajoute pour les
+/// incidents qu'aucun écran ne montre — une sonde réseau qui échoue
+/// silencieusement, une fiche de magasin qu'aucune activité n'ouvre — et qui
+/// resteraient donc invisibles depuis la production. C'est la promesse que
+/// portaient les documentations de `ConnectivityService` et de
+/// `MagasinService`.
+///
+/// **Sans Sentry initialisé, l'appel ne coûte rien et ne lève pas** : le hub
+/// et la file de tâches du SDK valent `NoOpHub` et `NoOpTaskQueue` tant
+/// qu'aucun `init` n'a eu lieu (lu dans `Sentry`, sentry 9.29.0). Aucun
+/// appelant n'a donc à savoir si le rapport d'erreurs tourne.
+///
+/// Args:
+///   message: ce qui s'est passé, en une phrase — écrit au journal.
+///   source: le nom de journal de l'appelant (`arpendo.magasin`…).
+///   erreur: l'exception d'origine, s'il y en a une. **C'est elle seule qui
+///     part à Sentry** : un message sans exception est une note d'exécution,
+///     pas un incident à instruire.
+///   trace: la pile de l'erreur, quand l'appelant l'a.
+///   capturer: la remontée à Sentry. Le défaut est la vraie.
+void signalerIncident(
+  String message, {
+  required String source,
+  Object? erreur,
+  StackTrace? trace,
+  CaptureIncident capturer = _capturerParSentry,
+}) {
+  developer.log(message, name: source, error: erreur, stackTrace: trace);
+  if (erreur != null) capturer(erreur, trace);
+}
+
+/// La remontée réelle : elle part en fond, l'appelant n'a rien à en attendre.
+void _capturerParSentry(Object erreur, StackTrace? trace) {
+  unawaited(Sentry.captureException(erreur, stackTrace: trace));
+}
+
+// ─── Assainissement : ce qu'on retire d'un événement, et où ────────────────────
 
 /// Rend cet événement débarrassé de ce qu'on n'a pas le droit d'envoyer.
 ///
