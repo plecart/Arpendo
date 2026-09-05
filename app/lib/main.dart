@@ -84,7 +84,7 @@ Future<void> _construireEtLancer() async {
 /// entier ; sur iOS (phase 2), il peut valoir la **version** (`1.2.3`) quand
 /// aucun build n'est déclaré. Une frontière de plateforme se valide comme
 /// `API_BASE_URL` : échouer ici donne un message, échouer dans `int.parse`
-/// donnait un écran noir avant `runApp`.
+/// figeait l'application sur l'écran de démarrage d'Android.
 int numeroDeBuildValide(String brut) {
   final numero = int.tryParse(brut);
   if (numero == null) {

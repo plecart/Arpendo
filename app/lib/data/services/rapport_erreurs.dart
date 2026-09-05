@@ -111,7 +111,8 @@ typedef InitialisationSentry = Future<void> Function(
 /// `_setDefaultConfiguration`, `createBinding` et les intégrations sont
 /// attendus hors `try` (lu dans `Sentry.init` et `Sentry._init`, sentry
 /// 9.29.0) — or `appRunner` n'est appelé qu'**après** les intégrations. Sans
-/// le repli ci-dessous, un canal natif en erreur donnerait un écran noir, en
+/// le repli ci-dessous, un canal natif en erreur **figerait l'application sur
+/// l'écran de démarrage d'Android** — `runApp` n'étant jamais atteint —, en
 /// production seulement : le poste tourne DSN vide, et la CI aussi. Un outil
 /// d'observabilité qui empêche l'application de démarrer coûte infiniment plus
 /// que ce qu'il rapporte.
@@ -397,10 +398,12 @@ Future<void> _initialiserSentry(
 /// `baseUrlValidee` le fait pour `API_BASE_URL`.
 ///
 /// Ce que « arrête le démarrage » veut dire précisément, `main` étant `async` :
-/// une **erreur asynchrone non rattrapée**, donc un écran noir et une ligne au
-/// journal de développement — et non un refus de lancement au sens du système.
-/// Sentry n'est pas encore initialisé à ce moment, donc rien ne la capte non
-/// plus. C'est le comportement déjà en place pour `API_BASE_URL`, et la raison
+/// une **erreur asynchrone non rattrapée**. Mesuré sur émulateur : l'écran de
+/// démarrage d'Android **reste affiché** — `runApp` n'est jamais atteint — et
+/// la trace part dans logcat, le moteur y imprimant les exceptions non
+/// rattrapées. C'est donc, à la différence d'un `developer.log`, un signal
+/// **visible en production**. Sentry n'est pas encore initialisé à ce moment,
+/// donc rien ne la capte côté rapport. C'est le comportement déjà en place pour `API_BASE_URL`, et la raison
 /// pour laquelle une valeur fautive se voit au **premier lancement**, jamais
 /// plus tard.
 ///
