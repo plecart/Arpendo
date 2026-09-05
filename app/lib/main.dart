@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'data/services/api_client.dart';
 import 'data/services/connectivity_service.dart';
 import 'data/services/magasin_service.dart';
+import 'data/services/rapport_erreurs.dart';
 import 'data/services/version_client.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'ui/core/theme/theme.dart';
@@ -15,18 +16,48 @@ import 'ui/demarrage/ecran_attente.dart';
 import 'ui/demarrage/ecran_mise_a_jour.dart';
 import 'ui/demarrage/etat_demarrage.dart';
 
-/// Construit les services et lance l'application — racine de composition.
+/// Met le rapport d'erreurs en place, puis construit et lance l'application.
 ///
-/// C'est le **seul** endroit qui lise l'environnement de compilation et
-/// instancie les services partagés ; tout le reste les reçoit. `API_BASE_URL`
-/// est injectée par `--dart-define` depuis le `.env` de la racine — recettes
-/// `just run` et `just build` — et son absence arrête net, avant tout widget :
-/// une url par défaut en dur masquerait une configuration cassée.
+/// Ce fichier est le **seul** à lire l'environnement de compilation.
+/// `API_BASE_URL`, `SENTRY_DSN` et `SENTRY_SAMPLE_RATE` sont injectées par
+/// `--dart-define` depuis le `.env` de la racine — recettes `just run` et
+/// `just build` —, et leur absence ne veut pas dire la même chose : sans url
+/// d'api on s'arrête net, car une valeur par défaut en dur masquerait une
+/// configuration cassée ; sans DSN on démarre normalement, Sentry simplement
+/// désactivé ; sans taux d'envoi on envoie tout, l'échantillonnage bornant un
+/// coût sans jamais éteindre la collecte (cadrage §16).
+///
+/// Un taux **présent mais inutilisable** s'arrête en revanche ici, comme une
+/// url d'api manquante : ces trois valeurs sont figées à la compilation, donc
+/// une valeur fautive est un build cassé, vu au premier lancement. La refuser
+/// plus tard — dans la closure de configuration du SDK — désactiverait
+/// l'assainissement en silence.
+///
+/// Tout le reste du démarrage vit dans [_construireEtLancer], que
+/// [demarrerAvecRapport] exécute — sous la zone de capture du SDK quand un DSN
+/// est fourni. Rien qui puisse échouer ne se produit donc avant que le filet
+/// soit tendu.
 Future<void> main() async {
-  // `PackageInfo.fromPlatform` parle à la plateforme avant `runApp` : c'est
-  // la seule attente du démarrage.
+  // Avant tout le reste : le SDK Sentry parle au canal natif dès son
+  // initialisation, et `PackageInfo.fromPlatform` en fait autant plus loin.
   WidgetsFlutterBinding.ensureInitialized();
+  await demarrerAvecRapport(
+    dsn: const String.fromEnvironment('SENTRY_DSN'),
+    tauxEnvoi: tauxEnvoiValide(
+      const String.fromEnvironment('SENTRY_SAMPLE_RATE'),
+    ),
+    lancer: _construireEtLancer,
+  );
+}
+
+/// Construit les services partagés et monte l'application.
+///
+/// Tout le reste les reçoit : c'est ici, et nulle part ailleurs, qu'ils sont
+/// instanciés.
+Future<void> _construireEtLancer() async {
   const baseUrl = String.fromEnvironment('API_BASE_URL');
+  // La seule attente de cette construction : `PackageInfo` parle à la
+  // plateforme, et son résultat est requis avant `runApp`.
   final info = await PackageInfo.fromPlatform();
   final connectivite = ConnectivityService();
   runApp(
@@ -53,7 +84,7 @@ Future<void> main() async {
 /// entier ; sur iOS (phase 2), il peut valoir la **version** (`1.2.3`) quand
 /// aucun build n'est déclaré. Une frontière de plateforme se valide comme
 /// `API_BASE_URL` : échouer ici donne un message, échouer dans `int.parse`
-/// donnait un écran noir avant `runApp`.
+/// figeait l'application sur l'écran de démarrage d'Android.
 int numeroDeBuildValide(String brut) {
   final numero = int.tryParse(brut);
   if (numero == null) {

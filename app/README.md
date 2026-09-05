@@ -9,7 +9,7 @@ prolongera. Cet écran ne porte **aucun indicateur de progression** : le bloc de
 rôle, et le délai du client HTTP borne l'attente. Si le build installé est sous le minimum publié
 par le serveur, l'écran d'attente est **remplacé** par l'écran bloquant de mise à jour (UX §11.2),
 dont on ne sort pas ; s'il est seulement sous le recommandé, le bandeau 12 s'ajoute par-dessus,
-fermable une fois par version.
+non fermable.
 
 ## Lancer
 
@@ -26,11 +26,19 @@ just run
 **refuse de démarrer** sans elle, avec la marche à suivre dans le message. Un `flutter run` nu
 échoue donc exprès : aucune url par défaut n'est écrite en dur.
 
+La même recette injecte `SENTRY_DSN` et `SENTRY_SAMPLE_RATE`, qui obéissent à la règle
+**inverse** : absentes ou vides, elles n'arrêtent rien — Sentry n'est simplement pas initialisé
+pour la première, et la seconde laisse envoyer 100 % des événements. C'est le défaut du poste.
+Voir « Rapport d'erreurs ».
+
 ## Structure
 
-La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation
-et construit les services (`ApiConfig`, `ConnectivityService`, `PackageInfo`, `ApiClient`,
-`MagasinService`) — c'est aussi le **seul endroit qui attende** la plateforme ;
+La racine de composition est `lib/main.dart` : `main()` seul lit l'environnement de compilation,
+met le rapport d'erreurs en place, puis construit les services (`ApiConfig`,
+`ConnectivityService`, `PackageInfo`, `ApiClient`, `MagasinService`) — c'est aussi le **seul
+endroit qui attende** la plateforme. La construction vit dans `_construireEtLancer`, que
+`demarrerAvecRapport` exécute : rien qui puisse échouer ne se produit avant que le filet soit
+tendu (voir « Rapport d'erreurs ») ;
 `ArpendoApp` les reçoit et les expose par `provider` — `Provider<ApiClient>` (le `dispose`
 appelle `close()`) et le premier ViewModel, `DemarrageViewModel` (`ChangeNotifier`), dont l'état
 scellé `EtatDemarrage` pilote un `switch` exhaustif → écran. Les écrans vivent dans
@@ -413,7 +421,7 @@ la règle qui vaut déjà pour `api_client.dart` et `connectivity_service.dart` 
 
 | Fichier | Plugin | Ce qu'il fait |
 |---|---|---|
-| `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part au journal |
+| `data/services/magasin_service.dart` | `url_launcher` | essaie `market://details?id=…`, puis le lien web ; **si aucun des deux ne s'ouvre, rien ne se passe à l'écran** (§11.2) et l'échec part par `signalerIncident` |
 
 **La condition de la ligne 12 vit dans `DemarrageViewModel`, pas ailleurs** : elle n'est vraie
 qu'en état `Pret` et sous le build recommandé. La borner à `Pret` n'est pas cosmétique — sans
@@ -427,3 +435,157 @@ local aujourd'hui.
 `main()` reçoit l'`applicationId` de `PackageInfo` et le passe au service du magasin : c'est
 l'application **réellement installée** dont on ouvre la fiche, jamais une constante qui
 divergerait d'une saveur de build.
+
+## Rapport d'erreurs — Sentry, et ce qu'on ne lui envoie jamais
+
+Un seul fichier importe `sentry_flutter` : `data/services/rapport_erreurs.dart`, rangé en quatre
+volets — ce qui est partagé, le démarrage, le signalement, l'assainissement. Il expose trois
+choses ; la racine de composition n'en connaît que la première, plus `tauxEnvoiValide` qui valide
+le taux avant tout contact avec le SDK.
+
+| | |
+|---|---|
+| `demarrerAvecRapport` | lance l'application, **sous Sentry seulement si `SENTRY_DSN` est non vide** |
+| `signalerIncident` | écrit un incident de plateforme au journal **et** le remonte à Sentry |
+| `assainir` | ce que le `beforeSend` applique : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
+
+Quatre réglages sont posés sur le SDK, et rien de plus : le DSN, `sendDefaultPii = false`
+(cadrage §13.10), `assainir` en `beforeSend`, et le **taux d'envoi**. Les deux derniers sont les
+deux garde-fous que le cadrage §16 exige ensemble — « filtrage entrant **et** échantillonnage dès
+le jour 1 ». L'échantillonnage n'est pas décoratif côté app : le quota de 5 000 erreurs par mois
+est celui de l'**organisation**, donc l'application et l'api le consomment ensemble, et la
+déduplication du SDK ne rattrape rien sur le chemin des incidents de plateforme — elle repose sur
+`exception.hashCode`, or `PlatformException` n'a ni `==` ni `hashCode`.
+
+À ne pas confondre avec `tracesSampleRate`, qui échantillonne les **mesures de performance** :
+celui-là reste absent, aucune mesure n'étant demandée.
+
+Le taux, lui, est **transmis au SDK natif** (`androidOptions.setSampleRate`), là où `beforeSend`
+ne l'est pas : l'échantillonnage couvre donc les deux voies, y compris les plantages natifs que
+`assainir` ne voit jamais. C'est l'argument le plus fort en faveur du §16, et il ne vaut que pour
+ce garde-fou-là.
+
+**`configurerSentry` ne lève jamais, et c'est sa propriété la plus importante.** Elle s'exécute
+dans la closure de configuration de `SentryFlutter.init`, que le SDK enveloppe dans un `try` qui
+**avale**. Une exception y laisserait Sentry s'initialiser avec le vrai DSN et **sans**
+`beforeSend` — `assainir` ne tournerait jamais, sans un mot. Le garde `dsn == null` du SDK ne
+rattraperait rien : le DSN est déjà posé en amont depuis le `--dart-define`. Les bornes du taux
+sont donc vérifiées **avant**, par `tauxEnvoiValide` à la racine de composition ; ce qui reste
+dans la closure normalise au lieu de refuser.
+
+**Et le `beforeSend` échoue fermé.** Le SDK Dart, lui, échoue **ouvert** : son `_runBeforeSend`
+part de l'événement d'origine et son `catch` ne l'annule pas, si bien qu'un `beforeSend` qui lève
+laisse partir l'événement **brut** — l'inverse exact du `sentry_sdk` Python, qui part de `None` et
+abandonne. Comme `assainir` modifie l'événement **sur place**, un jet à mi-parcours laisserait
+partir un événement à moitié nettoyé. Le callback l'enveloppe donc et **abandonne** ce qu'il ne
+sait pas assainir : la divergence qui compte entre les deux modules n'est pas dans les motifs,
+elle est dans le mode de panne.
+
+**Abandonner ne fait pas perdre le signal.** Le SDK compte l'événement écarté
+(`DiscardReason.beforeSend`) et attache le rapport à la prochaine enveloppe : l'incident apparaît
+dans les statistiques d'événements écartés de l'organisation. C'est ce qui permet de rendre `null`
+plutôt que de bricoler un « événement minimal » à partir d'une structure qu'on vient d'échouer à
+parcourir.
+
+> **`developer.log` n'écrit pas dans logcat** — son contrat est d'émettre vers la vue Logging de
+> DevTools. En release, sans service VM, l'appel ne fait rien (il ne lève pas). C'est un confort de
+> développement, pas un canal d'exploitation : les deux chemins qui ne s'appuient que sur lui — le
+> repli d'initialisation et l'abandon d'un événement — se voient au premier `just run`, et nulle
+> part ailleurs.
+
+**Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier
+installe quand même les intégrations et le hook des exceptions non rattrapées. La différence ne se
+voit pas sur un poste de développement et compte partout ailleurs. C'est la même décision, pour la
+même raison, que `configure_sentry` côté api.
+
+`lancer` est appelé dans les deux branches et **une seule fois** : sous DSN, c'est le SDK qui
+l'exécute, dans la zone où il capte les erreurs non rattrapées. Tout le démarrage — construction
+des services comprise — est donc à l'intérieur.
+
+### Les incidents qu'aucun écran ne montre
+
+Deux services avalent délibérément une panne de plateforme : `ConnectivityService` présume le
+réseau **présent** sur un canal natif en erreur (§10.3), et `MagasinService` ne montre **rien** à
+l'écran quand aucun lien ne s'ouvre (§11.2). Dans les deux cas le choix est bon et le silence ne
+l'est pas : l'incident devient indiscernable du fonctionnement normal. Ils appellent donc
+`signalerIncident`, qui écrit au journal de la plateforme **et** remonte l'exception à Sentry.
+
+Ils ne l'importent pas depuis `sentry_flutter` : ils reçoivent un `Signalement` en paramètre, dont
+le défaut est `signalerIncident`. C'est ce qui garde **un seul importeur du plugin** et ce qui rend
+la trace observable en test — sans quoi rien ne prouverait qu'elle part.
+
+Sans Sentry initialisé, l'appel ne coûte rien et ne lève pas : le hub et la file de tâches du SDK
+valent `NoOpHub` et `NoOpTaskQueue` tant qu'aucun `init` n'a eu lieu. Aucun appelant n'a donc à
+savoir si le rapport d'erreurs tourne.
+
+### Ce qu'`assainir` retire
+
+Trois motifs, **recopiés de `api/src/arpendo_api/core/sentry.py`** : une divergence de motif serait
+une divergence de protection (cadrage §13.10 — sans scrubbing explicite, on reconstruit
+l'historique de localisation que §12.3 interdit).
+
+| Motif | Règle |
+|---|---|
+| coordonnées | reconnues **à la paire**, ≥ 4 décimales — un nombre isolé est indécidable, et un horodatage ISO (`…:35.751365Z`) a exactement la même forme |
+| jeton porteur | `Bearer …`, insensible à la casse |
+| adresse e-mail | forme usuelle |
+
+La règle de la paire vaut aussi pour les **nombres** : une composante n'est retirée que si le
+conteneur qui la porte en contient une seconde de même forme. Le faux positif assumé est un
+conteneur de deux mesures fines, assaini pour rien — perdre un centile se voit et se répare,
+laisser fuir une position ne se voit pas et ne se répare pas.
+
+**Lacune connue, et commune aux deux langages** : le séparateur du motif exclut le tiret, pour ne
+pas le confondre avec le signe de la seconde composante — une paire jointe par un tiret nu
+(`48.858370-2.294481`) passe donc. Aucun encodage du projet ne produit cette forme, et la corriger
+devrait se faire **des deux côtés à la fois**.
+
+### Où il les retire
+
+**Tous les emplacements porteurs de texte**, et pas seulement ceux qu'un rapport de bogue citerait :
+message (gabarit et paramètres compris), exceptions (valeur et mécanisme), fils d'Ariane, fils
+d'exécution, utilisateur, requête, contextes, `transaction`, `culprit`, `logger`, `serverName`,
+`fingerprint`, `modules`, étiquettes et `extra`. **Cette énumération est le prix d'un protocole
+typé** — le `before_send` de Python reçoit un dictionnaire, celui de Dart un `SentryEvent`. Elle est
+d'autant moins évitable que le SDK Dart n'a **pas** d'`EventScrubber` : là où l'api superpose deux
+filets, `assainir` est le seul de la voie Dart.
+
+Ce qui la rend tenable est le **test de population** qui l'accompagne : un événement dont chaque
+emplacement porte une donnée interdite, sérialisé comme le SDK le sérialise, puis relu. Ajouter un
+champ au fixture sans l'assainir fait rougir la suite — un `expect` par champ ne l'aurait pas fait.
+
+Restent dehors, délibérément : le `type` d'une exception et les piles d'appels (du **code**, jamais
+une donnée de joueur), l'`id` d'utilisateur (ce qui rend un rapport attribuable), et `release` /
+`dist` / `environment` / `platform` (des métadonnées de build que l'application choisit).
+
+### La voie qui échappe à `assainir`
+
+`SentryFlutter.init` installe `NativeSdkIntegration` et laisse `enableNativeCrashHandling` vrai : un
+**plantage natif ou un ANR** est envoyé par le SDK Android, dans sa propre enveloppe, sans passer
+par le `beforeSend` Dart — le SDK le dit lui-même, « captureEnvelope does not call the beforeSend
+callback ». Ce que le natif reçoit du Dart, c'est `sendDefaultPii`, transmis à
+`androidOptions.setSendDefaultPii`. Un rapport natif porte une pile, un contexte d'appareil et un
+état de mémoire, pas les chaînes de l'application — mais il faut savoir que le filet ne s'y applique
+pas.
+
+### L'éprouver
+
+`assainir` ne parle à rien : ni réseau, ni `init`, ni projet Sentry. Un test la nourrit d'un
+`SentryEvent` écrit à la main. Elle **modifie l'événement reçu** et le rend, là où son homologue
+Python en construit une copie : les objets du protocole Dart sont typés et mutables, et le SDK
+lui-même déprécie `copyWith` au profit de l'affectation directe.
+
+Les **réglages** posés sur le SDK s'éprouvent eux aussi : `configurerSentry` est séparée de l'appel
+à `SentryFlutter.init`, parce qu'une configuration écrite dans la closure de `init` serait la seule
+ligne du module que rien n'exerce — or c'est celle dont l'absence *est* l'incident. Un
+`SentryFlutterOptions` s'instancie sans réseau, donc un test lit chaque réglage et fait passer un
+événement par le `beforeSend` qui vient d'y être posé.
+
+Enfin, **le filet lui-même peut tomber** : `SentryFlutter.init` n'est pas total (l'`ArgumentError`
+du DSN, le binding natif et les intégrations sont hors de son `try`, et `appRunner` ne tourne
+qu'après elles). `demarrerAvecRapport` rattrape, écrit au journal de la plateforme et lance
+l'application quand même — un outil d'observabilité qui empêche de démarrer coûte plus qu'il ne
+rapporte, et la panne ne serait visible qu'en production, le poste et la CI tournant DSN vide.
+
+Pour voir la collecte réellement partir, renseigner `SENTRY_DSN` dans le `.env` et relancer
+`just run` — rien d'autre à changer.
