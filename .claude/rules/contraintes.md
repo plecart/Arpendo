@@ -59,6 +59,24 @@ Le code visé est **modulaire, scalable, fractionné** — objectif permanent, p
   oui / non »), annoncer l'attendu avant l'action, et précéder toute création de secret d'un
   « ne colle jamais la valeur ici ».
 
+## Création d'issues en cours de cycle
+- **Un cycle n'ouvre jamais d'issue seul.** Chaque skill a sa porte de sortie « nouvelle issue »
+  — résidu de relecture, « ce que cette PR ne couvre pas », vide relevé par `repercussions`,
+  échappatoire de `decisions-vs-doc`. Prise une à une, chaque porte est raisonnable ; leur somme
+  ne l'est pas : une vague de deux issues en a ouvert cinq. La borne vit ici, au-dessus des skills.
+- Tout vide, résidu ou hors-périmètre relevé en cours de cycle suit cet ordre et s'arrête au
+  **premier barreau qui tient** :
+  1. **il tient dans la PR courante en moins d'un commit** → le faire ;
+  2. **une issue ouverte possède le sujet** (critère, journal de spec, brief — la chaîne de
+     release possède le build, le déploiement possède l'environnement) → y **ajouter un critère**
+     par `repercussions` : édition du corps, jamais un commentaire. Une automatisation qui le
+     possède (bot, workflow planifié) se répare, elle ne se doublonne pas ;
+  3. **sinon** → un **brouillon** par `bug-vers-issue` ou `vers-issues`, montré au mainteneur, qui
+     décide. Jamais de `gh issue create` sans ce brouillon validé.
+- Une issue créée malgré tout porte **dès sa création** son gabarit, sa catégorie et son thème. Le
+  bilan de fin de vague de `pr-paralleles` compte les issues ouvertes pendant la vague et justifie
+  chacune par le barreau qui a échoué.
+
 ## Maintenance continue
 - Tenir à jour, sans qu'on le redemande, les supports d'exécution du projet : fichier de commandes
   (`Makefile` / `justfile` / scripts du manifeste) et `.env.example`.
