@@ -26,9 +26,10 @@ just run
 **refuse de démarrer** sans elle, avec la marche à suivre dans le message. Un `flutter run` nu
 échoue donc exprès : aucune url par défaut n'est écrite en dur.
 
-La même recette injecte `SENTRY_DSN`, qui obéit à la règle **inverse** : absente ou vide, elle
-n'arrête rien — Sentry n'est simplement pas initialisé, et c'est le défaut du poste. Voir
-« Rapport d'erreurs ».
+La même recette injecte `SENTRY_DSN` et `SENTRY_SAMPLE_RATE`, qui obéissent à la règle
+**inverse** : absentes ou vides, elles n'arrêtent rien — Sentry n'est simplement pas initialisé
+pour la première, et la seconde laisse envoyer 100 % des événements. C'est le défaut du poste.
+Voir « Rapport d'erreurs ».
 
 ## Structure
 
@@ -444,6 +445,17 @@ choses, et la racine de composition ne connaît que la première.
 |---|---|
 | `demarrerAvecRapport` | lance l'application, **sous Sentry seulement si `SENTRY_DSN` est non vide** |
 | `signalerIncident` | écrit un incident de plateforme au journal **et** le remonte à Sentry |
+
+Quatre réglages sont posés sur le SDK, et rien de plus : le DSN, `sendDefaultPii = false`
+(cadrage §13.10), `assainir` en `beforeSend`, et le **taux d'envoi**. Les deux derniers sont les
+deux garde-fous que le cadrage §16 exige ensemble — « filtrage entrant **et** échantillonnage dès
+le jour 1 ». L'échantillonnage n'est pas décoratif côté app : le quota de 5 000 erreurs par mois
+est celui de l'**organisation**, donc l'application et l'api le consomment ensemble, et la
+déduplication du SDK ne rattrape rien sur le chemin des incidents de plateforme — elle repose sur
+`exception.hashCode`, or `PlatformException` n'a ni `==` ni `hashCode`.
+
+À ne pas confondre avec `tracesSampleRate`, qui échantillonne les **mesures de performance** :
+celui-là reste absent, aucune mesure n'étant demandée.
 | `assainir` | le `beforeSend` : rend un événement débarrassé de ce qu'on n'a pas le droit d'envoyer |
 
 **Vide veut dire « aucun appel au SDK »**, et non « `init` avec un DSN vide » : ce dernier

@@ -356,6 +356,43 @@ void main() {
       expect(assaini!.message!.formatted, isNot(contains('exemple.fr')));
     });
 
+    test('pose le taux d\'échantillonnage reçu', () {
+      final options = SentryFlutterOptions();
+
+      configurerSentry(options, 'https://cle@sentry.test/1', tauxEnvoi: 0.25);
+
+      expect(options.sampleRate, 0.25);
+    });
+
+    test('envoie tout quand le taux n\'est pas configuré', () {
+      // Cadrage §16 : l'échantillonnage est un garde-fou de **coût**, pas un
+      // interrupteur. Un taux absent ne doit donc pas éteindre la collecte —
+      // il la laisse entière, comme le `1.0` du poste.
+      final options = SentryFlutterOptions();
+
+      configurerSentry(options, 'https://cle@sentry.test/1', tauxEnvoi: null);
+
+      expect(options.sampleRate, 1.0);
+    });
+
+    test('refuse un taux hors des bornes plutôt que de le subir', () {
+      // Mêmes bornes que le `SampleRate` de l'api, et pour les deux mêmes
+      // raisons : zéro n'est pas « moins d'événements » mais aucun — un Sentry
+      // configuré, facturé et muet — et au-dessus de 1 le SDK ne rogne pas, il
+      // retient la valeur telle quelle et se comporte comme à 1.
+      for (final horsBornes in [0.0, -0.5, 1.5]) {
+        expect(
+          () => configurerSentry(
+            SentryFlutterOptions(),
+            'https://cle@sentry.test/1',
+            tauxEnvoi: horsBornes,
+          ),
+          throwsArgumentError,
+          reason: '$horsBornes doit être refusé',
+        );
+      }
+    });
+
     test('ne demande aucune mesure de performance', () {
       final options = SentryFlutterOptions();
 
@@ -407,7 +444,39 @@ void main() {
     });
   });
 
+  group('tauxEnvoiValide', () {
+    test('une variable absente veut dire « tout envoyer »', () {
+      expect(tauxEnvoiValide(''), isNull);
+    });
+
+    test('lit un taux', () {
+      expect(tauxEnvoiValide('0.25'), 0.25);
+    });
+
+    test('refuse une valeur qui n\'est pas un nombre', () {
+      // Le mode de panne visé : quelqu'un pose un plafond de coût, se trompe
+      // de forme, et l'application envoie 100 % sans que rien ne le dise.
+      expect(() => tauxEnvoiValide('un quart'), throwsArgumentError);
+    });
+  });
+
   group('demarrerAvecRapport', () {
+    test('transmet le taux d\'envoi à l\'initialisation', () async {
+      double? tauxRecu;
+
+      await demarrerAvecRapport(
+        dsn: 'https://cle@sentry.test/1',
+        tauxEnvoi: 0.25,
+        lancer: () {},
+        initialiser: (_, taux, lancer) async {
+          tauxRecu = taux;
+          await lancer();
+        },
+      );
+
+      expect(tauxRecu, 0.25);
+    });
+
     test('sans DSN, lance l\'application sans toucher au SDK', () async {
       var initialisations = 0;
       var lancements = 0;
@@ -415,7 +484,7 @@ void main() {
       await demarrerAvecRapport(
         dsn: '',
         lancer: () => lancements++,
-        initialiser: (_, _) async => initialisations++,
+        initialiser: (_, _, _) async => initialisations++,
       );
 
       expect(initialisations, 0);
@@ -429,7 +498,7 @@ void main() {
       await demarrerAvecRapport(
         dsn: 'https://cle@sentry.test/1',
         lancer: () => lancements++,
-        initialiser: (dsn, lancer) async {
+        initialiser: (dsn, _, lancer) async {
           dsnRecu = dsn;
           await lancer();
         },
@@ -447,7 +516,8 @@ void main() {
         await demarrerAvecRapport(
           dsn: 'https://cle@sentry.test/1',
           lancer: () => lancements++,
-          initialiser: (_, _) async => throw StateError('canal natif absent'),
+          initialiser: (_, _, _) async =>
+              throw StateError('canal natif absent'),
         );
 
         expect(lancements, 1);
@@ -465,7 +535,7 @@ void main() {
         demarrerAvecRapport(
           dsn: 'https://cle@sentry.test/1',
           lancer: () => throw panne,
-          initialiser: (_, lancer) => lancer() as Future<void>,
+          initialiser: (_, _, lancer) => lancer() as Future<void>,
         ),
         throwsA(same(panne)),
       );
@@ -483,7 +553,7 @@ void main() {
           await Future<void>.delayed(Duration.zero);
           lancements++;
         },
-        initialiser: (_, lancer) async =>
+        initialiser: (_, _, lancer) async =>
             Future.wait([lancer() as Future<void>, lancer() as Future<void>]),
       );
 
@@ -501,7 +571,7 @@ void main() {
         demarrerAvecRapport(
           dsn: 'https://cle@sentry.test/1',
           lancer: () => lancements++,
-          initialiser: (_, lancer) async {
+          initialiser: (_, _, lancer) async {
             await lancer();
             throw StateError('incident après le lancement');
           },

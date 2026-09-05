@@ -19,11 +19,13 @@ import 'ui/demarrage/etat_demarrage.dart';
 /// Met le rapport d'erreurs en place, puis construit et lance l'application.
 ///
 /// Ce fichier est le **seul** à lire l'environnement de compilation.
-/// `API_BASE_URL` et `SENTRY_DSN` sont injectées par `--dart-define` depuis le
-/// `.env` de la racine — recettes `just run` et `just build` —, et leur
-/// absence ne veut pas dire la même chose : sans url d'api on s'arrête net,
-/// car une valeur par défaut en dur masquerait une configuration cassée ;
-/// sans DSN on démarre normalement, Sentry simplement désactivé.
+/// `API_BASE_URL`, `SENTRY_DSN` et `SENTRY_SAMPLE_RATE` sont injectées par
+/// `--dart-define` depuis le `.env` de la racine — recettes `just run` et
+/// `just build` —, et leur absence ne veut pas dire la même chose : sans url
+/// d'api on s'arrête net, car une valeur par défaut en dur masquerait une
+/// configuration cassée ; sans DSN on démarre normalement, Sentry simplement
+/// désactivé ; sans taux d'envoi on envoie tout, l'échantillonnage bornant un
+/// coût sans jamais éteindre la collecte (cadrage §16).
 ///
 /// Tout le reste du démarrage vit dans [_construireEtLancer], que
 /// [demarrerAvecRapport] exécute — sous la zone de capture du SDK quand un DSN
@@ -35,6 +37,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await demarrerAvecRapport(
     dsn: const String.fromEnvironment('SENTRY_DSN'),
+    tauxEnvoi: tauxEnvoiValide(
+      const String.fromEnvironment('SENTRY_SAMPLE_RATE'),
+    ),
     lancer: _construireEtLancer,
   );
 }

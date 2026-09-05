@@ -74,6 +74,7 @@ const int _decimalesMinimales = 4;
 /// test en fournit une qui note ce qu'elle reçoit.
 typedef InitialisationSentry = Future<void> Function(
   String dsn,
+  double? tauxEnvoi,
   AppRunner lancer,
 );
 
@@ -124,6 +125,7 @@ typedef InitialisationSentry = Future<void> Function(
 Future<void> demarrerAvecRapport({
   required String dsn,
   required AppRunner lancer,
+  double? tauxEnvoi,
   InitialisationSentry initialiser = _initialiserSentry,
 }) async {
   var lance = false;
@@ -138,7 +140,7 @@ Future<void> demarrerAvecRapport({
     return;
   }
   try {
-    await initialiser(dsn, lancerUneFois);
+    await initialiser(dsn, tauxEnvoi, lancerUneFois);
   } on Object catch (erreur, trace) {
     // `lance` discrimine les deux pannes que ce `catch` reçoit, et il faut les
     // traiter à l'opposé. Le SDK appelle [lancer] lui-même : une exception de
@@ -226,23 +228,97 @@ void _capturerParSentry(Object erreur, StackTrace? trace) {
 /// test lit donc chaque réglage et fait passer un événement par le
 /// `beforeSend` posé ici.
 ///
-/// Trois réglages, et rien de plus : le DSN, `sendDefaultPii` **faux**
-/// (cadrage §13.10), et [assainir] en `beforeSend`. Pas de
-/// `tracesSampleRate` — aucune mesure de performance n'est demandée, et
-/// l'activer facturerait des spans que personne ne lit.
+/// Quatre réglages, et rien de plus : le DSN, `sendDefaultPii` **faux**
+/// (cadrage §13.10), [assainir] en `beforeSend`, et le taux d'envoi.
+///
+/// Le taux est le second garde-fou exigé par le cadrage §16 — « filtrage
+/// entrant **et** échantillonnage dès le jour 1 » —, et il n'est pas
+/// décoratif ici : le quota de 5 000 erreurs par mois est celui de
+/// l'**organisation**, donc l'application et l'api le consomment ensemble, et
+/// la déduplication du SDK ne rattrape rien sur le chemin qui vient de
+/// s'ouvrir — elle repose sur `exception.hashCode`, or `PlatformException`
+/// n'a ni `==` ni `hashCode`, si bien que deux incidents identiques comptent
+/// pour deux.
+///
+/// À ne pas confondre avec `tracesSampleRate`, qui échantillonne les
+/// **mesures de performance** : celui-là reste absent, aucune mesure n'étant
+/// demandée, et l'activer facturerait des spans que personne ne lit.
+///
+/// Args:
+///   options: les options que le SDK s'apprête à utiliser.
+///   dsn: le point de collecte, non vide — l'appelant a déjà tranché.
+///   tauxEnvoi: la part des événements réellement envoyés, dans `]0, 1]`.
+///     `null` vaut « tout envoyer » : l'échantillonnage borne un coût, il
+///     n'éteint pas la collecte.
+///
+/// Raises:
+///   ArgumentError: si [tauxEnvoi] sort de `]0, 1]`. Mêmes bornes que le
+///     `SampleRate` de l'api, et pour les deux mêmes raisons : zéro ne veut
+///     pas dire « moins d'événements » mais **aucun** — un Sentry configuré,
+///     facturé et muet —, et au-dessus de 1 le SDK ne rogne pas, il retient la
+///     valeur et se comporte comme à 1, donc sans effet et sans signal.
 @visibleForTesting
-void configurerSentry(SentryFlutterOptions options, String dsn) {
+void configurerSentry(
+  SentryFlutterOptions options,
+  String dsn, {
+  double? tauxEnvoi,
+}) {
+  if (tauxEnvoi != null && (tauxEnvoi <= 0 || tauxEnvoi > 1)) {
+    throw ArgumentError.value(
+      tauxEnvoi,
+      'tauxEnvoi',
+      'doit être dans ]0, 1] — zéro rendrait Sentry muet, au-delà de 1 sans effet',
+    );
+  }
   options.dsn = dsn;
   options.sendDefaultPii = false;
+  options.sampleRate = tauxEnvoi ?? 1.0;
   options.beforeSend = (evenement, _) => assainir(evenement);
 }
 
 /// Met Sentry en place, puis lui confie le lancement de l'application.
-Future<void> _initialiserSentry(String dsn, AppRunner lancer) =>
-    SentryFlutter.init(
-      (options) => configurerSentry(options, dsn),
-      appRunner: lancer,
+Future<void> _initialiserSentry(
+  String dsn,
+  double? tauxEnvoi,
+  AppRunner lancer,
+) => SentryFlutter.init(
+  (options) => configurerSentry(options, dsn, tauxEnvoi: tauxEnvoi),
+  appRunner: lancer,
+);
+
+/// Lit le taux d'envoi injecté à la compilation, ou refuse de le deviner.
+///
+/// Séparée de [main] pour être prouvable : `String.fromEnvironment` est figée
+/// à la compilation, un test ne peut pas la faire varier. Même raison, et même
+/// forme, que `baseUrlValidee` et `numeroDeBuildValide`.
+///
+/// La chaîne **vide** rend `null` — la variable n'est pas configurée, on
+/// envoie tout. Une chaîne qui n'est pas un nombre, en revanche, est une
+/// configuration cassée et non un choix : la laisser passer enverrait
+/// silencieusement 100 % là où quelqu'un croyait avoir posé un plafond de
+/// coût. Les **bornes**, elles, sont vérifiées par [configurerSentry], qui les
+/// tient pour tous ses appelants.
+///
+/// Args:
+///   brut: la valeur de `--dart-define=SENTRY_SAMPLE_RATE`.
+///
+/// Returns:
+///   Le taux, ou `null` si la variable est absente.
+///
+/// Raises:
+///   ArgumentError: si la valeur est présente mais n'est pas un nombre.
+double? tauxEnvoiValide(String brut) {
+  if (brut.isEmpty) return null;
+  final taux = double.tryParse(brut);
+  if (taux == null) {
+    throw ArgumentError.value(
+      brut,
+      'SENTRY_SAMPLE_RATE',
+      'doit être un nombre dans ]0, 1] — voir .env.example, section « Sentry »',
     );
+  }
+  return taux;
+}
 
 /// Rend cet événement débarrassé de ce qu'on n'a pas le droit d'envoyer.
 ///
