@@ -88,8 +88,13 @@ Sur le dépôt de `.claude/pipeline.config.md` :
 
 1. **Même thème** — `gh issue list --state open --milestone "<thème de l'issue fermée>"`.
 2. **Match d'ancre** — pour chaque ancre : `gh issue list --state open --search "<ancre>"`.
+3. **Match d'ancre dans les briefs** — la recherche GitHub ne fouille que le corps ; le brief
+   d'agent est un **commentaire**, invisible pour elle. Pour chaque issue ouverte qui porte un brief
+   (au minimum les `ready-for-agent`), récupérer les commentaires
+   (`gh issue view <n> --json comments --jq '.comments[].body'`) et y chercher les mêmes ancres —
+   une réconciliation qui ne vit que dans un brief conclurait sinon « aucune » à tort.
 
-L'union des deux constitue le périmètre d'examen. **Le reste du backlog n'est pas examiné.**
+L'union des trois constitue le périmètre d'examen. **Le reste du backlog n'est pas examiné.**
 
 Annoncer les décomptes sans rien masquer : « 4 issues du thème + 3 issues matchant une ancre = 6
 issues examinées (une en commun) ; 22 autres issues ouvertes non examinées. » Si l'issue fermée n'a
@@ -306,7 +311,12 @@ apprend à ignorer — c'est précisément ce qu'on cherche à éviter en ne la 
   **PR ouverte** quand l'issue qu'elle développe est impactée — parce que c'est le seul canal que
   la session en cours lira.
 - **Il ne crée aucune issue.** Un besoin non couvert révélé par la clôture n'est pas une
-  répercussion : c'est du travail neuf → `vers-issues` ou `bug-vers-issue`, à la main du mainteneur.
+  répercussion, c'est du travail neuf — et il suit `.claude/rules/contraintes.md`,
+  « Création d'issues en cours de cycle ». Si une issue ouverte possède le sujet, ce skill y
+  **ajoute le critère dans la même passe** — bloc marqué `[complétion]` à l'étape 4, appliqué sur
+  le même « go », ligne de journal « Complétée après #<fermée> — <le vide, d'où il vient> ».
+  Sinon, brouillon `vers-issues` / `bug-vers-issue` soumis au mainteneur. Le vide relevé par une
+  clôture a presque toujours un propriétaire ouvert.
 - **Il ne re-trie pas.** La seule transition d'état qu'il applique est le retour en
   `needs-interrogation` décrit ci-dessus ; tout autre changement d'état passe par `triage`.
 - **Il ne relit pas le code.** Il confronte des specs à un delta, il n'audite pas la codebase.

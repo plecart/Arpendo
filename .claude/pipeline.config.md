@@ -82,6 +82,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 ## Périmètre
 - domaines (nom métier → chemin) — servent aussi de thèmes/milestones à `triage` :
   - Socle technique : `infra/`, `.github/`, `api/src/arpendo_api/core/`, `api/src/arpendo_api/db/`
+    — et tout ce qui n'est pas un domaine métier : la pipeline (`.claude/`, `CLAUDE.md`,
+    `CONTRIBUTING.md`, `justfile`, `.env.example`) et les documents de référence (`documents/`)
   - Compte & identité : `api/src/arpendo_api/domains/compte/`, `app/lib/ui/features/compte/`
   - Partie : `api/src/arpendo_api/domains/partie/`, `app/lib/ui/features/partie/`
   - Territoire : `api/src/arpendo_api/domains/territoire/`, `api/src/arpendo_api/worker/`, `app/lib/data/`
@@ -135,6 +137,18 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - qa-plan → `qa-plan`
 - qa-finding → `qa-finding`
 - prd → `prd`   # label de nature (document parent) — hors machine à états, ni rôle d'état ni thème
+- documentation → `documentation`   # label de nature (PR `docs(…)` sans issue liée, PRD) — hors
+  machine à états
+
+**Métadonnées d'une PR** — posées à l'Étape 2 de `cycle-pr`, vérifiées à l'Étape 5, corrigées
+avant `gh pr ready` si elles dévient. Toute PR qui n'est pas l'œuvre d'un bot porte :
+- **assignee** : son auteur ;
+- **un** label de catégorie : celui de l'issue qu'elle ferme ; sans issue, dérivé du type
+  conventional commit — `feat` / `chore` / `refactor` → `enhancement`, `fix` → `bug`,
+  `docs` → `documentation` ;
+- **le milestone** du domaine de ses fichiers (section « Périmètre » — le socle couvre la pipeline
+  et les documents, aucune PR n'est orpheline).
+Les PR Dependabot gardent leurs labels `dependencies` / écosystème et n'entrent pas dans la règle.
 
 ## Skills du projet
 - Pipeline maison (12) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,

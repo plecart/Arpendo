@@ -10,6 +10,12 @@ dans les sources de vérité** — `.claude/pipeline.config.md`, section « Sour
 `grep` sur deux ou trois termes d'ancre suffit : nom de composant, terme métier, nom de champ,
 route, § pressenti.
 
+Pour un changement qui **remplace une valeur par une autre** — montée de version, nouveau défaut,
+renommage — les ancres incluent **la valeur visée**, pas seulement celle en place. Une doc peut
+être muette sur la nouvelle valeur, l'épingler, ou l'avoir **explicitement écartée** avec son
+motif : trois situations différentes, et seule la troisième est une contradiction. Chercher
+seulement la valeur qu'on retire fait manquer le cas où l'arrêt est le plus justifié.
+
 Ce n'est pas une formalité. Les documents de référence pèsent ~320 Ko : ils ne sont **jamais** en
 contexte. **Une contradiction ne se remarque pas, elle se cherche.**
 
@@ -48,7 +54,9 @@ Es-tu sûr du changement ?
 2. **La décision gagne** — le document est **amendé maintenant**, dans cette session, via
    `/contradiction` (qui propage aux rangs inférieurs et aux issues).
 
-Si l'amendement est trop gros pour maintenant, l'échappatoire n'est pas « plus tard » : c'est une
-**issue ouverte sur-le-champ**, qui porte les deux citations. Une décision qui survit à l'arrêt
-sans que rien ne soit écrit laisse deux sources normatives en contradiction — c'est exactement
-l'incident que cette règle existe pour éviter.
+Si l'amendement est trop gros pour maintenant, l'échappatoire n'est pas « plus tard » : c'est un
+**critère ou une issue ouverts sur-le-champ**, portant les deux citations, par la règle
+« Création d'issues en cours de cycle » de `contraintes.md` — propriétaire ouvert d'abord,
+brouillon soumis au mainteneur sinon. Une décision qui survit à l'arrêt sans que rien ne soit
+écrit laisse deux sources normatives en contradiction — c'est exactement l'incident que cette
+règle existe pour éviter.

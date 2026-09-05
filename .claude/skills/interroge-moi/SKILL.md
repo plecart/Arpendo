@@ -73,6 +73,14 @@ la session qui *réalisera* le point, pas celle qui l'a discuté :
 Dans les deux derniers cas, le brief courant garde une ligne « porté par #N » pour la traçabilité.
 Une décision consignée au mauvais endroit est perdue au même titre qu'une décision non écrite.
 
+**Chaque décision qui affirme un fait sur l'existant est confrontée aux sources avant d'être
+écrite.** Une valeur, une composition, un comportement de spec : `grep` des sources de vérité
+(`.claude/pipeline.config.md`, « Sources de vérité ») sur deux ou trois ancres **avant** d'écrire
+le verrou, et l'ancre vérifiée notée dans la décision (« §1.2 muet », « §1.2 conforme ») ; une
+décision sans ancre porte `⚠️ non confrontée`. Le verrou est un point d'écriture au sens de
+`decisions-vs-doc` : une contradiction qui le traverse ne se découvre qu'au briefing d'une session
+ultérieure, en arrêt de chantier.
+
 Puis, si la session partait d'une issue en `needs-interrogation`, dire à l'utilisateur que l'issue
 peut passer à `ready-for-agent` (ou `ready-for-human`) — la transition elle-même appartient à
 `triage`.
