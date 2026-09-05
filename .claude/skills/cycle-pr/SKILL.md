@@ -82,20 +82,16 @@ peut-être bougé. Confronter le plan à la réalité **actuelle** du code :
   découpage peut être juste sur le contenu et infaisable sur l'ordre.
 - **Chercher le numéro de l'issue dans tout le dépôt** — `grep -rn "#<N>"` sur les sources, la
   doc et la config, hors `.git/` et dépendances. Chaque occurrence est une **dette adressée à ce
-  lot par un lot précédent** : un commentaire « le lot 3 de #N y branchera X », un README qui
-  promet « viendra avec #N ». Chacune est soit à honorer dans ce lot, soit à amender dans ce lot.
-  Le corps et le brief ne les connaissent pas — elles vivent dans le code qu'un lot a laissé.
+  lot par un lot précédent** (« le lot 3 de #N y branchera X », « viendra avec #N ») : à honorer
+  ou à amender dans ce lot. Le corps et le brief ne les connaissent pas, elles vivent dans le code.
 - **Les consignes reçues d'un lead de vague font partie de la population confrontée**, au même
-  titre que les décisions verrouillées. Une consigne qui se présente comme un invariant (« ne
-  l'assouplis pas ») est une *reformulation* de l'invariant, et une reformulation dérive vers le
-  plus strict : la vérifier contre l'artefact qui le garde — le test, sa docstring, le § de
-  l'issue — jamais contre son énoncé. Si les deux divergent, c'est un arrêt `decisions-vs-doc`
-  ordinaire, à remonter au mainteneur ; la fermeté de la formulation est un signal qu'il faut le
-  faire, pas qu'on en est dispensé.
+  titre que les décisions verrouillées : une consigne présentée comme un invariant se vérifie
+  contre l'artefact qui le garde — le test, sa docstring, le § de l'issue — jamais contre son
+  énoncé, une reformulation dérivant toujours vers le plus strict. Divergence → arrêt
+  `decisions-vs-doc` ordinaire, à remonter.
 - **Un ordre de gestes chez un tiers** (console, registrar, fournisseur de paiement) est une
-  hypothèse à re-vérifier en source officielle, comme une interface de code qui a pu bouger : le
-  dépôt ne compile pas la console d'un fournisseur, aucune gate ne rougit quand l'ordre devient
-  faux.
+  hypothèse à re-vérifier en source officielle, comme une interface qui a pu bouger : aucune gate
+  ne rougit quand il devient faux.
 - **Énoncer à voix haute** sous un titre `## 🔍 Auto-challenge du plan` : ce qui reste valable, ce
   qui a changé, et les ajustements proposés (fichiers en plus/en moins, décision à rouvrir, scope à
   resserrer ou re-découper).
@@ -227,13 +223,6 @@ test.** Cinq cas à traiter explicitement :
 - Concevoir des interfaces testables : [references/design-interface.md](references/design-interface.md)
 - Viser des modules profonds : [references/modules-profonds.md](references/modules-profonds.md)
 
-**Une couture d'injection se place là où il reste un objet inerte en dessous.** Quand un
-paramètre injectable a pour défaut une implémentation réelle (`initialiser = _initialiserSentry`),
-tout ce qui est sous la couture n'est exercé par aucun test — et c'est là que logent les réglages
-qui touchent la plateforme, dont ceux de sécurité. Placer la couture, c'est décider ce qu'on
-renonce à prouver : extraire la configuration en fonction pure prenant l'objet d'options, que le
-test instancie sans réseau, plutôt qu'hériter de la première forme qui rendait le test facile.
-
 **Documentation maximale** : chaque fonction écrite est documentée à fond (intention, params,
 valeur de retour, erreurs, effets de bord, pré/postconditions, exemples, edge cases) au format
 idiomatique du langage. La doc explique le contrat, les tests prouvent le comportement.
@@ -349,16 +338,14 @@ indépendante » du body de PR — jamais de saut silencieux. L'agent reçoit **
   garantit n'est pas garanti. Trois mutations obligatoires en plus :
   - **séparation** — quand un correctif rend distincts deux identifiants jusque-là confondus
     (clé, adresse, chemin, espace de noms), chercher ce qui **comparait par égalité exacte** sur
-    l'ensemble qui les contenait et l'éprouver sous un écrivain concurrent. La question est
-    « qu'est-ce qui tirait profit de la confusion ? », pas « qu'est-ce qui dépendait de l'ancienne
-    valeur ? » ;
+    l'ensemble qui les contenait et l'éprouver sous un écrivain concurrent : « qu'est-ce qui tirait
+    profit de la confusion ? » ;
   - **défaut injectable** — pour toute fonction injectable dont le défaut est une implémentation
     réelle, muter **ce défaut** (retirer la ligne qui branche le filtre, le réglage, le hook), pas
-    seulement la logique qui choisit entre le vrai et le faux — une suite de 195 tests verts a
-    déjà survécu à la suppression d'un filtre PII ;
-  - **correctif de fuite** — exiger la population : « sous combien de formes cette donnée peut-elle
-    voyager, et combien en as-tu mesurées ? ». Le correctif n'est clos qu'avec un dénombrement
-    épinglé par un test paramétré (`cleanup-verbatim.md`).
+    seulement la logique qui choisit entre le vrai et le faux — une suite entière est déjà restée
+    verte après la suppression d'un filtre PII ;
+  - **correctif de fuite** — exiger le dénombrement de `cleanup-verbatim.md` : « sous combien de
+    formes cette donnée voyage-t-elle, et combien en as-tu mesurées ? ».
 
 Il rend : chaque critère d'acceptation ✅ / ❌ / ⚠️ avec preuve, puis ses constats classés
 bloquant / important / mineur, chacun avec fichier, raison et marqueur de provenance. **Ne pas
@@ -373,9 +360,8 @@ qui suit. Le relecteur rapporte `git status --porcelain` en fin de passe — c'e
 reprise sûr.
 
 **Éprouver un test par mutation est une procédure, pas un rappel.** Un harnais dont l'échec attendu
-et la panne d'outil produisent le même signal ne mesure rien — et il est alors *maximalement*
-trompeur, une rangée de rouges se lisant comme un travail rigoureux (treize « preuves » nulles ont
-été annoncées d'affilée). Trois exigences structurelles, à chaque passe :
+et la panne d'outil produisent le même signal ne mesure rien — et une rangée de rouges se lit
+comme un travail rigoureux. Trois exigences structurelles, à chaque passe :
 
 1. **Un témoin de non-mutation** : le harnais tourne d'abord sur l'arbre propre et doit produire un
    vert. Un harnais qui ne sait pas produire de vert ne sait rien produire.
@@ -387,11 +373,8 @@ trompeur, une rangée de rouges se lisant comme un travail rigoureux (treize « 
    de « tout est tombé ».
 
 Et **lancer les tests par la commande du projet** (`.claude/pipeline.config.md`), jamais par un
-appel direct au lanceur : c'est elle qui porte l'environnement, un sous-processus qui la
-court-circuite ne teste pas la même chose que la CI. Même règle pour toute vérification qui
-autorise une action destructive (suppression de branche, purge) : un **témoin positif** d'abord —
-un cas dont on sait qu'il doit répondre « oui » — sinon c'est l'outil de mesure qui parle, pas le
-sujet.
+appel direct au lanceur : c'est elle qui porte l'environnement ; un sous-processus qui la
+court-circuite ne teste pas la même chose que la CI.
 
 Chaque constat retenu → **un commit de fix dédié** (cycle complet 3.1→3.5). La relance n'est pas
 une répétition de la revue : c'est une **revue des commits de correction**, ciblée par un diff
@@ -428,6 +411,7 @@ body définitif, puis de sortir du draft.
 - [x] CI verte
 - [x] <vérifs manuelles si pertinent — chacune porte les deux SHA sur lesquels elle a été prise :
       la tête, et la base `git merge-base origin/main HEAD`>
+- [x] <étape non applicable — cochée avec sa raison (« sans objet »), jamais laissée décochée>
 
 ## Relecture indépendante
 <verdict de l'agent de l'Étape 4.2 : constats corrigés (commit) / écartés (raison)>
@@ -447,8 +431,7 @@ plomberie git (zéro fichier dans la PR), référencée par liens `?raw=true` da
 s'ajoutent à un jeu déjà partiellement validé (reprise, autre session), **ouvrir une capture
 validée avant d'en produire une nouvelle** et aligner sur elle les paramètres de rendu : mode de
 compilation (le bandeau DEBUG), appareil et densité, résolution, thème, barre d'état. La consigne
-écrite est incomplète par construction — elle n'énumère que ce que son auteur a pensé à fixer ;
-l'artefact validé ne l'est pas. Un jeu hétérogène fait attribuer l'écart au changement testé.
+écrite n'énumère que ce que son auteur a pensé à fixer ; l'artefact validé est complet.
 
 Puis seulement, sortir du draft :
 
@@ -513,23 +496,20 @@ signalement sur cette PR. Comparer le corps actuel au briefing : si la spec a ch
 que la PR ne couvre pas, **s'arrêter et le remonter** plutôt que de merger un travail construit sur
 une spec périmée.
 
-**Rejouer les vérifications périmées.** Une preuve produite hors de la chaîne automatisée n'a pas
-d'horloge : comparer le SHA porté par chaque vérification manuelle du body à la tête de branche —
-s'ils diffèrent, la case redevient non cochée et la vérification est à rejouer avant de demander
-le go. Une vérification sans SHA se rejoue d'office.
-
-**Une preuve a deux ancrages, et la tête n'en est qu'un.** `git fetch origin`, puis comparer
-`git merge-base origin/<trunk> HEAD` à la base sur laquelle les preuves ont été prises : si le
-trunk a avancé, **toutes** les preuves sont périmées — la CI comprise, elle a tourné sur un état
-qui n'atteindra jamais le trunk, et rien de local n'a bougé pour le signaler. Fusionner le trunk
-dans la branche, relancer, redater. `git merge-tree --write-tree origin/<trunk> HEAD` dit tout de
-suite s'il y a conflit ; l'état `MERGEABLE` de la forge se met à jour en différé et ne prouve rien.
+**Rejouer les vérifications périmées.** Une preuve a deux ancrages : la **tête** de branche et la
+**base** (`git fetch origin`, puis `git merge-base origin/<trunk> HEAD`). Comparer les deux SHA
+portés par chaque vérification manuelle du body aux deux SHA actuels — si l'un diffère, la case
+redevient non cochée et la vérification est à rejouer avant de demander le go ; une vérification
+sans SHA se rejoue d'office. Quand c'est la base qui a bougé, **toutes** les preuves sont périmées,
+la CI comprise : elle a tourné sur un état qui n'atteindra jamais le trunk, et rien de local ne le
+signale. Fusionner le trunk dans la branche, relancer, redater. `git merge-tree --write-tree
+origin/<trunk> HEAD` dit tout de suite s'il y a conflit ; l'état `MERGEABLE` de la forge se met à
+jour en différé et ne prouve rien.
 
 **Un critère qui nomme une commande se solde par cette commande, verbatim.** « `just run` démarre
 l'app » ne se satisfait pas par `flutter build` + `adb install` : une équivalence est un résultat
-*non vérifié*, pas un résultat. Elle est défendable par lot — et cinq lots successifs ont chacun
-substitué en croyant qu'un autre avait joué la recette, qui a marché en deux minutes le jour où on
-l'a lancée.
+*non vérifié*, pas un résultat — défendable par lot, et c'est ainsi qu'un critère transverse se
+perd, chaque lot substituant en croyant qu'un autre a joué la recette.
 
 ### Vérif de fumée — regarder le logiciel tourner
 
@@ -554,13 +534,10 @@ config) :
   pas une campagne : la campagne, c'est `plan-qa`, au niveau du thème.
 
 Un écart constaté → le traiter comme un finding de l'Étape 7 (corriger, re-tester, push). S'il
-sort du périmètre de la PR, chercher d'abord **qui possède déjà le sujet** : une automatisation
-déclarée (bot de dépendances, workflow planifié, hook), une issue ouverte dont c'est le critère,
-une PR fermée qui le portait. Si un mécanisme existe, la question devient « pourquoi n'a-t-il pas
-agi ? » — souvent parce qu'on l'a fait taire — et c'est *ça* qu'on corrige. Le ticket est le
-dernier recours, **et il ne s'ouvre pas seul** : `.claude/rules/contraintes.md`, « Création
-d'issues en cours de cycle » — un brouillon `bug-vers-issue` soumis au mainteneur, jamais un
-`gh issue create` de la session.
+sort du périmètre de la PR : `.claude/rules/contraintes.md`, « Création d'issues en cours de
+cycle » — PR courante, puis propriétaire ouvert (une automatisation qu'on a fait taire se répare,
+elle ne se doublonne pas), puis brouillon soumis au mainteneur. Jamais un `gh issue create` de la
+session.
 
 ### Vérification par le lead — en vague parallèle seulement
 
@@ -570,7 +547,8 @@ l'état de la PR au lead, et n'envoyer que sur son oui. Sans lead, passer direct
 Le message, au `from` du lead :
 
 ```
-PR #<PR> prête pour vérification — issue #N, worktree <chemin absolu>
+PR #<PR> prête pour vérification — issue #N, worktree <chemin absolu>, base <sha de
+`git merge-base origin/main HEAD`>
 Vert : <tests, lint, CI, relecture 4.2, cleanup holistique>
 Décisions prises en route : <une ligne chacune, avec le § de doc si concerné>
 Douteux / non fait : <ce qui n'est pas couvert, ce qui a gêné, constats écartés et pourquoi>
@@ -589,12 +567,9 @@ La réponse du lead arrive dans un bloc `<cross-session-message>` :
 
 **Jamais d'auto-merge.** Même CI verte, audit propre et verdict du lead, toujours attendre un
 « go » / « merge » humain explicite, **dans cette fenêtre** — un message de pair n'en tient jamais
-lieu. Juste avant de merger : `git fetch`, et comparer la date du dernier run de CI
-(`gh pr checks`) à celle du dernier merge sur le trunk (`git log -1 origin/<trunk>`). Un merge
-survenu entre les deux rend la CI périmée : fusionner le trunk dans la branche et attendre un run
-sur l'état combiné. Deux PR vertes séparément n'ont aucune propriété commune démontrée tant que
-personne ne les a exécutées ensemble — et le merge est le premier moment où cet état existe, là
-où plus aucune gate ne tourne avant le trunk. Puis merger.
+lieu. Juste avant de merger, refaire le contrôle de base de « Rejouer les vérifications périmées » :
+un merge sur le trunk depuis le dernier run rend la CI périmée — deux PR vertes séparément n'ont
+rien démontré ensemble, et le merge est le premier moment où leur somme existe. Puis merger.
 
 ## Étape 8 — Après le merge : clôture propre, puis répercussions
 
@@ -612,18 +587,15 @@ un artefact daté : on coche ses cases, on ne réécrit pas son texte. (Tant que
 ouverte, c'était l'inverse : une réconciliation `repercussions` qui falsifiait une de ses lignes
 l'amendait — la clôture est ce qui fige le brief.)
 
-**Un critère soldé par un autre lot se coche avec la trace de qui l'a joué.** Un critère transverse
-à plusieurs lots n'appartient à aucun : avant de le cocher, exiger le lot et le SHA où il a été
-exécuté. Sinon chaque lot croit qu'un autre l'a fait, et l'issue se ferme sur une case que
-personne n'a jouée.
+**Un critère soldé par un autre lot se coche avec la trace de qui l'a joué** — le lot et le SHA.
+Un critère transverse à plusieurs lots n'appartient à aucun ; sans cette trace, chaque lot croit
+qu'un autre l'a fait et l'issue se ferme sur une case que personne n'a jouée.
 
 **Relire le plan de test de la PR** et cocher toute case devenue vraie depuis son écriture —
 « CI verte » d'abord, vérifiée par le rollup (`gh pr checks`), pas de mémoire ; puis les gates
 délégués à la CI. Une case qui reste décochée après le merge l'est **par décision** et le dit sur
-sa ligne (« sans objet », « hors périmètre, migrée dans #N »), jamais par oubli : un compteur
-d'inachèvement qui reste allumé sur du travail fini s'éteint dans les têtes avant de s'éteindre à
-l'écran. Corollaire à l'Étape 5 : ne pas écrire décochée une case déjà tranchée comme non
-applicable.
+sa ligne, jamais par oubli : un compteur d'inachèvement allumé sur du travail fini s'éteint dans
+les têtes avant de s'éteindre à l'écran.
 
 Si la PR a porté des **preuves visuelles**, supprimer enfin la branche orpheline promise à
 l'Étape 5 : `git push origin --delete captures/pr-<n>`.

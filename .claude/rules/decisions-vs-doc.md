@@ -55,8 +55,8 @@ Es-tu sûr du changement ?
    `/contradiction` (qui propage aux rangs inférieurs et aux issues).
 
 Si l'amendement est trop gros pour maintenant, l'échappatoire n'est pas « plus tard » : c'est un
-**critère ajouté sur-le-champ à l'issue ouverte qui possède le sujet**, portant les deux citations
-— ou, si aucune ne le possède, un brouillon d'issue soumis au mainteneur (`contraintes.md`,
-« Création d'issues en cours de cycle »). Une décision qui survit à l'arrêt sans que rien ne soit
-écrit laisse deux sources normatives en contradiction — c'est exactement l'incident que cette
-règle existe pour éviter.
+**critère ou une issue ouverts sur-le-champ**, portant les deux citations, par la règle « Création
+d'issues en cours de cycle » de `contraintes.md` — propriétaire ouvert d'abord, brouillon soumis
+au mainteneur sinon. Une décision qui survit à l'arrêt sans que rien ne soit écrit laisse deux
+sources normatives en contradiction — c'est exactement l'incident que cette règle existe pour
+éviter.

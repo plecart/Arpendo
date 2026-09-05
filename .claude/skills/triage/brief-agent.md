@@ -58,7 +58,7 @@ la décision avec sa preuve (« compile et mesuré à X »), jamais « se résou
 
 ### Rédiger les décisions verrouillées
 
-Quatre règles de rédaction, chacune née d'un brief qui a fait dérailler une session :
+Des règles de rédaction, chacune née d'un brief qui a fait dérailler une session :
 
 - **Une décision négative nomme ce qui survit au rejet.** Quand l'option rejetée est une
   *combinaison*, « écarté : X seul » est ambigu — écrire « écarté : X **sans** Y ; X reste

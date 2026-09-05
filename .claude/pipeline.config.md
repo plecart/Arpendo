@@ -83,8 +83,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - domaines (nom métier → chemin) — servent aussi de thèmes/milestones à `triage` :
   - Socle technique : `infra/`, `.github/`, `api/src/arpendo_api/core/`, `api/src/arpendo_api/db/`
     — et tout ce qui n'est pas un domaine métier : la pipeline (`.claude/`, `CLAUDE.md`,
-    `CONTRIBUTING.md`, `justfile`, `.env.example`) et les documents de référence (`documents/`).
-    C'est ce qui donne un thème aux PR de doc et d'outillage, qui n'en avaient pas
+    `CONTRIBUTING.md`, `justfile`, `.env.example`) et les documents de référence (`documents/`)
   - Compte & identité : `api/src/arpendo_api/domains/compte/`, `app/lib/ui/features/compte/`
   - Partie : `api/src/arpendo_api/domains/partie/`, `app/lib/ui/features/partie/`
   - Territoire : `api/src/arpendo_api/domains/territoire/`, `api/src/arpendo_api/worker/`, `app/lib/data/`
@@ -141,17 +140,15 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - documentation → `documentation`   # label de nature (PR `docs(…)` sans issue liée, PRD) — hors
   machine à états
 
-**Métadonnées d'une PR** — posées à l'Étape 2 de `cycle-pr`, vérifiées à l'Étape 5. Toute PR qui
-n'est pas l'œuvre d'un bot porte, sans exception ni « plus tard » :
+**Métadonnées d'une PR** — posées à l'Étape 2 de `cycle-pr`, vérifiées à l'Étape 5, corrigées
+avant `gh pr ready` si elles dévient. Toute PR qui n'est pas l'œuvre d'un bot porte :
 - **assignee** : son auteur ;
 - **un** label de catégorie : celui de l'issue qu'elle ferme ; sans issue, dérivé du type
   conventional commit — `feat` / `chore` / `refactor` → `enhancement`, `fix` → `bug`,
   `docs` → `documentation` ;
-- **le milestone** du domaine de ses fichiers (ci-dessous) — le socle couvre la pipeline et les
-  documents, aucune PR n'en est orpheline.
+- **le milestone** du domaine de ses fichiers (section « Périmètre » — le socle couvre la pipeline
+  et les documents, aucune PR n'est orpheline).
 Les PR Dependabot gardent leurs labels `dependencies` / écosystème et n'entrent pas dans la règle.
-Normalisées en une passe le 5 septembre 2026 ; à partir de là, une PR qui dévie se corrige avant
-`gh pr ready`, pas dans une passe de rattrapage.
 
 ## Skills du projet
 - Pipeline maison (12) : `init-projet`, `vers-prd`, `vers-issues`, `triage`, `interroge-moi`,

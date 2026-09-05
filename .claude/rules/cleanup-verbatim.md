@@ -39,16 +39,14 @@ avant tout jugement, chaque finding cité par §.
   inscrire le critère dans l'artefact lui-même pour qu'il tienne sans relecteur.
 - **La population d'un constat sur une étape, une section ou une liste numérotée inclut ses
   renvois entrants.** Quand l'édition change ce qu'une étape exige, `grep` son nom (« Étape N »,
-  titre de section) dans tout le bundle de skills **et** dans les fichiers de commande homonymes
-  (`.claude/commands/`), puis vérifier pour chaque hit que la cible dit bien ce que le renvoi lui
-  prête. Un renvoi est une assertion sur un autre document que personne ne vérifie ; une
-  paraphrase paraît à jour en ayant perdu la moitié du contenu.
+  titre de section) dans tout le bundle de skills **et** dans `.claude/commands/`, puis vérifier
+  pour chaque hit que la cible dit bien ce que le renvoi lui prête — une paraphrase paraît à jour
+  en ayant perdu la moitié du contenu.
 - **Un correctif de fuite se déclare clos sur une classe, jamais sur l'occurrence qui l'a
   révélée.** « La seule voie », « le seul cas », « le dernier endroit » sont interdits dans un
   correctif de sécurité tant qu'un **dénombrement** ne les accompagne pas — N formes recensées,
-  k fuyaient — épinglé dans l'artefact par un test paramétré, pas par une phrase de docstring.
-  Le moment le plus dangereux d'un correctif est juste après qu'il a marché : la preuve que le
-  chemin connu est fermé se lit spontanément comme la preuve qu'il n'y en avait qu'un.
+  k fuyaient — épinglé dans l'artefact par un test paramétré, pas par une phrase de docstring : la
+  preuve que le chemin connu est fermé se lit spontanément comme la preuve qu'il n'y en avait qu'un.
 - **Vérifier aussi les 3 axes de conception** de `.claude/rules/contraintes.md` (modulaire /
   fractionné / scalable), en plus de KISS / DRY / YAGNI.
 - **Relancer les tests après le cleanup** : il a pu casser quelque chose.

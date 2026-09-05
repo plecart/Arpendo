@@ -76,11 +76,10 @@ Une décision consignée au mauvais endroit est perdue au même titre qu'une dé
 **Chaque décision qui affirme un fait sur l'existant est confrontée aux sources avant d'être
 écrite.** Une valeur, une composition, un comportement de spec : `grep` des sources de vérité
 (`.claude/pipeline.config.md`, « Sources de vérité ») sur deux ou trois ancres **avant** d'écrire
-le verrou, et l'ancre vérifiée notée dans la décision (« §1.2 muet », « §1.2 conforme »). Une
-décision sans ancre porte `⚠️ non confrontée`. Le verrou est un point d'écriture comme un autre au
-sens de `decisions-vs-doc` ; trois fois, une décision verrouillée ici a contredit une spec sans que
-personne ne le voie avant le briefing d'une session ultérieure — un arrêt de chantier au lieu d'un
-grep de trente secondes.
+le verrou, et l'ancre vérifiée notée dans la décision (« §1.2 muet », « §1.2 conforme ») ; une
+décision sans ancre porte `⚠️ non confrontée`. Le verrou est un point d'écriture au sens de
+`decisions-vs-doc` : une contradiction qui le traverse ne se découvre qu'au briefing d'une session
+ultérieure, en arrêt de chantier.
 
 Puis, si la session partait d'une issue en `needs-interrogation`, dire à l'utilisateur que l'issue
 peut passer à `ready-for-agent` (ou `ready-for-human`) — la transition elle-même appartient à
