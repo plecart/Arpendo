@@ -53,7 +53,7 @@ void main() {
         signe.colorFilter,
         ColorFilter.mode(theme.colorScheme.primary, BlendMode.srcIn),
         reason:
-            'srcIn conserve les opacités 0,30 / 0,58 des courbes du SVG et '
+            'srcIn conserve les opacités 0,26 / 0,52 des courbes du SVG et '
             'donne le mode sombre gratuitement — le fichier, lui, reste teinté '
             'de la valeur claire',
       );

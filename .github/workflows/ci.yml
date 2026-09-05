@@ -114,6 +114,10 @@ jobs:
       # dépendance (téléchargement du SDK Android au build) — README « Ce qui reste ouvert », n°5.
       - name: Build
         run: just build
+        env:
+          # Factice : l'AAB de CI n'est jamais distribué, la recette exige
+          # seulement que la variable existe (`env_var` du justfile).
+          API_BASE_URL: https://ci.invalid
 
       - name: Tests
         # Coordonnées des conteneurs `services` ci-dessus — les tests parlent à de vrais

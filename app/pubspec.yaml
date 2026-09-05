@@ -21,9 +21,16 @@ dependencies:
   # Exigée par le code que `gen-l10n` produit. La contrainte est laissée au SDK,
   # qui épingle la version que sa propre génération attend.
   intl: any
+  # Version installée (`version: x.y.z+N` du pubspec) : source unique du
+  # numéro de build comparé aux seuils de `/version`. Seul `main.dart`
+  # l'importe.
+  package_info_plus: ^10.2.1
   # Jeu d'icônes unique de l'interface, graisse Regular (spec UX §1.8). Seul
   # `lib/ui/core/theme/icones.dart` l'importe.
   phosphor_icons: ^3.0.1
+  # Injection des services depuis la racine de composition (brief #46 :
+  # `provider` entre avec le premier ViewModel). Seul `main.dart` l'importe.
+  provider: ^6.1.2
 
 dev_dependencies:
   # Déjà dans l'arbre en transitive de `connectivity_plus` ; déclarée ici pour

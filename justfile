@@ -134,9 +134,16 @@ fmt-app:
 fmt-check-app:
     "{{dart}}" format --output none --set-exit-if-changed .
 
+# Lance l'app sur l'émulateur ou l'appareil branché, configurée depuis le `.env` de la racine
+# (chargé par `set dotenv-load`). `env_var` échoue avec un message clair si la variable manque —
+# le pendant, côté recette, du refus de démarrer de l'app.
+[working-directory('app')]
+run:
+    "{{flutter}}" run --dart-define=API_BASE_URL={{env_var("API_BASE_URL")}}
+
 [working-directory('app')]
 build:
-    "{{flutter}}" build appbundle
+    "{{flutter}}" build appbundle --dart-define=API_BASE_URL={{env_var("API_BASE_URL")}}
 
 # ─── infra/ ────────────────────────────────────────────────────────────────────
 

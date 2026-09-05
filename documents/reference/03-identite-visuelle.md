@@ -268,17 +268,15 @@ C'est la réponse à ta double contrainte : l'hexagone est indispensable puisque
 dessus, mais il ne doit pas être ce qu'on voit en premier.
 
 ```svg
-<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img"
+<svg viewBox="24.3 22.3 62 62" xmlns="http://www.w3.org/2000/svg" role="img"
      aria-label="Arpendo — courbes de niveau refermées sur un hexagone">
-  <g fill="none" stroke="#123D1E" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M32 4.5 C46.5 6 58.5 16.5 59 30.5 C59.5 45 47 59.5 32 60
-             C16.5 60.5 5 46.5 5 31.5 C5 16.5 18 3 32 4.5 Z"
-          stroke-width="2" opacity="0.30"/>
-    <path d="M32 14 C42.5 15 50.5 21.5 50.5 31.5 C50.5 41.5 42 50.5 32 50.5
-             C21.5 50.5 13.5 42 13.5 31.5 C13.5 21.5 21.5 13 32 14 Z"
-          stroke-width="2" opacity="0.58"/>
+  <g fill="none" stroke="#123D1E" stroke-width="3" stroke-linejoin="round">
+    <path d="M75.21 73.21 … L76.59 71.74 Z" opacity="0.26"/>
+    <!-- l'œuf calculé : le tracé complet est celui de `signe-arpendo.svg`,
+         identique point à point à celui de l'icône ci-dessous -->
+    <circle cx="54" cy="51" r="19" opacity="0.52"/>
   </g>
-  <path d="M32 21.4 L40.6 26.4 L40.6 36.4 L32 41.4 L23.4 36.4 L23.4 26.4 Z"
+  <path d="M54.0 36.0 L67.0 43.5 L67.0 58.5 L54.0 66.0 L41.0 58.5 L41.0 43.5 Z"
         fill="#123D1E"/>
 </svg>
 ```
@@ -295,16 +293,14 @@ casse, sans point final — discrète, conformément à ta réponse 9.2.
 ```svg
 <svg viewBox="0 0 260 64" xmlns="http://www.w3.org/2000/svg" role="img"
      aria-label="Arpendo — prends du terrain">
-  <g transform="translate(0,6) scale(0.8)">
-    <g fill="none" stroke="#123D1E" stroke-linejoin="round" stroke-linecap="round">
-      <path d="M32 4.5 C46.5 6 58.5 16.5 59 30.5 C59.5 45 47 59.5 32 60
-               C16.5 60.5 5 46.5 5 31.5 C5 16.5 18 3 32 4.5 Z"
-            stroke-width="2.4" opacity="0.30"/>
-      <path d="M32 14 C42.5 15 50.5 21.5 50.5 31.5 C50.5 41.5 42 50.5 32 50.5
-               C21.5 50.5 13.5 42 13.5 31.5 C13.5 21.5 21.5 13 32 14 Z"
-            stroke-width="2.4" opacity="0.58"/>
+  <g transform="translate(-22,-18.2) scale(0.897)">
+    <!-- le signe A″2 — œuf calculé, cercle parfait, hexagone — repris point à
+         point de `signe-arpendo.svg` ; le fichier `logo-arpendo.svg` fait foi -->
+    <g fill="none" stroke="#123D1E" stroke-width="3" stroke-linejoin="round">
+      <path d="M75.21 73.21 … L76.59 71.74 Z" opacity="0.26"/>
+      <circle cx="54" cy="51" r="19" opacity="0.52"/>
     </g>
-    <path d="M32 21.4 L40.6 26.4 L40.6 36.4 L32 41.4 L23.4 36.4 L23.4 26.4 Z"
+    <path d="M54.0 36.0 L67.0 43.5 L67.0 58.5 L54.0 66.0 L41.0 58.5 L41.0 43.5 Z"
           fill="#123D1E"/>
   </g>
   <text x="66" y="34" font-family="Roboto, Arial, sans-serif" font-size="27"
