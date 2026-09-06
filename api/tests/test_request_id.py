@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import AsyncIterator
+from typing import NoReturn
 
 import pytest
 import structlog
@@ -24,12 +25,15 @@ et un test qui prendrait « la seule ligne » émise attraperait la sienne un jo
 """
 
 
-async def _sans_message(*_: object) -> None:
-    """Un `receive` / `send` qui ne sert à rien, pour un scope qui n'échange aucun message.
+async def _sans_message(*_: object) -> NoReturn:
+    """Un `receive` / `send` qui refuse de servir, pour un scope qui n'échange aucun message.
 
     Le cycle de vie éprouvé plus bas ne lit ni n'écrit : lui monter de vrais canaux décrirait un
-    protocole que le test ne regarde pas.
+    protocole que le test ne regarde pas. `NoReturn` tient les deux rôles à la fois — un canal qui
+    ne rend jamais est compatible avec tout type de retour — et lever fait du « aucun message »
+    une assertion plutôt qu'une promesse.
     """
+    raise AssertionError("le cycle de vie n'échange aucun message")
 
 
 @pytest.fixture

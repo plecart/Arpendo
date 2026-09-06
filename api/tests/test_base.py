@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from conftest import ddl
+from conftest import ddl, table_de
 from sqlalchemy import Index
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.schema import CreateIndex, CreateTable
@@ -28,7 +28,7 @@ class Mesure(Base):
 
 def test_les_annotations_python_donnent_les_types_du_cadrage() -> None:
     """BIGINT partout, horodatages avec fuseau, JSONB, text — cadrage §12.4, §13.6."""
-    table = ddl(CreateTable(Mesure.__table__))
+    table = ddl(CreateTable(table_de(Mesure)))
 
     assert "compteur BIGINT NOT NULL" in table
     assert "survenu_a TIMESTAMP WITH TIME ZONE NOT NULL" in table
@@ -40,6 +40,7 @@ def test_les_annotations_python_donnent_les_types_du_cadrage() -> None:
 
 def test_les_contraintes_et_index_sont_nommes_par_convention() -> None:
     """Un `downgrade` ne peut retirer que ce qu'il sait nommer."""
-    assert "CONSTRAINT pk_mesure PRIMARY KEY (id)" in ddl(CreateTable(Mesure.__table__))
-    (index,) = Mesure.__table__.indexes
+    mesure = table_de(Mesure)
+    assert "CONSTRAINT pk_mesure PRIMARY KEY (id)" in ddl(CreateTable(mesure))
+    (index,) = mesure.indexes
     assert "INDEX ix_mesure_partie_compteur ON mesure (partie, compteur)" in ddl(CreateIndex(index))

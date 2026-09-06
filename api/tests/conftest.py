@@ -12,9 +12,10 @@ from evenements import PREFIXE
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from magasins import magasins_de_la_suite
-from sqlalchemy import delete, select
+from sqlalchemy import Table, delete, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.schema import CreateIndex, CreateTable
 
 from arpendo_api.core import resources
@@ -41,7 +42,20 @@ def ddl(element: CreateTable | CreateIndex) -> str:
     Les conventions de `db.base` s'observent dans le DDL compilé : c'est là, et nulle part dans
     l'objet Python, qu'un `Mapped[int]` devient un `BIGINT`.
     """
-    return str(element.compile(dialect=postgresql.dialect()))
+    dialecte = postgresql.dialect()  # type: ignore[no-untyped-call]  # SQLAlchemy ne l'annote pas
+    return str(element.compile(dialect=dialecte))
+
+
+def table_de(modele: type[DeclarativeBase]) -> Table:
+    """La `Table` d'un modèle déclaratif, avec le type qu'elle a vraiment.
+
+    SQLAlchemy annote `__table__` en `FromClause` — assez large pour une vue ou une jointure —
+    alors qu'un modèle à `__tablename__` porte toujours une `Table` : c'est elle que `CreateTable`
+    exige, et elle seule connaît ses index.
+    """
+    table = modele.__table__
+    assert isinstance(table, Table)
+    return table
 
 
 RACINE = Path(__file__).resolve().parent.parent.parent
@@ -94,7 +108,7 @@ def variables_requises() -> set[str]:
     return {nom.upper() for nom, champ in Settings.model_fields.items() if champ.is_required()}
 
 
-def reglages_surcharges(surcharges: Mapping[str, str]) -> Settings:
+def reglages_surcharges(surcharges: Mapping[str, object]) -> Settings:
     """Les réglages de l'environnement, amendés — et **revalidés**.
 
     `model_copy(update=…)` poserait les valeurs telles quelles, sans repasser par les validateurs :

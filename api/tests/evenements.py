@@ -19,6 +19,7 @@ La consigne suppose que **pytest** importe lui aussi ce fichier sous ce nom, ce 
 seconde inscription, consigne respectée à la lettre.
 """
 
+from collections.abc import Iterable
 from typing import ClassVar
 
 from arpendo_api.core.journal import Event
@@ -42,3 +43,17 @@ class Capture(Event):
     type: ClassVar[str] = f"{PREFIXE}captured"
 
     hexagones: int
+
+
+def captures(evenements: Iterable[Event]) -> list[Capture]:
+    """Les événements reçus, avec le type que la suite leur connaît.
+
+    Un abonné rend des ``Event`` : le type concret n'existe qu'à l'exécution. Le rétrécissement
+    passe par une vérification réelle, jamais par un ``cast`` — recevoir autre chose qu'une capture
+    échoue ici, en nommant le type reçu.
+    """
+    resultat: list[Capture] = []
+    for evenement in evenements:
+        assert isinstance(evenement, Capture), type(evenement)
+        resultat.append(evenement)
+    return resultat

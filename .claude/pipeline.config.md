@@ -51,7 +51,7 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 - lint         : `just lint`
 - format       : `just fmt`                   # écrit
 - format:check : `just fmt-check`             # vérifie sans écrire
-- typecheck    : `just typecheck`
+- typecheck    : `just typecheck`             # `mypy --strict` sur `api/src/` et `api/tests/`
 - build        : `just build`
 - run local    : `just up`
 - run app      : `just run`                   # app sur l'émulateur/appareil, `--dart-define` depuis le `.env`
