@@ -1,18 +1,24 @@
 """La suite partage-t-elle ses magasins avec quelqu'un — l'application, ou une suite voisine ?
 
 Le pourquoi est dans le README d'`api/`, section « Tester et vérifier ». Ce module garde les deux
-séparations, parce que ni l'une ni l'autre ne vit dans du code : la première dans des fichiers de
-configuration, la seconde dans une fixture de session qu'un jour on croira facultative.
+séparations, parce que ni l'une ni l'autre ne vit dans du code : celle d'avec l'application vit
+dans des fichiers de configuration, celle d'avec les suites voisines dans une fixture de session
+qu'un jour on croira facultative.
 
-Les deux gardes portent sur la **configuration**, pas sur un comportement observé, et c'est
+Les trois gardes portent sur la **configuration**, pas sur un comportement observé, et c'est
 délibéré — voir la docstring du premier.
 """
 
 import re
-from urllib.parse import urlsplit
 
 from conftest import COMPOSE
-from magasins import BASE_DE_LA_SUITE, DATABASE_URL, nom_de_base
+from magasins import (
+    BASE_DE_LA_SUITE,
+    DATABASE_URL,
+    INDEX_CANDIDATS,
+    base_logique,
+    nom_de_base,
+)
 
 from arpendo_api.core.settings import Settings
 
@@ -26,21 +32,6 @@ Toute autre forme fait **échouer bruyamment**, jamais silencieusement : l'inter
 propre message, la disparition de la clé aussi, et `base_logique` lève sur le reste. Aucune ne
 rend ce garde vert en ne mesurant plus rien.
 """
-
-
-def base_logique(url: str) -> int:
-    """L'index de base de données que porte une URL Valkey — zéro si elle n'en nomme aucune.
-
-    `redis://hôte:6379/2` → 2 ; `redis://hôte:6379` → 0, qui est le défaut du protocole.
-
-    Args:
-        url: une URL Valkey ou Redis.
-
-    Returns:
-        L'index, tel que le client l'emploiera.
-    """
-    chemin = urlsplit(url).path.strip("/")
-    return int(chemin) if chemin else 0
 
 
 def test_la_suite_n_utilise_pas_la_base_valkey_de_l_application() -> None:
@@ -94,4 +85,21 @@ def test_la_suite_tourne_sur_sa_propre_base_postgresql() -> None:
     assert base != nom_de_base(DATABASE_URL), (
         "la base de la suite est celle que l'environnement nomme : le test des migrations "
         "redescendra à `base` le schéma d'une voisine en plein test"
+    )
+
+
+def test_la_suite_tourne_sur_sa_propre_base_logique_valkey() -> None:
+    """La suite compte ses requêtes sur une base logique qu'elle s'est réservée.
+
+    L'index exact n'est pas prévisible — c'est le premier libre — donc le garde porte sur
+    l'**appartenance au jeu des candidats**, ce qui exclut d'un coup la 0 de l'application et la
+    base des verrous. C'est aussi ce qui rougit si la fixture `magasins` cessait de poser
+    l'environnement : elle laisserait la suite sur celle des verrous, qu'elle viderait.
+    """
+    index = base_logique(Settings().valkey_url)
+
+    assert index in INDEX_CANDIDATS, (
+        f"la suite compte sur la base logique {index}, qu'elle ne s'est pas réservée : elle "
+        f"partage ses compteurs — qu'elle observe et purge globalement — avec l'application du "
+        f"compose ou avec une suite voisine. Attendu l'une de {INDEX_CANDIDATS}"
     )

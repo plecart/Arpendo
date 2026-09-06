@@ -121,8 +121,20 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > FROM pg_database WHERE datname LIKE 'arpendo_test_%';
 > ```
 >
-> Ce que cette base ne sépare pas encore : les **compteurs Valkey** du limiteur, que deux suites
-> concurrentes incrémentent, observent et purgent en commun sur la même base logique 1.
+> **Chaque suite se réserve aussi une base logique Valkey**, parmi les index 2 à 15. La réservation
+> est un verrou `SET arpendo:tests:base:<index> <pid> NX EX 3600` posé sur la base que `VALKEY_URL`
+> nomme — la 1 sur le poste comme en CI, qui **devient donc la base des verrous** et cesse d'être
+> candidate. `NX` la rend atomique : deux suites qui démarrent au même instant ne peuvent pas
+> obtenir le même index, là où un tirage sur le pid entrerait en collision une fois sur quatorze.
+> L'index obtenu est vidé (`FLUSHDB`) à la prise : ce qu'il contenait appartenait à une suite tuée.
+>
+> Le bail d'une heure est le filet contre le verrou orphelin d'un `kill -9` — sans lui, un index
+> sortirait du jeu jusqu'au prochain `FLUSHALL`. Pour les regarder :
+> `valkey-cli -n 1 KEYS 'arpendo:tests:base:*'`.
+>
+> **Ce que la séparation des magasins ne couvre pas, et ne peut pas couvrir : le pub/sub**, qui
+> traverse les bases logiques (mesuré). Ce qui isole le bus reste le **nom de canal**, `game:{uuid4}`,
+> un par partie et un par test — voir la fixture `partie` de `tests/conftest.py`.
 
 | Commande | Rôle |
 |---|---|

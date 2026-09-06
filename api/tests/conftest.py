@@ -238,9 +238,13 @@ def schema(alembic_config: Config, magasins: None) -> None:
 def partie() -> uuid.UUID:
     """Une partie propre à chaque test — aucun test ne voit ce qu'un autre a écrit.
 
-    Sans elle, l'isolation reposerait sur l'ordre d'exécution et sur le nettoyage d'un voisin. Elle
-    isole aussi les canaux du bus, y compris entre deux suites qui parlent au même Valkey : le
-    pub/sub ignore l'index de base de données, un nom de canal fixe serait partagé.
+    Sans elle, l'isolation reposerait sur l'ordre d'exécution et sur le nettoyage d'un voisin.
+
+    **C'est aussi la seule chose qui isole le bus entre deux suites concurrentes**, et `magasins`
+    n'y change rien : le pub/sub ignore l'index de base de données, donc une suite réservée sur la
+    7 reçoit ce qu'une suite réservée sur la 4 publie. Un canal à **nom fixe** — canal système,
+    verrou, annonce du worker — remettrait les suites en contact, et la séparation des magasins ne
+    le rattraperait pas.
     """
     return uuid.uuid4()
 
