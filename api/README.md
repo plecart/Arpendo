@@ -101,9 +101,28 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > traiter là où le canal se compose.
 >
 > `tests/test_isolation.py` garde la séparation des bases, qui ne vit sinon que dans `.env` et
-> `ci.yml`. Elle ne couvre pas deux suites lancées **en parallèle** depuis deux worktrees : elles
-> visent la même base 1, et se suppriment mutuellement leurs compteurs comme leurs lignes de
-> journal — chantier distinct.
+> `ci.yml`.
+
+> **Chaque suite crée sa propre base PostgreSQL**, `arpendo_test_<pid>`, sur le serveur et avec les
+> identifiants de `DATABASE_URL` — la fixture de session `magasins` la crée avant que quoi que ce
+> soit ne lise la configuration, et la détruit à la fin. Deux suites lancées **en parallèle** depuis
+> deux worktrees visaient sinon la même base (#94) : la purge du journal, qui porte sur le préfixe
+> de type, effaçait les lignes de la voisine en plein test, et le test des migrations redescendait
+> à `base` le schéma sous ses pieds. On ne partitionne pas une table par une clé de ligne quand
+> c'est la table qu'on supprime — d'où une base par suite, et non une clé de suite.
+>
+> Le nom porte le **pid**, unique parmi les processus vivants : deux suites concurrentes ne peuvent
+> pas se choisir le même. Un `kill -9` ne passe pas par la fin de session et laisse donc une base
+> derrière lui ; elle est inoffensive, et la suite suivante qui hériterait du même pid la recrée
+> par-dessus. Pour les balayer à la main :
+>
+> ```sql
+> SELECT 'DROP DATABASE ' || quote_ident(datname) || ' WITH (FORCE);'
+> FROM pg_database WHERE datname LIKE 'arpendo_test_%';
+> ```
+>
+> Ce que cette base ne sépare pas encore : les **compteurs Valkey** du limiteur, que deux suites
+> concurrentes incrémentent, observent et purgent en commun sur la même base logique 1.
 
 | Commande | Rôle |
 |---|---|

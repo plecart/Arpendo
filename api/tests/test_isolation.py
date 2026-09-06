@@ -1,14 +1,18 @@
-"""La suite partage-t-elle son cache avec l'application qui tourne à côté ?
+"""La suite partage-t-elle ses magasins avec quelqu'un — l'application, ou une suite voisine ?
 
-Le pourquoi est dans le README d'`api/`, section « Tester et vérifier ». Ce module garde ce qui les
-sépare — la base logique Valkey — parce que cet invariant ne vit que dans des fichiers de
-configuration, où rien ne le protège.
+Le pourquoi est dans le README d'`api/`, section « Tester et vérifier ». Ce module garde les deux
+séparations, parce que ni l'une ni l'autre ne vit dans du code : la première dans des fichiers de
+configuration, la seconde dans une fixture de session qu'un jour on croira facultative.
+
+Les deux gardes portent sur la **configuration**, pas sur un comportement observé, et c'est
+délibéré — voir la docstring du premier.
 """
 
 import re
 from urllib.parse import urlsplit
 
 from conftest import COMPOSE
+from magasins import BASE_DE_LA_SUITE, DATABASE_URL, nom_de_base
 
 from arpendo_api.core.settings import Settings
 
@@ -67,4 +71,27 @@ def test_la_suite_n_utilise_pas_la_base_valkey_de_l_application() -> None:
         "la suite vise la même base logique Valkey que l'application du compose : elle effacera "
         "les compteurs de l'application et lira les siens. Poser `VALKEY_URL` sur la base 1 dans "
         "le `.env` (et dans le step Tests de `ci.yml`)"
+    )
+
+
+def test_la_suite_tourne_sur_sa_propre_base_postgresql() -> None:
+    """La suite écrit dans une base créée pour elle, jamais dans celle que l'environnement nomme.
+
+    Le garde est **exact** et non préfixé : le nom porte le pid de ce processus, la seule valeur
+    qu'aucune suite concurrente ne peut porter en même temps que nous. `startswith` laisserait
+    passer la base d'une voisine, qui est précisément ce dont on se sépare.
+
+    La comparaison au DSN d'origine reste, et elle n'est pas redondante : elle est ce qui rougit si
+    quelqu'un pointe l'environnement de la suite sur une base déjà nommée `arpendo_test_…`.
+    """
+    base = nom_de_base(Settings().database_url.get_secret_value())
+
+    assert base == BASE_DE_LA_SUITE, (
+        f"la suite tourne sur la base `{base}` et non sur la sienne : elle partage ses lignes de "
+        "journal — et son schéma — avec l'application du compose et avec toute suite voisine. La "
+        "fixture `magasins` de `conftest.py` n'a pas posé l'environnement"
+    )
+    assert base != nom_de_base(DATABASE_URL), (
+        "la base de la suite est celle que l'environnement nomme : le test des migrations "
+        "redescendra à `base` le schéma d'une voisine en plein test"
     )

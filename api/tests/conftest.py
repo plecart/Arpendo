@@ -11,6 +11,7 @@ from alembic.config import Config
 from evenements import PREFIXE
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from magasins import magasins_de_la_suite
 from sqlalchemy import delete, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -186,6 +187,30 @@ def lignes(capsys: pytest.CaptureFixture[str]) -> Iterator[Lignes]:
     structlog.reset_defaults()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def magasins() -> Iterator[None]:
+    """Déroute toute la session vers des magasins que cette suite est seule à posséder.
+
+    **Première fixture de la session, et `autouse` pour qu'aucun test n'ait à la demander** :
+    l'environnement doit être posé avant la première lecture de la configuration, par qui que ce
+    soit — les fixtures d'ici, l'``env.py`` d'Alembic, le test des migrations, et le sous-processus
+    du worker, qui hérite de l'environnement du processus. Elle ne repose pas sur l'ordre de
+    déclaration, qui n'est pas un contrat de pytest : `schema` la **demande** explicitement.
+
+    Elle ne touche à rien dans ``api/src/`` — le paquet lit déjà toute sa configuration par
+    ``Settings``, et ``Settings`` lit l'environnement (cadrage §13.9 règle 5). C'est ce qui permet
+    à l'isolation de tenir en un seul point.
+
+    ``MonkeyPatch.context()`` plutôt que ``os.environ`` à la main : la fixture homonyme est
+    cantonnée au test, et cette forme est celle que pytest documente pour obtenir la même
+    restauration à portée de session — sans le ``try``/``finally`` qu'on finit toujours par oublier.
+    """
+    with magasins_de_la_suite() as urls, pytest.MonkeyPatch.context() as patch:
+        for nom, valeur in urls.items():
+            patch.setenv(nom, valeur)
+        yield
+
+
 @pytest.fixture(scope="session")
 def alembic_config() -> Config:
     """La configuration d'Alembic — `[tool.alembic]` du `pyproject.toml`, sans `alembic.ini`.
@@ -196,11 +221,15 @@ def alembic_config() -> Config:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def schema(alembic_config: Config) -> None:
+def schema(alembic_config: Config, magasins: None) -> None:
     """Monte le schéma à `head` avant la suite : après `just up`, `just test` se suffit.
 
     Synchrone, et c'est nécessaire : `env.py` appelle `asyncio.run()`, qui refuse de démarrer
     dans une boucle déjà en cours — celle qu'un test asynchrone aurait ouverte.
+
+    Elle demande `magasins` alors qu'elle n'en lit rien : c'est ce qui **ordonne** les deux. Sans
+    cette dépendance, deux fixtures de session `autouse` s'exécuteraient dans l'ordre où pytest les
+    a rencontrées, et le schéma se monterait sur la base de l'environnement — celle d'à côté.
     """
     command.upgrade(alembic_config, "head")
 
