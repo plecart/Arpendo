@@ -129,10 +129,16 @@ masque partout où les réglages se lisent, en le portant dans un ``SecretStr``.
 """
 
 DETRUIRE_LA_BASE = f'DROP DATABASE IF EXISTS "{BASE_DE_LA_SUITE}" WITH (FORCE)'
-"""L'ordre joué **deux fois** : avant la création, pour la rendre idempotente, et à la sortie.
+"""L'ordre de sortie, joué **une seule fois** et sur une base dont on sait qu'elle est à nous.
 
-Un seul texte pour les deux, parce qu'ils doivent rester le même : une clause ``FORCE`` qui ne
-serait posée qu'à la sortie laisserait la reprise d'un pid recyclé échouer sur une connexion morte.
+Ce qui le rend sûr n'est pas le nom mais l'ordre des opérations : on ne l'atteint qu'après un
+``CREATE DATABASE`` réussi, donc la base qu'il détruit est celle que **cette** session a créée.
+Une destruction jouée *avant* la création n'aurait pas cette propriété — voir
+:func:`_base_postgresql`.
+
+``WITH (FORCE)`` coupe les connexions qui traîneraient : sans lui, un moteur qu'un test aurait
+oublié de libérer ferait échouer la destruction, et une orpheline naîtrait d'une suite **terminée
+normalement**.
 """
 
 
@@ -182,21 +188,26 @@ def _administrer(ordre: str) -> None:
 def _base_postgresql() -> Iterator[str]:
     """Crée la base de la suite pour la durée de la session, et la détruit en sortant.
 
-    **La création est idempotente**, et c'est ce qui rattrape le seul défaut du nom par pid : un
-    ``kill -9`` ne passe pas par la sortie de ce contexte et laisse la base derrière lui, que le
-    système finira par proposer de nouveau en recyclant le pid. Détruire d'abord ne peut viser
-    qu'une orpheline — aucun processus vivant ne porte notre pid — ce qui la distingue du balayage
-    de toutes les bases ``arpendo_test_*``, écarté à l'interrogatoire : une suite entre deux tests
-    peut n'avoir aucune connexion ouverte, et le balayage la tuerait.
+    **La création n'est pas idempotente, et c'est délibéré.** Un ``kill -9`` ne passe pas par la
+    sortie de ce contexte et laisse la base derrière lui ; le système finira par recycler le pid, et
+    la suite qui en hérite échoue alors au démarrage sur un ``DuplicateDatabaseError`` qui **nomme
+    l'orpheline** — le README dit comment la supprimer. Détruire d'abord pour se rendre idempotent
+    reposerait sur « aucun processus vivant ne porte notre pid », qui n'est vrai que **dans un seul
+    espace de pid** : deux espaces qui joignent le même serveur — WSL, un conteneur, un runner —
+    peuvent porter le même, et la suite détruirait la base d'une voisine **vivante** en croyant
+    balayer une morte. Échouer bruyamment coûte une commande à taper ; se tromper ici coûte la
+    suite d'à côté.
 
-    ``WITH (FORCE)`` coupe les connexions qui traîneraient : sans lui, un moteur qu'un test aurait
-    oublié de libérer ferait échouer la destruction, et l'orpheline naîtrait d'une suite **terminée
-    normalement**.
+    C'est aussi ce qui rend sûr le ``DROP`` de sortie : on ne l'atteint qu'après une création
+    réussie, donc il ne porte que sur la base de cette session.
+
+    Le balayage de toutes les bases ``arpendo_test_*`` au démarrage a été écarté à l'interrogatoire,
+    pour une raison voisine : une suite entre deux tests peut n'avoir aucune connexion ouverte, et
+    le balayage la tuerait.
 
     Yields:
         Le DSN de la base de la suite, à poser dans ``DATABASE_URL``.
     """
-    _administrer(DETRUIRE_LA_BASE)
     _administrer(f'CREATE DATABASE "{BASE_DE_LA_SUITE}"')
     try:
         yield DSN_DE_LA_SUITE

@@ -116,10 +116,18 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > à `base` le schéma sous ses pieds. On ne partitionne pas une table par une clé de ligne quand
 > c'est la table qu'on supprime — d'où une base par suite, et non une clé de suite.
 >
-> Le nom porte le **pid**, unique parmi les processus vivants : deux suites concurrentes ne peuvent
-> pas se choisir le même. Un `kill -9` ne passe pas par la fin de session et laisse donc une base
-> derrière lui ; elle est inoffensive, et la suite suivante qui hériterait du même pid la recrée
-> par-dessus. Pour les balayer à la main :
+> Le nom porte le **pid**, unique parmi les processus vivants d'un même espace de pid : deux suites
+> concurrentes ne peuvent pas se choisir le même. Un `kill -9` ne passe pas par la fin de session et
+> laisse donc une base derrière lui. Elle est inoffensive tant que personne n'hérite de ce pid ; la
+> suite qui en hérite **échoue au démarrage** sur `DuplicateDatabaseError: database
+> "arpendo_test_<pid>" already exists`, et il n'y a qu'à supprimer l'orpheline qu'elle nomme.
+>
+> La suite ne la supprime pas elle-même, et c'est délibéré : détruire avant de créer supposerait
+> qu'aucun processus vivant ne porte ce pid, ce qui n'est vrai que dans **un seul** espace de pid —
+> deux espaces qui joignent le même serveur (WSL, un conteneur, un runner) peuvent porter le même,
+> et la suite détruirait la base d'une voisine vivante en croyant balayer une morte.
+>
+> Pour les balayer à la main :
 >
 > ```sql
 > SELECT 'DROP DATABASE ' || quote_ident(datname) || ' WITH (FORCE);'
