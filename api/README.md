@@ -85,25 +85,84 @@ existe pour garantir. Ils lisent leurs coordonnées dans le `.env` de la racine,
 charge dans l'environnement des recettes. En CI, ce sont les conteneurs `services:` du workflow
 et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 
-> **La suite tourne sur la base Valkey 1, l'application sur la 0.** L'application tourne *toujours*
-> pendant la suite, et celle-ci efface toutes les clés `ratelimit:*` avant et après chaque test :
-> sur une base partagée, elle effaçait les compteurs de l'application et lisait les siens. Le
-> healthcheck du conteneur `api`, qui interroge `/health` toutes les dix secondes, suffisait à
-> faire échouer un test de fenêtre, rarement et de façon illisible.
+> **L'application tourne sur la base Valkey 0, et aucune suite n'y touche.** L'application tourne
+> *toujours* pendant la suite, et celle-ci efface toutes les clés `ratelimit:*` avant et après
+> chaque test : sur une base partagée, elle effaçait les compteurs de l'application et lisait les
+> siens. Le healthcheck du conteneur `api`, qui interroge `/health` toutes les dix secondes,
+> suffisait à faire échouer un test de fenêtre, rarement et de façon illisible. `VALKEY_URL`
+> pointe la 1, qui est la base des **verrous** ; chaque suite travaille sur un index qu'elle s'y
+> réserve — voir plus bas.
 >
 > **La séparation ne vaut que pour les commandes du keyspace** — celles du limiteur : `INCR`,
 > `EXPIRE`, `TTL`, `SCAN`. Aucune ne traverse les bases logiques, et le recouvrement y devient
-> donc impossible plutôt qu'improbable. **Le pub/sub du bus, lui, les traverse** : un abonné de la
-> base 1 reçoit ce qu'on publie depuis la base 0 (mesuré). Ce qui isole le bus est le **nom de
+> donc impossible plutôt qu'improbable. **Le pub/sub du bus, lui, les traverse** : un abonné d'une
+> base reçoit ce qu'on publie depuis une autre (mesuré). Ce qui isole le bus est le **nom de
 > canal** — `game:{uuid4}`, un par partie et un par test — et rien d'autre ; c'est écrit au point
 > d'usage, dans `tests/conftest.py`. Le jour où un canal à **nom fixe** apparaîtra — canal système,
 > verrou, annonce du worker — la suite et l'application se parleront de nouveau, et il faudra le
-> traiter là où le canal se compose.
+> traiter là où le canal se compose. **La séparation par magasin décrite plus bas n'y change
+> rien** : elle vaut pour le keyspace, jamais pour le pub/sub, et deux suites voisines s'entendent
+> donc l'une l'autre exactement comme l'application les entend.
 >
-> `tests/test_isolation.py` garde la séparation des bases, qui ne vit sinon que dans `.env` et
-> `ci.yml`. Elle ne couvre pas deux suites lancées **en parallèle** depuis deux worktrees : elles
-> visent la même base 1, et se suppriment mutuellement leurs compteurs comme leurs lignes de
-> journal — chantier distinct.
+> `tests/test_isolation.py` garde la séparation des bases, qui ne vit sinon que dans `.env`,
+> `ci.yml` et le compose. Il la garde sur **l'ensemble des bases qu'une suite peut atteindre** —
+> les verrous, et les quatorze index réservables — et non sur l'index tiré au lancement : celui-là
+> vient du jeu des candidates par construction, donc le comparer ne mesurerait rien (mesuré :
+> `VALKEY_URL` sur la 0 laissait passer).
+
+> **Chaque suite crée sa propre base PostgreSQL**, `arpendo_test_<jeton>`, sur le serveur et avec les
+> identifiants de `DATABASE_URL` — la fixture de session `magasins` la crée avant que quoi que ce
+> soit ne lise la configuration, et la détruit à la fin. Deux suites lancées **en parallèle** depuis
+> deux worktrees visaient sinon la même base (#94) : la purge du journal, qui porte sur le préfixe
+> de type, effaçait les lignes de la voisine en plein test, et le test des migrations redescendait
+> à `base` le schéma sous ses pieds. On ne partitionne pas une table par une clé de ligne quand
+> c'est la table qu'on supprime — d'où une base par suite, et non une clé de suite.
+>
+> Le nom porte un **jeton aléatoire** tiré au lancement, et non le pid. Un pid n'est unique que
+> parmi les processus vivants d'un même espace de nommage, et le système le **réattribue** : il
+> faudrait alors détruire avant de créer pour survivre à la collision, et cette destruction ne
+> saurait pas distinguer le résidu d'une suite morte de la base d'une voisine vivante — deux espaces
+> de pid qui joignent le même serveur (WSL, un conteneur, un runner) peuvent porter le même. Un nom
+> qui n'est jamais réattribué supprime la collision, donc la destruction, donc le risque.
+>
+> Écarté pour la même raison, à l'interrogatoire : un nom **stable par worktree**, recréé à chaque
+> lancement — deux terminaux du même worktree se détruiraient, c'est-à-dire le cas même qu'on
+> cherche à rendre vert. Et le **balayage** de toutes les bases `arpendo_test_*` au démarrage : une
+> suite entre deux tests peut n'avoir aucune connexion ouverte, le balayage la tuerait.
+>
+> Conséquence : un `kill -9` ne passe pas par la fin de session et laisse une base derrière lui, mais
+> elle est **inoffensive** — aucune suite ne reprendra jamais son nom. En contrepartie rien ne force
+> la main : elles s'accumulent en silence. Pour les balayer, de temps en temps :
+>
+> ```sql
+> SELECT 'DROP DATABASE ' || quote_ident(datname) || ' WITH (FORCE);'
+> FROM pg_database WHERE datname LIKE 'arpendo_test_%';
+> ```
+>
+> **Chaque suite se réserve aussi une base logique Valkey**, parmi les index 2 à 15. La réservation
+> est un verrou `SET arpendo:tests:base:<index> <jeton> NX EX 3600` posé sur la base que
+> `VALKEY_URL` nomme — la 1 sur le poste comme en CI, qui **devient donc la base des verrous** et
+> cesse d'être candidate. Un verrou ici, un simple jeton là-bas, et c'est le nombre de noms
+> disponibles qui l'explique : quatorze places qu'il faut se répartir, contre un espace assez vaste
+> pour qu'on s'y ignore. `NX` rend la prise atomique — deux suites qui démarrent au même instant ne
+> peuvent pas obtenir le même index, là où un tirage au sort entrerait en collision une fois sur
+> quatorze. L'index obtenu est vidé (`FLUSHDB`) à la prise : ce qu'il contenait appartenait à une
+> suite tuée.
+>
+> La libération compare le jeton avant de supprimer, en un seul pas (`EVAL`) : une suite dont le
+> bail aurait expiré pendant qu'elle tournait ne peut pas emporter la réservation de celle qui a
+> repris son index. Le bail d'une heure ne sert donc qu'au verrou orphelin d'un `kill -9` — sans
+> lui, un index sortirait du jeu jusqu'au prochain `FLUSHALL`. Pour les regarder — le Valkey du
+> compose est authentifié, y compris en local (cadrage §13.10) :
+>
+> ```sh
+> docker exec infra-valkey-1 sh -c \
+>   'valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" -n 1 KEYS "arpendo:tests:base:*"'
+> ```
+>
+> Le `sh -c` n'est pas décoratif : sans lui, `$VALKEY_PASSWORD` est développé par le shell de
+> l'hôte, où la variable n'existe que si le `.env` a été chargé. Là, elle est développée dans le
+> conteneur, qui la porte toujours.
 
 | Commande | Rôle |
 |---|---|
