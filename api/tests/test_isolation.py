@@ -69,10 +69,16 @@ def test_aucune_base_valkey_de_la_suite_ne_touche_celle_de_l_application() -> No
         "chaque suite y écrit une clé. Poser `VALKEY_URL` sur la base 1 dans le `.env` (et dans "
         "le step Tests de `ci.yml`)"
     )
-    assert not du_compose & set(INDEX_CANDIDATS), (
-        f"une suite peut se réserver la base logique de l'application du compose {du_compose} : "
-        "elle la viderait à la réservation, puis effacerait ses compteurs et lirait les siens"
+    reservables_du_compose = du_compose & set(INDEX_CANDIDATS)
+    assert not reservables_du_compose, (
+        f"une suite peut se réserver {reservables_du_compose}, que l'application du compose "
+        "utilise : elle la viderait à la réservation, puis effacerait ses compteurs et lirait les "
+        "siens"
     )
+    # Verte par construction tant que `VALKEY_URL` nomme un index hors de la plage réservable :
+    # `INDEX_CANDIDATS` en exclut alors `INDEX_DES_VERROUS` sans avoir à filtrer. Ce qui la met à
+    # l'épreuve est la combinaison — filtre retiré **et** verrous sur un index de 2 à 15 — et non
+    # l'une de ses deux moitiés. Ne pas lire son vert comme une couverture du jeu de candidats.
     assert INDEX_DES_VERROUS not in INDEX_CANDIDATS, (
         f"une suite peut se réserver la base des verrous {INDEX_DES_VERROUS} : elle la viderait, "
         "et toutes les suites voisines se croiraient alors seules sur leur index"
