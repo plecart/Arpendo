@@ -100,7 +100,9 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > canal** — `game:{uuid4}`, un par partie et un par test — et rien d'autre ; c'est écrit au point
 > d'usage, dans `tests/conftest.py`. Le jour où un canal à **nom fixe** apparaîtra — canal système,
 > verrou, annonce du worker — la suite et l'application se parleront de nouveau, et il faudra le
-> traiter là où le canal se compose.
+> traiter là où le canal se compose. **La séparation par magasin décrite plus bas n'y change
+> rien** : elle vaut pour le keyspace, jamais pour le pub/sub, et deux suites voisines s'entendent
+> donc l'une l'autre exactement comme l'application les entend.
 >
 > `tests/test_isolation.py` garde la séparation des bases, qui ne vit sinon que dans `.env`,
 > `ci.yml` et le compose. Il la garde sur **l'ensemble des bases qu'une suite peut atteindre** —
@@ -133,11 +135,14 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > ```
 >
 > **Chaque suite se réserve aussi une base logique Valkey**, parmi les index 2 à 15. La réservation
-> est un verrou `SET arpendo:tests:base:<index> <pid> NX EX 3600` posé sur la base que `VALKEY_URL`
-> nomme — la 1 sur le poste comme en CI, qui **devient donc la base des verrous** et cesse d'être
-> candidate. `NX` la rend atomique : deux suites qui démarrent au même instant ne peuvent pas
-> obtenir le même index, là où un tirage sur le pid entrerait en collision une fois sur quatorze.
-> L'index obtenu est vidé (`FLUSHDB`) à la prise : ce qu'il contenait appartenait à une suite tuée.
+> est un verrou `SET arpendo:tests:base:<index> <jeton> NX EX 3600` posé sur la base que
+> `VALKEY_URL` nomme — la 1 sur le poste comme en CI, qui **devient donc la base des verrous** et
+> cesse d'être candidate. Un verrou ici, un simple jeton là-bas, et c'est le nombre de noms
+> disponibles qui l'explique : quatorze places qu'il faut se répartir, contre un espace assez vaste
+> pour qu'on s'y ignore. `NX` rend la prise atomique — deux suites qui démarrent au même instant ne
+> peuvent pas obtenir le même index, là où un tirage au sort entrerait en collision une fois sur
+> quatorze. L'index obtenu est vidé (`FLUSHDB`) à la prise : ce qu'il contenait appartenait à une
+> suite tuée.
 >
 > Le bail d'une heure est le filet contre le verrou orphelin d'un `kill -9` — sans lui, un index
 > sortirait du jeu jusqu'au prochain `FLUSHALL`. Pour les regarder — le Valkey du compose est
@@ -147,10 +152,6 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > docker exec infra-valkey-1 valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" \
 >   -n 1 KEYS 'arpendo:tests:base:*'
 > ```
->
-> **Ce que la séparation des magasins ne couvre pas, et ne peut pas couvrir : le pub/sub**, qui
-> traverse les bases logiques (mesuré). Ce qui isole le bus reste le **nom de canal**, `game:{uuid4}`,
-> un par partie et un par test — voir la fixture `partie` de `tests/conftest.py`.
 
 | Commande | Rôle |
 |---|---|
