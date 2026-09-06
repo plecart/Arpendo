@@ -78,8 +78,12 @@ DOCKERFILE = RACINE / "api" / "Dockerfile"
 CI = RACINE / ".github" / "workflows" / "ci.yml"
 """Le workflow de CI — lu pour ses `services:`, les seules images du dépôt qu'aucun bot ne suit."""
 
-PYTHON_VERSION = (RACINE / "api" / ".python-version").read_text(encoding="utf-8").strip()
-"""La version de Python que le projet a choisie — source unique, que `uv` lit en local et en CI."""
+PYTHON_VERSION = RACINE / "api" / ".python-version"
+"""Le fichier qui choisit la version de Python — source unique, que `uv` lit en local et en CI.
+
+Un chemin, jamais son contenu : lu par le test qui le compare, pour qu'un fichier absent rende un
+rouge nommé et non une panne de session à l'import de ce module.
+"""
 
 ENV_EXAMPLE = RACINE / ".env.example"
 """Le modèle de `.env` — la seule déclaration des valeurs que le poste et le compose se partagent.
@@ -88,6 +92,24 @@ Lu par les gardes qui portent sur un invariant **réparti** entre lui et `infra/
 une valeur proposée ici et relayée là-bas n'est cohérente nulle part ailleurs, et un commentaire de
 chaque côté ne la tient pas.
 """
+
+
+def document_yaml(chemin: Path) -> dict[str, Any]:
+    """Un fichier YAML du dépôt tel que `yaml.safe_load` le rend — un objet, pas une liste.
+
+    Les ancres sont **développées** au chargement : dans le compose, les blocs `environment`
+    factorisés dans `x-env` sont rendus fusionnés, tels que chaque conteneur les reçoit.
+
+    Appelée à la **collecte** par les paramétrisations de `test_compose.py` et `test_images.py` :
+    une assertion qui échouerait ici avorterait le module entier, d'où la seule garde
+    structurelle, celle sans laquelle rien d'autre ne peut être lu.
+
+    Args:
+        chemin: le fichier à lire, l'une des constantes ci-dessus.
+    """
+    document = yaml.safe_load(chemin.read_text(encoding="utf-8"))
+    assert isinstance(document, dict), f"{chemin.name} ne rend pas un objet YAML"
+    return document
 
 
 def variables_des_reglages() -> set[str]:
@@ -105,21 +127,6 @@ def variables_des_reglages() -> set[str]:
         Les noms de variables, en majuscules.
     """
     return {nom.upper() for nom in Settings.model_fields}
-
-
-def document_du_compose() -> dict[str, Any]:
-    """Le compose local, tel que YAML le rend — et c'est un objet, pas une liste ni un scalaire.
-
-    `yaml.safe_load` **développe les ancres** au chargement : les blocs `environment` factorisés
-    dans `x-env` sont rendus fusionnés, c'est-à-dire tels que chaque conteneur les reçoit.
-
-    Appelée à la **collecte** par les paramétrisations de `test_compose.py` et `test_images.py` :
-    une assertion qui échouerait ici avorterait ces deux modules entiers, d'où la seule garde
-    structurelle, celle sans laquelle rien d'autre ne peut être lu.
-    """
-    document = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
-    assert isinstance(document, dict)
-    return document
 
 
 def variables_requises() -> set[str]:

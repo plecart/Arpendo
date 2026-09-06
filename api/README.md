@@ -105,9 +105,10 @@ pour l'image `uv` plutôt qu'un `COPY --from=<image>`, et deux `FROM python` ide
 Le bot propose aussi les **tags voisins** — `python:3.14-slim`, `postgres:18` — et un tel build
 passerait en vert. `tests/test_images.py` tient ce que le bot ne voit pas : toute image tirée porte
 une empreinte, tout `COPY --from` nomme une étape, le `FROM python` est la version d'`.python-version`,
-et `postgres` comme `valkey` sont la même majeure dans le compose et dans les `services:` de la CI
-(qu'aucun écosystème ne suit). Une PR Dependabot qui monte une majeure est rouge : c'est à un humain
-de monter les deux côtés ensemble.
+et les `services:` de la CI (qu'aucun écosystème ne suit) sont exactement les images tirées du
+compose, au même `image:tag`. Une PR Dependabot qui monte `python`, `postgres` ou `valkey` est donc
+rouge : c'est à un humain de monter les deux côtés ensemble. Seule `uv` n'est tenue par rien —
+`uv sync --locked` rend le résultat identique quelle que soit sa version.
 
 **Le même job scanne l'image avec Trivy**, en deux passes : un rapport de toutes les gravités, qui
 ne bloque jamais, puis une porte qui rougit sur une vulnérabilité **critique et corrigeable** —
