@@ -129,8 +129,13 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > L'index obtenu est vidé (`FLUSHDB`) à la prise : ce qu'il contenait appartenait à une suite tuée.
 >
 > Le bail d'une heure est le filet contre le verrou orphelin d'un `kill -9` — sans lui, un index
-> sortirait du jeu jusqu'au prochain `FLUSHALL`. Pour les regarder :
-> `valkey-cli -n 1 KEYS 'arpendo:tests:base:*'`.
+> sortirait du jeu jusqu'au prochain `FLUSHALL`. Pour les regarder — le Valkey du compose est
+> authentifié, y compris en local (cadrage §13.10) :
+>
+> ```sh
+> docker exec infra-valkey-1 valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" \
+>   -n 1 KEYS 'arpendo:tests:base:*'
+> ```
 >
 > **Ce que la séparation des magasins ne couvre pas, et ne peut pas couvrir : le pub/sub**, qui
 > traverse les bases logiques (mesuré). Ce qui isole le bus reste le **nom de canal**, `game:{uuid4}`,
