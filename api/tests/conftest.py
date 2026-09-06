@@ -3,9 +3,11 @@ import logging
 import uuid
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping
 from pathlib import Path
+from typing import Any
 
 import pytest
 import structlog
+import yaml
 from alembic import command
 from alembic.config import Config
 from evenements import PREFIXE
@@ -73,6 +75,12 @@ pile que personne ne lève ici.
 DOCKERFILE = RACINE / "api" / "Dockerfile"
 """L'image du paquet, telle qu'elle se construit — lue par le garde des images épinglées."""
 
+CI = RACINE / ".github" / "workflows" / "ci.yml"
+"""Le workflow de CI — lu pour ses `services:`, les seules images du dépôt qu'aucun bot ne suit."""
+
+PYTHON_VERSION = (RACINE / "api" / ".python-version").read_text(encoding="utf-8").strip()
+"""La version de Python que le projet a choisie — source unique, que `uv` lit en local et en CI."""
+
 ENV_EXAMPLE = RACINE / ".env.example"
 """Le modèle de `.env` — la seule déclaration des valeurs que le poste et le compose se partagent.
 
@@ -97,6 +105,21 @@ def variables_des_reglages() -> set[str]:
         Les noms de variables, en majuscules.
     """
     return {nom.upper() for nom in Settings.model_fields}
+
+
+def document_du_compose() -> dict[str, Any]:
+    """Le compose local, tel que YAML le rend — et c'est un objet, pas une liste ni un scalaire.
+
+    `yaml.safe_load` **développe les ancres** au chargement : les blocs `environment` factorisés
+    dans `x-env` sont rendus fusionnés, c'est-à-dire tels que chaque conteneur les reçoit.
+
+    Appelée à la **collecte** par les paramétrisations de `test_compose.py` et `test_images.py` :
+    une assertion qui échouerait ici avorterait ces deux modules entiers, d'où la seule garde
+    structurelle, celle sans laquelle rien d'autre ne peut être lu.
+    """
+    document = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
+    assert isinstance(document, dict)
+    return document
 
 
 def variables_requises() -> set[str]:
