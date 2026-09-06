@@ -115,8 +115,10 @@ BAIL_DU_VERROU = 3600
 """Secondes au bout desquelles un verrou est réputé abandonné, et l'index de nouveau libre.
 
 Filet contre le verrou orphelin d'une suite tuée : sans échéance, un `kill -9` retirerait un index
-du jeu jusqu'au prochain `FLUSHALL`. Une heure est trois ordres de grandeur au-dessus d'une suite
-— dix secondes — ce qui rend inoffensive la libération inconditionnelle de :func:`_liberer`.
+du jeu jusqu'au prochain `FLUSHALL`. Une heure vaut **360 fois** la durée d'une suite — dix secondes
+— et c'est ce rapport qui rend inoffensive la libération inconditionnelle de :func:`_liberer`. Il
+cesse de tenir pour une suite arrêtée plus d'une heure sur un point d'arrêt : son index serait alors
+repris et vidé sous elle.
 """
 
 DSN_DE_LA_SUITE = (
@@ -142,16 +144,18 @@ normalement**.
 """
 
 
-def nom_de_base(url: str) -> str:
+def nom_de_base(url: str) -> str | None:
     """Le nom de la base que désigne un DSN SQLAlchemy.
 
     Args:
         url: un DSN au format SQLAlchemy, ``postgresql+asyncpg://…/nom``.
 
     Returns:
-        Le nom de la base, ou la chaîne vide si le DSN n'en nomme aucune.
+        Le nom de la base, ou ``None`` si le DSN n'en nomme aucune — rendu tel quel plutôt que
+        ramené à la chaîne vide : un repli que rien n'atteint est du code mort, et ``None`` se lit
+        mieux dans le message d'un garde que deux apostrophes accolées.
     """
-    return make_url(url).database or ""
+    return make_url(url).database
 
 
 def _administrer(ordre: str) -> None:

@@ -227,9 +227,12 @@ def schema(alembic_config: Config, magasins: None) -> None:
     Synchrone, et c'est nécessaire : `env.py` appelle `asyncio.run()`, qui refuse de démarrer
     dans une boucle déjà en cours — celle qu'un test asynchrone aurait ouverte.
 
-    Elle demande `magasins` alors qu'elle n'en lit rien : c'est ce qui **ordonne** les deux. Sans
-    cette dépendance, deux fixtures de session `autouse` s'exécuteraient dans l'ordre où pytest les
-    a rencontrées, et le schéma se monterait sur la base de l'environnement — celle d'à côté.
+    Elle demande `magasins` alors qu'elle n'en lit rien : c'est ce qui **ordonne** les deux. Une
+    ceinture, et non un correctif — mesuré : dépendance retirée *et* `magasins` déclarée après
+    cette fixture, le schéma se monte quand même sur la base de la suite. C'est l'ordre des
+    fixtures `autouse` de même portée qui n'est pas un contrat de pytest ; s'en remettre à ce qu'on
+    observe aujourd'hui, c'est faire dépendre l'isolation d'un détail d'implémentation. Aucun test
+    ne tient cette dépendance : la retirer laisse la suite verte.
     """
     command.upgrade(alembic_config, "head")
 
