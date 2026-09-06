@@ -4,14 +4,15 @@ import asyncio
 import json
 import uuid
 from datetime import UTC, datetime
-from typing import ClassVar
+from typing import ClassVar, cast
 
 import pytest
 import uuid6
 from conftest import evenements_persistes, fabrique_de
-from evenements import Capture
+from evenements import Capture, captures
 from fastapi import FastAPI
 from pydantic import BaseModel
+from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from arpendo_api.core.bus import channel_for, publish, subscribe
@@ -64,7 +65,12 @@ async def test_publier_un_objet_non_inscrit_leve_avant_toute_ecriture(
     """
     async with fabrique_de(app)() as session:
         with pytest.raises(TypeError):
-            await publish(session, app.state.valkey, Capture(game_id=partie, hexagones=3), intrus)
+            await publish(
+                session,
+                app.state.valkey,
+                Capture(game_id=partie, hexagones=3),
+                intrus,  # type: ignore[arg-type]  # le refus de l'intrus est le point du test
+            )
 
         assert not session.new
 
@@ -114,7 +120,7 @@ async def test_un_abonne_recoit_le_lot_dans_l_ordre_de_l_appel(
             recus = [await anext(flux), await anext(flux)]
 
     assert [type(recu) for recu in recus] == [Capture, Capture]
-    assert [recu.hexagones for recu in recus] == [1, 2]
+    assert [recu.hexagones for recu in captures(recus)] == [1, 2]
     assert [recu.id for recu in recus] == [
         ligne.id for ligne in await evenements_persistes(app, partie)
     ]
@@ -236,7 +242,7 @@ class ClientQuiRegardeLaBase:
     ferait dépendre le verdict de l'ordre d'ordonnancement de deux coroutines.
     """
 
-    def __init__(self, vrai: object, app: FastAPI, partie: uuid.UUID) -> None:
+    def __init__(self, vrai: Redis, app: FastAPI, partie: uuid.UUID) -> None:
         self.vrai = vrai
         self.app = app
         self.partie = partie
@@ -265,6 +271,7 @@ async def test_la_ligne_est_commise_avant_que_le_message_ne_parte(
     espion = ClientQuiRegardeLaBase(app.state.valkey, app, partie)
 
     async with fabrique_de(app)() as session:
-        await publish(session, espion, Capture(game_id=partie, hexagones=1))
+        # La doublure joue le client pour `publish`, la seule méthode que le bus appelle.
+        await publish(session, cast(Redis, espion), Capture(game_id=partie, hexagones=1))
 
     assert espion.lignes_visibles_au_publish == [1]

@@ -6,11 +6,14 @@ import os
 import signal
 import sys
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from types import FrameType
 from typing import cast
 
 import pytest
 from conftest import MoteurEspion, evenements_persistes
+from evenements import captures
 from fastapi import FastAPI
 
 from arpendo_api import worker
@@ -235,7 +238,7 @@ async def test_le_gestionnaire_de_sigterm_pose_l_evenement_d_arret(
     directement — le raccourci qu'un gestionnaire de signal n'a pas le droit de prendre — le
     poserait immédiatement, et la première assertion tomberait.
     """
-    poses: dict[int, object] = {}
+    poses: dict[int, Callable[[int, FrameType | None], object]] = {}
     monkeypatch.setattr(
         signal, "signal", lambda numero, gestionnaire: poses.setdefault(numero, gestionnaire)
     )
@@ -297,7 +300,7 @@ async def test_le_worker_publie_et_l_api_recoit_dans_l_ordre(
                 await processus.wait()
 
     assert processus.returncode == 0, erreurs.decode(errors="replace")
-    assert [recu.hexagones for recu in recus] == [1, 2, 3]
+    assert [recu.hexagones for recu in captures(recus)] == [1, 2, 3]
     assert len(await evenements_persistes(app, partie)) == 3
 
 
