@@ -9,7 +9,8 @@
 #
 # Les images sont épinglées `tag@sha256:…` (cadrage §13.10). Sur cette forme, le bot garde le tag
 # et propose l'empreinte suivante quand il bouge : c'est lui, et lui seul, qui rafraîchit les
-# empreintes.
+# empreintes. Il propose aussi les tags voisins (`python:3.14-slim`, `postgres:18`) :
+# `api/tests/test_images.py` rend ces PR rouges, un humain les tranche.
 version: 2
 
 updates:
@@ -33,8 +34,8 @@ updates:
         update-types: ["minor", "patch"]
 
   # Les `FROM` d'`api/Dockerfile`. Le parseur ne lit que ces lignes : une image référencée
-  # ailleurs (`COPY --from=<image>`, `ARG`) lui échapperait et resterait figée pour toujours — le
-  # Dockerfile n'en a aucune.
+  # ailleurs (`COPY --from=<image>`, `ARG`) lui échapperait et resterait figée pour toujours —
+  # `api/tests/test_images.py` refuse tout `COPY --from` qui ne nomme pas une étape.
   - package-ecosystem: "docker"
     directory: "/api"
     schedule:

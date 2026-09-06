@@ -80,8 +80,8 @@ longtemps pour l'exercer. Elle le sera par ce qui l'exercera vraiment.
 ## L'image
 
 `Dockerfile` construit une seule image pour les deux points d'entrée, en deux étapes : `uv` installe
-les dépendances dans la première, la seconde n'embarque que le résultat et tourne sous l'utilisateur
-`arpendo`, jamais root (cadrage §13.10).
+les dépendances dans la première, sur l'interpréteur de l'image de base ; la seconde n'embarque que
+le résultat et tourne sous l'utilisateur `arpendo`, jamais root (cadrage §13.10).
 
 **Le code et le venv appartiennent à root** : l'utilisateur d'exécution les lit et les exécute, il
 n'y écrit pas. Un processus compromis ne peut ni altérer une dépendance ni déposer un module. Rien
@@ -97,21 +97,28 @@ tirée, n'en porte pas.
 
 Ces empreintes ne se mettent pas à jour à la main : **Dependabot** les suit, écosystème `docker` sur
 `/api` pour le Dockerfile et `docker-compose` sur `/infra` pour le compose, et propose la suivante
-quand le tag bouge. Son parseur ne lit que les lignes `FROM` — d'où une étape nommée pour l'image
-`uv` plutôt qu'un `COPY --from=<image>`, et deux `FROM python` identiques plutôt qu'un `ARG`. Pour
-relire une empreinte à la source : `docker buildx imagetools inspect <image:tag>` (l'empreinte de
-l'index multi-architectures, pas celle d'une plateforme). `tests/test_images.py` rougit sur toute
-image tirée sans empreinte.
+quand le tag bouge. Dans un Dockerfile, il ne lit que les lignes `FROM` — d'où une étape nommée
+pour l'image `uv` plutôt qu'un `COPY --from=<image>`, et deux `FROM python` identiques plutôt qu'un
+`ARG`. Pour relire une empreinte à la source : `docker buildx imagetools inspect <image:tag>`
+(l'empreinte de l'index multi-architectures, pas celle d'une plateforme).
+
+Le bot propose aussi les **tags voisins** — `python:3.14-slim`, `postgres:18` — et un tel build
+passerait en vert. `tests/test_images.py` tient ce que le bot ne voit pas : toute image tirée porte
+une empreinte, tout `COPY --from` nomme une étape, le `FROM python` est la version d'`.python-version`,
+et `postgres` comme `valkey` sont la même majeure dans le compose et dans les `services:` de la CI
+(qu'aucun écosystème ne suit). Une PR Dependabot qui monte une majeure est rouge : c'est à un humain
+de monter les deux côtés ensemble.
 
 **Le même job scanne l'image avec Trivy**, en deux passes : un rapport de toutes les gravités, qui
 ne bloque jamais, puis une porte qui rougit sur une vulnérabilité **critique et corrigeable** —
 jamais sur une critique sans correctif amont, qui laisserait la PR rouge sans geste possible. Une
 porte rouge se lève en reconstruisant l'image sur une empreinte plus récente (Dependabot la
 propose) ou en montant la dépendance Python fautive. Pour rejouer la porte sur le poste, sur
-l'image que `just up` a construite :
+l'image que `just up` a construite — `//var/run/…` et non `/var/run/…` : sous Git Bash, MSYS
+réécrirait le chemin simple en `C:\Program Files\Git\var\…`, et Linux lit les deux formes :
 
 ```
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.70.0 \
+docker run --rm -v //var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.70.0 \
   image --severity CRITICAL --ignore-unfixed --exit-code 1 arpendo-api:dev
 ```
 

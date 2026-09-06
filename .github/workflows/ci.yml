@@ -174,8 +174,8 @@ jobs:
       # Le code et le venv appartiennent à root, l'utilisateur d'exécution ne peut pas y écrire
       # (cadrage §13.10 ; `api/Dockerfile`). Trois `touch` qui doivent échouer : `/app` seul ne
       # prouverait rien, `WORKDIR` le crée root quoi qu'il arrive — ce sont `src` et `.venv`,
-      # copiés depuis l'étape de build, qui portaient un `--chown`. Une image qui ne démarre pas
-      # échoue aussi ce step, et c'est le sens voulu.
+      # copiés depuis l'étape de build, qui portaient un `--chown`. Ce step n'exécute que `sh` :
+      # que l'application démarre sur cette image se vérifie par `just up`, pas ici.
       - name: Code non inscriptible par l'utilisateur d'exécution
         run: docker run --rm "$IMAGE" sh -c '! touch /app/verrou && ! touch /app/src/verrou && ! touch /app/.venv/verrou'
 
