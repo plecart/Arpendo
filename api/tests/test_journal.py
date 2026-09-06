@@ -13,12 +13,13 @@ from arpendo_api.core.journal import EVENTS, DomainEvent, Event
 
 
 def test_la_table_du_journal_porte_les_colonnes_du_brief() -> None:
-    table = ddl(CreateTable(table_de(DomainEvent)))
+    journal = table_de(DomainEvent)
+    table = ddl(CreateTable(journal))
 
     assert "CREATE TABLE domain_event" in table
     assert "id UUID NOT NULL" in table
     assert "game_id UUID" in table
-    assert table_de(DomainEvent).c.game_id.nullable
+    assert journal.c.game_id.nullable
     assert "type TEXT NOT NULL" in table
     assert "payload JSONB NOT NULL" in table
     assert "occurred_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL" in table

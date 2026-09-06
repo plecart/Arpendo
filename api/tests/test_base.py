@@ -40,6 +40,7 @@ def test_les_annotations_python_donnent_les_types_du_cadrage() -> None:
 
 def test_les_contraintes_et_index_sont_nommes_par_convention() -> None:
     """Un `downgrade` ne peut retirer que ce qu'il sait nommer."""
-    assert "CONSTRAINT pk_mesure PRIMARY KEY (id)" in ddl(CreateTable(table_de(Mesure)))
-    (index,) = table_de(Mesure).indexes
+    mesure = table_de(Mesure)
+    assert "CONSTRAINT pk_mesure PRIMARY KEY (id)" in ddl(CreateTable(mesure))
+    (index,) = mesure.indexes
     assert "INDEX ix_mesure_partie_compteur ON mesure (partie, compteur)" in ddl(CreateIndex(index))
