@@ -44,14 +44,19 @@ SENSIBLES = (COORDONNEES, JETON, EMAIL)
 INTACTS = (
     "2026-09-03T08:41:35.751365Z",
     "8a2a1072b59ffff",
+    "3f2c9a4e-1b7d-4c8e-9a0f-5d6e7f8a9b0c",
     "1.0.0+42",
     "arpendo_api.core.bus",
+    "p50=12.345678ms p99=98.765432ms",
+    "12.50-13.75",
 )
 """Ce qui **ressemble** à une donnée sensible sans en être une.
 
 Un horodatage ISO porte une décimale à six chiffres, un index H3 une longue chaîne hexadécimale,
-un numéro de build un point. Un assainissement qui les emporte rend les journaux Sentry inutiles
-au diagnostic — et personne ne s'en aperçoit avant d'en avoir besoin.
+un UUID des tirets, un numéro de build un point ; deux centiles fins sont séparés par leur unité
+et le nom du suivant, une plage à deux décimales par un tiret. Un assainissement qui les emporte
+rend les journaux Sentry inutiles au diagnostic — et personne ne s'en aperçoit avant d'en avoir
+besoin.
 """
 
 
@@ -95,11 +100,19 @@ def _evenement_complet() -> dict[str, Any]:
             ]
         },
         "breadcrumbs": {"values": [{"data": {"trace": f"position {COORDONNEES}"}}]},
-        "extra": {"contexte": f"{EMAIL} depuis {COORDONNEES}"},
+        "extra": {
+            "contexte": f"{EMAIL} depuis {COORDONNEES}",
+            "latences": "p50=12.345678ms p99=98.765432ms",
+            "plage": "12.50-13.75",
+        },
         "request": {"headers": {"Authorization": JETON}, "query_string": f"pos={COORDONNEES}"},
         "release": "1.0.0+42",
         "timestamp": "2026-09-03T08:41:35.751365Z",
-        "tags": {"request_id": "8a2a1072b59ffff", "logger": "arpendo_api.core.bus"},
+        "tags": {
+            "request_id": "8a2a1072b59ffff",
+            "trace_id": "3f2c9a4e-1b7d-4c8e-9a0f-5d6e7f8a9b0c",
+            "logger": "arpendo_api.core.bus",
+        },
     }
 
 
@@ -160,6 +173,8 @@ FORMES_DE_POSITION = {
     "virgule": {"m": "48.858370, 2.294481"},
     "longitude négative": {"m": "48.858370, -2.294481"},
     "longitude négative, espace": {"m": "48.858370 -2.294481"},
+    "tiret nu": {"server_name": "hote-48.858370-2.294481"},
+    "tiret espacé": {"m": "48.858370 - 2.294481"},
     "query string REST": {"request": {"query_string": "lat=48.858370&lon=2.294481"}},
     "WKT PostGIS": {"m": "POINT(2.294481 48.858370)"},
     "JSON sérialisé en chaîne": {"m": '{"latitude": 48.858370, "longitude": 2.294481}'},
