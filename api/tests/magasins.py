@@ -17,6 +17,11 @@ l'``env.py`` d'Alembic, le test des migrations, et le sous-processus du worker, 
 l'environnement. C'est ce qui permet à l'isolation de tenir en un seul point sans qu'aucune ligne
 d'``api/src/`` ne change : tout le paquet lit sa configuration par ``Settings``, et ``Settings`` lit
 l'environnement.
+
+**Les deux magasins n'ont pas le même protocole, et c'est le nombre de noms disponibles qui les
+sépare** : la base PostgreSQL se taille un nom dans un espace assez vaste pour qu'on s'y ignore,
+l'index Valkey se dispute quatorze places et exige donc un verrou. Le fichier est rangé dans cet
+ordre — identité commune, puis un bloc par magasin, puis le point d'entrée qui les compose.
 """
 
 import asyncio
@@ -34,21 +39,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from arpendo_api.core.settings import Settings
 from arpendo_api.core.valkey import create_valkey
 
-DATABASE_URL = os.environ["DATABASE_URL"]
-"""Le DSN PostgreSQL de l'environnement, **capté avant que la suite ne pose le sien**.
-
-Lu à l'import — donc à la collecte, avant toute fixture. C'est le point de vue de l'administrateur :
-le serveur sur lequel la base de la suite se crée et se détruit, et la valeur à laquelle
-``test_isolation`` compare celle sur laquelle la suite tourne réellement.
-"""
-
-PREFIXE_BASE = "arpendo_test_"
-"""Ce qui distingue une base de suite d'une base d'application, à l'œil et au `\\l`.
-
-Nommer les orphelines d'un préfixe commun est ce qui rend leur nettoyage manuel possible — c'est la
-seule chose que leur nom ait besoin de dire, puisque le processus qui l'a créée est mort. Voir le
-README d'`api/`, section « Tester et vérifier ».
-"""
+# ─── Identité de l'exécution — commune aux deux magasins ──────────────────────
 
 JETON_DE_LA_SUITE = uuid.uuid4().hex
 """L'identité de **cette** exécution de la suite, tirée une fois au chargement du module.
@@ -69,71 +60,26 @@ donc la destruction, donc le risque : trois problèmes retirés par un identifia
 le cas même que cette PR doit rendre vert — se détruiraient.
 """
 
+# ─── Magasin PostgreSQL — une base par suite ──────────────────────────────────
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+"""Le DSN PostgreSQL de l'environnement, **capté avant que la suite ne pose le sien**.
+
+Lu à l'import — donc à la collecte, avant toute fixture. C'est le point de vue de l'administrateur :
+le serveur sur lequel la base de la suite se crée et se détruit, et la valeur à laquelle
+``test_isolation`` compare celle sur laquelle la suite tourne réellement.
+"""
+
+PREFIXE_BASE = "arpendo_test_"
+"""Ce qui distingue une base de suite d'une base d'application, à l'œil et au `\\l`.
+
+Nommer les orphelines d'un préfixe commun est ce qui rend leur nettoyage manuel possible — c'est la
+seule chose que leur nom ait besoin de dire, puisque le processus qui l'a créée est mort. Voir le
+README d'`api/`, section « Tester et vérifier ».
+"""
+
 BASE_DE_LA_SUITE = f"{PREFIXE_BASE}{JETON_DE_LA_SUITE}"
 """Le nom de la base de cette suite. 45 caractères, bien sous les 63 d'un identifiant PostgreSQL."""
-
-VALKEY_URL = os.environ["VALKEY_URL"]
-"""L'URL Valkey de l'environnement, **captée avant que la suite ne pose la sienne**.
-
-Comme :data:`DATABASE_URL`, lue à l'import. La base logique qu'elle nomme devient celle des
-**verrous** : c'est la seule que les suites partagent, et c'est ce qui leur permet de s'entendre
-sur un index chacune.
-"""
-
-
-def base_logique(url: str) -> int:
-    """L'index de base de données que porte une URL Valkey — zéro si elle n'en nomme aucune.
-
-    `redis://hôte:6379/2` → 2 ; `redis://hôte:6379` → 0, qui est le défaut du protocole.
-
-    Args:
-        url: une URL Valkey ou Redis.
-
-    Returns:
-        L'index, tel que le client l'emploiera.
-    """
-    chemin = urlsplit(url).path.strip("/")
-    return int(chemin) if chemin else 0
-
-
-INDEX_DES_VERROUS = base_logique(VALKEY_URL)
-"""La base logique où les suites se réservent leurs index — celle de l'environnement.
-
-Elle n'est donc **plus candidate** : une suite qui la réservait la viderait, et effacerait du même
-coup les réservations de toutes les autres.
-"""
-
-INDEX_CANDIDATS = tuple(index for index in range(2, 16) if index != INDEX_DES_VERROUS)
-"""Les bases logiques qu'une suite peut se réserver.
-
-À partir de 2 : la 0 est celle de l'application du compose, et la 1 celle des verrous sur un poste
-comme en CI. Jusqu'à 15, le nombre de bases qu'un Valkey sert par défaut — monter ``databases``
-dans le compose et dans la CI a été écarté, ce serait un réglage de production posé pour les tests.
-
-L'exclusion de :data:`INDEX_DES_VERROUS` ne coûte rien et retire une panne : un environnement qui
-poserait `VALKEY_URL` sur la 3 verrait la première suite vider les verrous de toutes les autres,
-sans que rien ne le signale avant la corruption. Ce jeu est **gardé de l'extérieur** —
-``test_isolation`` le confronte à la base de l'application et à celle des verrous : une assertion
-qui se contenterait de vérifier que l'index tiré en fait partie ne mesurerait rien.
-"""
-
-CLE_DU_VERROU = "arpendo:tests:base:{index}"
-"""La clé qui dit qu'une base logique est prise, et par qui.
-
-Sa valeur est le :data:`JETON_DE_LA_SUITE` du propriétaire : elle ne sert à rien au protocole —
-c'est ``NX`` qui tranche — mais elle est ce qu'on lit quand on cherche à qui appartient un verrou
-qui traîne, et elle **désigne la base PostgreSQL du même propriétaire**, qui porte le même jeton.
-"""
-
-BAIL_DU_VERROU = 3600
-"""Secondes au bout desquelles un verrou est réputé abandonné, et l'index de nouveau libre.
-
-Filet contre le verrou orphelin d'une suite tuée : sans échéance, un `kill -9` retirerait un index
-du jeu jusqu'au prochain `FLUSHALL`. Une heure vaut **360 fois** la durée d'une suite — dix secondes
-— et c'est ce rapport qui rend inoffensive la libération inconditionnelle de :func:`_liberer`. Il
-cesse de tenir pour une suite arrêtée plus d'une heure sur un point d'arrêt : son index serait alors
-repris et vidé sous elle.
-"""
 
 DSN_DE_LA_SUITE = (
     make_url(DATABASE_URL).set(database=BASE_DE_LA_SUITE).render_as_string(hide_password=False)
@@ -231,6 +177,72 @@ def _base_postgresql() -> Iterator[str]:
         _administrer(DETRUIRE_LA_BASE)
 
 
+# ─── Magasin Valkey — une base logique par suite, réservée par un verrou ──────
+
+VALKEY_URL = os.environ["VALKEY_URL"]
+"""L'URL Valkey de l'environnement, **captée avant que la suite ne pose la sienne**.
+
+Comme :data:`DATABASE_URL`, lue à l'import. La base logique qu'elle nomme devient celle des
+**verrous** : c'est la seule que les suites partagent, et c'est ce qui leur permet de s'entendre
+sur un index chacune.
+"""
+
+
+def base_logique(url: str) -> int:
+    """L'index de base de données que porte une URL Valkey — zéro si elle n'en nomme aucune.
+
+    `redis://hôte:6379/2` → 2 ; `redis://hôte:6379` → 0, qui est le défaut du protocole.
+
+    Args:
+        url: une URL Valkey ou Redis.
+
+    Returns:
+        L'index, tel que le client l'emploiera.
+    """
+    chemin = urlsplit(url).path.strip("/")
+    return int(chemin) if chemin else 0
+
+
+INDEX_DES_VERROUS = base_logique(VALKEY_URL)
+"""La base logique où les suites se réservent leurs index — celle de l'environnement.
+
+Elle n'est donc **plus candidate** : une suite qui la réservait la viderait, et effacerait du même
+coup les réservations de toutes les autres.
+"""
+
+INDEX_CANDIDATS = tuple(index for index in range(2, 16) if index != INDEX_DES_VERROUS)
+"""Les bases logiques qu'une suite peut se réserver.
+
+À partir de 2 : la 0 est celle de l'application du compose, et la 1 celle des verrous sur un poste
+comme en CI. Jusqu'à 15, le nombre de bases qu'un Valkey sert par défaut — monter ``databases``
+dans le compose et dans la CI a été écarté, ce serait un réglage de production posé pour les tests.
+
+L'exclusion de :data:`INDEX_DES_VERROUS` ne coûte rien et retire une panne : un environnement qui
+poserait `VALKEY_URL` sur la 3 verrait la première suite vider les verrous de toutes les autres,
+sans que rien ne le signale avant la corruption. Ce jeu est **gardé de l'extérieur** —
+``test_isolation`` le confronte à la base de l'application et à celle des verrous : une assertion
+qui se contenterait de vérifier que l'index tiré en fait partie ne mesurerait rien.
+"""
+
+CLE_DU_VERROU = "arpendo:tests:base:{index}"
+"""La clé qui dit qu'une base logique est prise, et par qui.
+
+Sa valeur est le :data:`JETON_DE_LA_SUITE` du propriétaire : elle ne sert à rien au protocole —
+c'est ``NX`` qui tranche — mais elle est ce qu'on lit quand on cherche à qui appartient un verrou
+qui traîne, et elle **désigne la base PostgreSQL du même propriétaire**, qui porte le même jeton.
+"""
+
+BAIL_DU_VERROU = 3600
+"""Secondes au bout desquelles un verrou est réputé abandonné, et l'index de nouveau libre.
+
+Filet contre le verrou orphelin d'une suite tuée : sans échéance, un `kill -9` retirerait un index
+du jeu jusqu'au prochain `FLUSHALL`. Une heure vaut **360 fois** la durée d'une suite — dix secondes
+— et c'est ce rapport qui rend inoffensive la libération inconditionnelle de :func:`_liberer`. Il
+cesse de tenir pour une suite arrêtée plus d'une heure sur un point d'arrêt : son index serait alors
+repris et vidé sous elle.
+"""
+
+
 def _url_de_index(index: int) -> str:
     """L'URL d'origine, pointée sur une autre base logique — hôte et port inchangés.
 
@@ -265,9 +277,9 @@ async def _reserver() -> int:
 
     ``SET … NX EX`` est **atomique** : deux suites qui démarrent au même instant ne peuvent pas
     obtenir le même index, là où un tirage au sort les ferait entrer en collision une fois sur
-    quatorze — soit exactement l'intermittence de #94, reproduite plus rarement. C'est la
-    différence entre un jeu **borné** qu'il faut se répartir et un espace de noms assez vaste pour
-    qu'on s'y ignore : la base PostgreSQL se contente d'un jeton, l'index Valkey exige un verrou.
+    quatorze — soit exactement l'intermittence de #94, reproduite plus rarement. C'est ce qui
+    distingue ce magasin du précédent : quatorze places qu'il faut se répartir, contre un espace de
+    noms assez vaste pour qu'un jeton suffise.
 
     Le ``FLUSHDB`` qui suit ne détruit rien qui ait un propriétaire : la base vient d'être réservée,
     donc ce qu'elle contient encore appartient à une suite tuée, dont plus personne n'attend rien.
@@ -327,9 +339,16 @@ def _base_valkey() -> Iterator[str]:
         asyncio.run(_liberer(index))
 
 
+# ─── Point d'entrée ───────────────────────────────────────────────────────────
+
+
 @contextmanager
 def magasins_de_la_suite() -> Iterator[dict[str, str]]:
     """Réserve les magasins de la suite, et rend l'environnement qui les désigne.
+
+    Les deux contextes sont imbriqués : si la réservation Valkey échoue, la base PostgreSQL déjà
+    créée est détruite en se déroulant. Un troisième magasin s'ajouterait ici, et nulle part
+    ailleurs.
 
     Yields:
         Les variables d'environnement à poser **avant toute lecture de la configuration**, par nom.
