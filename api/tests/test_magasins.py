@@ -2,10 +2,10 @@
 
 Le reste de `magasins` se garde par la configuration (`test_isolation`) et par le protocole manuel
 de #94. Cet invariant-ci ne se lit ni dans l'un ni dans l'autre : il ne se voit que sous un écrivain
-concurrent, qu'on ne rencontre jamais en lançant la suite seule. Il a d'ailleurs été affirmé faux
-une première fois — « vérifier le jeton ne serait pas atomique de toute façon » — et rien ne
-rougissait.
+concurrent, qu'on ne rencontre jamais en lançant la suite seule.
 """
+
+from collections.abc import AsyncIterator
 
 import magasins
 import pytest
@@ -26,7 +26,7 @@ JETON_D_UNE_VOISINE = "jeton-d-une-autre-suite"
 
 
 @pytest.fixture
-async def verrous() -> Redis:
+async def verrous() -> AsyncIterator[Redis]:
     """Un client sur la base des **verrous** — celle de l'environnement, pas celle de la suite."""
     async with create_valkey(reglages_surcharges({"valkey_url": magasins.VALKEY_URL})) as client:
         yield client
