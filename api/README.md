@@ -125,6 +125,11 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > de pid qui joignent le même serveur (WSL, un conteneur, un runner) peuvent porter le même. Un nom
 > qui n'est jamais réattribué supprime la collision, donc la destruction, donc le risque.
 >
+> Écarté pour la même raison, à l'interrogatoire : un nom **stable par worktree**, recréé à chaque
+> lancement — deux terminaux du même worktree se détruiraient, c'est-à-dire le cas même qu'on
+> cherche à rendre vert. Et le **balayage** de toutes les bases `arpendo_test_*` au démarrage : une
+> suite entre deux tests peut n'avoir aucune connexion ouverte, le balayage la tuerait.
+>
 > Conséquence : un `kill -9` ne passe pas par la fin de session et laisse une base derrière lui, mais
 > elle est **inoffensive** — aucune suite ne reprendra jamais son nom. En contrepartie rien ne force
 > la main : elles s'accumulent en silence. Pour les balayer, de temps en temps :
@@ -144,14 +149,20 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > quatorze. L'index obtenu est vidé (`FLUSHDB`) à la prise : ce qu'il contenait appartenait à une
 > suite tuée.
 >
-> Le bail d'une heure est le filet contre le verrou orphelin d'un `kill -9` — sans lui, un index
-> sortirait du jeu jusqu'au prochain `FLUSHALL`. Pour les regarder — le Valkey du compose est
-> authentifié, y compris en local (cadrage §13.10) :
+> La libération compare le jeton avant de supprimer, en un seul pas (`EVAL`) : une suite dont le
+> bail aurait expiré pendant qu'elle tournait ne peut pas emporter la réservation de celle qui a
+> repris son index. Le bail d'une heure ne sert donc qu'au verrou orphelin d'un `kill -9` — sans
+> lui, un index sortirait du jeu jusqu'au prochain `FLUSHALL`. Pour les regarder — le Valkey du
+> compose est authentifié, y compris en local (cadrage §13.10) :
 >
 > ```sh
-> docker exec infra-valkey-1 valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" \
->   -n 1 KEYS 'arpendo:tests:base:*'
+> docker exec infra-valkey-1 sh -c \
+>   'valkey-cli --no-auth-warning -a "$VALKEY_PASSWORD" -n 1 KEYS "arpendo:tests:base:*"'
 > ```
+>
+> Le `sh -c` n'est pas décoratif : sans lui, `$VALKEY_PASSWORD` est développé par le shell de
+> l'hôte, où la variable n'existe que si le `.env` a été chargé. Là, elle est développée dans le
+> conteneur, qui la porte toujours.
 
 | Commande | Rôle |
 |---|---|

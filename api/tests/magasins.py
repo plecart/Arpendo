@@ -45,19 +45,13 @@ JETON_DE_LA_SUITE = uuid.uuid4().hex
 """L'identité de **cette** exécution de la suite, tirée une fois au chargement du module.
 
 Une seule identité pour les deux magasins : elle nomme la base PostgreSQL et signe le verrou
-Valkey. Un résidu de l'un se rapproche donc d'un résidu de l'autre à l'œil, sans qu'on ait à tenir
-deux systèmes de noms.
+Valkey, si bien qu'un résidu de l'un se rapproche d'un résidu de l'autre à l'œil.
 
-**Aléatoire et non le pid**, et c'est ce choix qui rend tout le reste simple. Un pid n'est unique
-que parmi les processus vivants **d'un même espace de nommage**, et le système le **réattribue** :
-deux suites séparées dans le temps, ou deux espaces de pid qui joignent le même serveur — WSL, un
-conteneur, un runner — peuvent porter le même. Il faudrait alors détruire avant de créer pour
-survivre à la collision, et cette destruction ne saurait pas distinguer le résidu d'une suite morte
-de la base d'une voisine **vivante**. Un jeton qui n'est jamais réattribué supprime la collision,
-donc la destruction, donc le risque : trois problèmes retirés par un identifiant mieux choisi.
-
-Écarté : un nom stable par worktree, recréé à chaque lancement. Deux terminaux du même worktree —
-le cas même que cette PR doit rendre vert — se détruiraient.
+**Aléatoire, et surtout pas le pid.** Un pid se réattribue, et ce qu'il faudrait écrire pour
+survivre à sa réattribution serait précisément ce qu'on ne veut pas ici — une destruction avant
+création. Le raisonnement complet, et les deux options écartées, sont dans le README d'`api/`,
+section « Tester et vérifier » : y aller avant de croire qu'un identifiant plus lisible ferait
+aussi bien.
 """
 
 # ─── Magasin PostgreSQL — une base par suite ──────────────────────────────────
@@ -157,15 +151,10 @@ def _base_postgresql() -> Iterator[str]:
     idempotence à organiser ni erreur de doublon à rattraper. Le code qui manque ici est la moitié
     de l'intérêt du jeton.
 
-    Un ``kill -9`` ne passe pas par la sortie de ce contexte et laisse une base derrière lui. Elle
-    est **inoffensive** au sens plein : elle ne bloque aucune suite future, puisqu'aucune ne
-    reprendra jamais son nom. En contrepartie rien ne force la main — elles s'accumulent en
-    silence, d'où la requête de balayage du README, à jouer de temps en temps.
-
     Le ``DROP`` de sortie ne s'atteint qu'après une création réussie : il ne porte donc que sur la
-    base de cette session, jamais sur celle d'une voisine. Le balayage de toutes les bases
-    ``arpendo_test_*`` au démarrage a été écarté à l'interrogatoire, pour une raison voisine : une
-    suite entre deux tests peut n'avoir aucune connexion ouverte, et le balayage la tuerait.
+    base de cette session, jamais sur celle d'une voisine. Un ``kill -9`` ne l'atteint pas du tout
+    et laisse une orpheline — inoffensive, et à balayer à la main : le README d'`api/` dit pourquoi
+    et comment.
 
     Yields:
         Le DSN de la base de la suite, à poser dans ``DATABASE_URL``.
@@ -227,19 +216,41 @@ qui se contenterait de vérifier que l'index tiré en fait partie ne mesurerait 
 CLE_DU_VERROU = "arpendo:tests:base:{index}"
 """La clé qui dit qu'une base logique est prise, et par qui.
 
-Sa valeur est le :data:`JETON_DE_LA_SUITE` du propriétaire : elle ne sert à rien au protocole —
-c'est ``NX`` qui tranche — mais elle est ce qu'on lit quand on cherche à qui appartient un verrou
-qui traîne, et elle **désigne la base PostgreSQL du même propriétaire**, qui porte le même jeton.
+Sa valeur est le :data:`JETON_DE_LA_SUITE` du propriétaire, et elle **porte le protocole des deux
+côtés** : ``NX`` tranche la prise, la comparaison de ce jeton tranche la libération
+(:data:`LIBERER_LE_VERROU`). La changer en une valeur non discriminante — un horodatage, une
+constante — rendrait toute suite capable de libérer le verrou de n'importe quelle autre.
+
+Elle **désigne aussi la base PostgreSQL du même propriétaire**, qui porte le même jeton : c'est ce
+qu'on lit quand on cherche à qui appartient un verrou qui traîne.
 """
 
 BAIL_DU_VERROU = 3600
 """Secondes au bout desquelles un verrou est réputé abandonné, et l'index de nouveau libre.
 
-Filet contre le verrou orphelin d'une suite tuée : sans échéance, un `kill -9` retirerait un index
-du jeu jusqu'au prochain `FLUSHALL`. Une heure vaut **360 fois** la durée d'une suite — dix secondes
-— et c'est ce rapport qui rend inoffensive la libération inconditionnelle de :func:`_liberer`. Il
-cesse de tenir pour une suite arrêtée plus d'une heure sur un point d'arrêt : son index serait alors
-repris et vidé sous elle.
+Filet contre le verrou orphelin d'une suite tuée, et **rien d'autre** : sans échéance, un `kill -9`
+retirerait un index du jeu jusqu'au prochain `FLUSHALL`. Une heure vaut 360 fois la durée d'une
+suite, ce qui laisse à peu près n'importe quel arrêt sur point d'arrêt tenir dans le bail.
+
+Ce n'est pas lui qui protège la libération d'une voisine — c'est :data:`LIBERER_LE_VERROU`, qui
+compare le jeton. Un bail dépassé fait perdre son index à une suite qui vit encore, jamais effacer
+le verrou de quelqu'un d'autre.
+"""
+
+LIBERER_LE_VERROU = """
+    if redis.call('GET', KEYS[1]) == ARGV[1] then
+        return redis.call('DEL', KEYS[1])
+    end
+    return 0
+"""
+"""Compare le jeton puis supprime, **en un seul pas** — `EVAL` exécute le script sans entrelacement.
+
+C'est la libération que redis-py emploie pour ses propres verrous
+(``redis/asyncio/lock.py``, ``LUA_RELEASE_SCRIPT``), et la raison est la même : entre un ``GET`` et
+un ``DEL`` séparés, le bail peut expirer et une voisine prendre l'index — le ``DEL`` effacerait
+alors *sa* réservation, une troisième suite viderait la base sous elle, et #94 renaîtrait de son
+propre correctif. Éprouvé par ``test_magasins``, qui pose le verrou d'une voisine et le retrouve
+intact.
 """
 
 
@@ -308,17 +319,20 @@ async def _reserver() -> int:
 
 
 async def _liberer(index: int) -> None:
-    """Rend la base logique au jeu des candidates.
+    """Rend la base logique au jeu des candidates — **si le verrou est encore le nôtre**.
 
-    La suppression est inconditionnelle : vérifier que le verrou porte encore notre jeton ne serait
-    pas atomique de toute façon, et la seule façon de libérer celui d'une voisine est d'avoir
-    dépassé le bail — 360 fois la durée d'une suite.
+    La condition n'est pas une précaution de principe : le bail peut avoir expiré pendant que la
+    suite tournait, et l'index appartenir déjà à une voisine. Une suppression inconditionnelle
+    effacerait sa réservation, une troisième suite prendrait l'index et le viderait sous elle.
+    :data:`LIBERER_LE_VERROU` fait la comparaison et la suppression en un seul pas.
 
     Args:
         index: la base logique à libérer.
     """
     async with _client(VALKEY_URL) as verrous:
-        await verrous.delete(CLE_DU_VERROU.format(index=index))
+        await verrous.eval(
+            LIBERER_LE_VERROU, 1, CLE_DU_VERROU.format(index=index), JETON_DE_LA_SUITE
+        )
 
 
 @contextmanager
