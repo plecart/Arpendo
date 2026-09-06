@@ -59,8 +59,10 @@ fusionnés quand `yaml.safe_load` les rend — la partition y est invisible.
 
 
 def _document() -> dict[str, Any]:
-    """Le compose local, tel que YAML le rend."""
-    return yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
+    """Le compose local, tel que YAML le rend — et c'est un objet, pas une liste ni un scalaire."""
+    document = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
+    assert isinstance(document, dict)
+    return document
 
 
 def _services_du_paquet() -> dict[str, dict[str, Any]]:

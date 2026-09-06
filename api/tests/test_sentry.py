@@ -63,7 +63,7 @@ def _init_espionne(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     fait — le test qui capture un vrai événement, lui, l'appelle pour de bon.
     """
     appels: list[dict[str, Any]] = []
-    monkeypatch.setattr(sentry_module.sentry_sdk, "init", lambda **kw: appels.append(kw))
+    monkeypatch.setattr(sentry_sdk, "init", lambda **kw: appels.append(kw))
     return appels
 
 
@@ -146,7 +146,7 @@ def test_scrub_retire_la_valeur_brute_qu_une_erreur_de_validation_recopie() -> N
         latitude: float
 
     with pytest.raises(ValidationError) as refus:
-        CorpsDeRequete(latitude=COORDONNEES)  # type: ignore[arg-type]
+        CorpsDeRequete(latitude=COORDONNEES)
 
     assert COORDONNEES in str(refus.value), "prémisse : pydantic recopie bien l'entrée brute"
 
