@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from collections.abc import AsyncIterator
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from conftest import VALKEY_SUR_UN_PORT_FERME, reglages_surcharges
@@ -10,7 +10,6 @@ from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 from starlette.types import ASGIApp, Message
 from uvicorn import Config
-from uvicorn._types import ASGI3Application
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from arpendo_api.core import rate_limit
@@ -19,6 +18,11 @@ from arpendo_api.core.request_id import HEADER
 from arpendo_api.core.settings import Settings
 from arpendo_api.core.valkey import create_valkey
 from arpendo_api.main import create_app
+
+if TYPE_CHECKING:
+    # Module privé, sans équivalent public dans uvicorn : ne l'importer qu'au typage, pour
+    # qu'un déplacement chez uvicorn rougisse le typecheck et non la collecte de toute la suite.
+    from uvicorn._types import ASGI3Application
 
 DEUX_REQUETES_PAR_FENETRE = {"rate_limit_ip_requests": 2}
 UNE_REQUETE_PAR_SECONDE = {"rate_limit_ip_requests": 1, "rate_limit_ip_window_seconds": 1}
@@ -172,8 +176,10 @@ async def test_l_en_tete_du_proxy_n_est_lu_que_derriere_un_proxy_de_confiance(
     """
     # uvicorn et Starlette décrivent le même protocole ASGI avec deux vocabulaires que mypy ne
     # réconcilie pas : l'application entre dans le middleware et en ressort par un cast.
-    # `ASGI3Application` n'existe que dans `uvicorn._types` — le nom que porte sa signature.
-    derriere_le_proxy = ProxyHeadersMiddleware(cast(ASGI3Application, app), trusted_hosts=confiance)
+    # `ASGI3Application` est le nom que porte la signature du middleware.
+    derriere_le_proxy = ProxyHeadersMiddleware(
+        cast("ASGI3Application", app), trusted_hosts=confiance
+    )
 
     async with _client_depuis(cast(ASGIApp, derriere_le_proxy), PROXY) as client:
         await client.get("/health", headers={"X-Forwarded-For": DERRIERE_LE_PROXY})
