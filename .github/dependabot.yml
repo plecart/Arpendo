@@ -1,10 +1,15 @@
 # Mises à jour de dépendances — cadrage §13.11 (« Dependabot ou Renovate, fichiers de
 # verrouillage commités »). Une bibliothèque de géolocalisation abandonnée est un risque réel.
 #
-# Quatre écosystèmes : les actions du dépôt à la racine, puis `/api`, `/app` et `/infra`, qui
-# portent chacun leur manifeste. Il n'y a **pas** de `/worker` : le
-# worker est un second point d'entrée du paquet `arpendo_api`, pas un projet distinct — il n'a ni
-# manifeste ni verrou propres, et une entrée pour lui surveillerait un répertoire inexistant.
+# Cinq écosystèmes : les actions du dépôt à la racine, puis `/api` (dépendances Python **et**
+# images de base du Dockerfile), `/app` et `/infra`, qui portent chacun leur manifeste. Il n'y a
+# **pas** de `/worker` : le worker est un second point d'entrée du paquet `arpendo_api`, pas un
+# projet distinct — il n'a ni manifeste ni verrou propres, et une entrée pour lui surveillerait un
+# répertoire inexistant.
+#
+# Les images sont épinglées `tag@sha256:…` (cadrage §13.10). Sur cette forme, le bot garde le tag
+# et propose l'empreinte suivante quand il bouge : c'est lui, et lui seul, qui rafraîchit les
+# empreintes.
 version: 2
 
 updates:
@@ -26,6 +31,16 @@ updates:
       # Dependabot par semaine ne se relisent pas, elles se ferment en masse.
       mineures:
         update-types: ["minor", "patch"]
+
+  # Les `FROM` d'`api/Dockerfile`. Le parseur ne lit que ces lignes : une image référencée
+  # ailleurs (`COPY --from=<image>`, `ARG`) lui échapperait et resterait figée pour toujours — le
+  # Dockerfile n'en a aucune.
+  - package-ecosystem: "docker"
+    directory: "/api"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(api)"
 
   - package-ecosystem: "pub"
     directory: "/app"

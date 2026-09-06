@@ -70,6 +70,9 @@ séparation de sa base Valkey d'avec celle des tests. Un compose de production (
 pile que personne ne lève ici.
 """
 
+DOCKERFILE = RACINE / "api" / "Dockerfile"
+"""L'image du paquet, telle qu'elle se construit — lue par le garde des images épinglées."""
+
 ENV_EXAMPLE = RACINE / ".env.example"
 """Le modèle de `.env` — la seule déclaration des valeurs que le poste et le compose se partagent.
 

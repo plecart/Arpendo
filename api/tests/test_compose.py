@@ -1,8 +1,8 @@
 """Le compose donne-t-il à chaque point d'entrée ce qu'il exige — pour tourner, et pour s'arrêter ?
 
-Seul fichier de la suite qui lise `infra/`. Il ne teste pas Docker : il garde ce que **rien
-d'autre** ne peut voir, parce que les tests parlent aux services depuis l'hôte et jamais depuis les
-conteneurs `api` et `worker`.
+Avec `test_images.py`, l'un des deux fichiers de la suite qui lisent `infra/`. Il ne teste pas
+Docker : il garde ce que **rien d'autre** ne peut voir, parce que les tests parlent aux services
+depuis l'hôte et jamais depuis les conteneurs `api` et `worker`.
 
 - **Pour tourner** : un bloc `environment` amputé laisse la suite entièrement verte et fait partir
   le conteneur en boucle de redémarrage. Mesuré.

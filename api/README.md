@@ -77,6 +77,26 @@ configuration existe pour obtenir.
 La borne uvicorn est configurée, pas testée en exécution : aucune route de cette api ne tient assez
 longtemps pour l'exercer. Elle le sera par ce qui l'exercera vraiment.
 
+## L'image
+
+`Dockerfile` construit une seule image pour les deux points d'entrée, en deux étapes : `uv` installe
+les dépendances dans la première, la seconde n'embarque que le résultat et tourne sous l'utilisateur
+`arpendo`, jamais root (cadrage §13.10).
+
+**Toute image tirée d'un registre est épinglée `tag@sha256:…`** — les `FROM` du Dockerfile comme
+`postgres` et `valkey` du compose local. Le tag reste lisible et dit la version voulue ; l'empreinte
+fige celle qu'on a réellement eue, et le commentaire au-dessus de chaque épinglage nomme la version
+que le tag résolvait le jour où l'empreinte a été lue. `arpendo-api:dev`, construite ici et jamais
+tirée, n'en porte pas.
+
+Ces empreintes ne se mettent pas à jour à la main : **Dependabot** les suit, écosystème `docker` sur
+`/api` pour le Dockerfile et `docker-compose` sur `/infra` pour le compose, et propose la suivante
+quand le tag bouge. Son parseur ne lit que les lignes `FROM` — d'où une étape nommée pour l'image
+`uv` plutôt qu'un `COPY --from=<image>`, et deux `FROM python` identiques plutôt qu'un `ARG`. Pour
+relire une empreinte à la source : `docker buildx imagetools inspect <image:tag>` (l'empreinte de
+l'index multi-architectures, pas celle d'une plateforme). `tests/test_images.py` rougit sur toute
+image tirée sans empreinte.
+
 ## Tester et vérifier
 
 **`just test` exige `just up`.** Les tests parlent à un vrai PostgreSQL et à un vrai Valkey,

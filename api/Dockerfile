@@ -2,14 +2,24 @@
 # étape et ne pèse pas sur l'image livrée. Utilisateur non privilégié — cadrage §13.10,
 # « Jamais de conteneur applicatif en root ».
 #
-# Épinglage par TAG de version, pas par empreinte : le §13.10 vise l'empreinte, #45 la posera en
-# même temps que `read_only`, `cap_drop`, les limites de ressources et le scan d'images. Un digest
-# isolé ici, sans le reste du durcissement, donnerait l'illusion que le sujet est traité.
-
-FROM python:3.13-slim AS build
+# Chaque image tirée est épinglée `tag@sha256:…` (§13.10, « Images épinglées par empreinte ») :
+# le tag dit ce qu'on a voulu, l'empreinte fige ce qu'on a eu. Dependabot (écosystème `docker`
+# sur `/api`) suit le tag et propose l'empreinte suivante quand il bouge — d'où **une empreinte par
+# ligne `FROM`, écrite en clair** : le parseur du bot ne lit que ces lignes, pas un `ARG` ni un
+# `COPY --from`, et une empreinte qu'il ne voit pas ne serait jamais rafraîchie. Le commentaire de
+# chaque épinglage nomme la version que le tag résolvait le jour où elle a été lue.
+# `api/tests/test_images.py` refuse un `FROM` sans empreinte.
 
 # uv installe l'interpréteur et les dépendances ; sa propre image officielle évite une couche pip.
-COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
+# Étape nommée, et non `COPY --from=<image>` : c'est ce qui met l'empreinte sur une ligne `FROM`,
+# la seule que Dependabot lise. L'image ne contient que le binaire, l'étape ne construit rien.
+# ghcr.io/astral-sh/uv:0.12 → uv 0.12.10 (lu le 6 septembre 2026).
+FROM ghcr.io/astral-sh/uv:0.12@sha256:2bb3ebca0a796a155094a27773d290c4b074572e6107f171d88d086682fd2500 AS uv
+
+# python:3.13-slim → Python 3.13.15 (lu le 6 septembre 2026).
+FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285 AS build
+
+COPY --from=uv /uv /usr/local/bin/uv
 
 # `COMPILE_BYTECODE` paie le coût du .pyc une fois au build plutôt qu'au premier appel de chaque
 # module. `LINK_MODE=copy` : le cache d'uv et /app ne sont pas sur le même montage, les liens durs
@@ -27,7 +37,10 @@ RUN uv sync --locked --no-install-project --no-dev
 COPY src ./src
 RUN uv sync --locked --no-dev
 
-FROM python:3.13-slim
+# Même image et même empreinte que l'étape `build`, écrites deux fois : un `ARG` les
+# factoriserait, mais Dependabot ne résout pas les `ARG` et cesserait de les suivre. Le bot les
+# monte ensemble, dans la même PR, puisque c'est la même dépendance.
+FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285
 
 # `--system` : pas de mot de passe, pas d'expiration. Le shell est refusé — ce compte sert à
 # exécuter un processus, jamais à ouvrir une session.
