@@ -103,6 +103,18 @@ relire une empreinte à la source : `docker buildx imagetools inspect <image:tag
 l'index multi-architectures, pas celle d'une plateforme). `tests/test_images.py` rougit sur toute
 image tirée sans empreinte.
 
+**Le même job scanne l'image avec Trivy**, en deux passes : un rapport de toutes les gravités, qui
+ne bloque jamais, puis une porte qui rougit sur une vulnérabilité **critique et corrigeable** —
+jamais sur une critique sans correctif amont, qui laisserait la PR rouge sans geste possible. Une
+porte rouge se lève en reconstruisant l'image sur une empreinte plus récente (Dependabot la
+propose) ou en montant la dépendance Python fautive. Pour rejouer la porte sur le poste, sur
+l'image que `just up` a construite :
+
+```
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.70.0 \
+  image --severity CRITICAL --ignore-unfixed --exit-code 1 arpendo-api:dev
+```
+
 ## Tester et vérifier
 
 **`just test` exige `just up`.** Les tests parlent à un vrai PostgreSQL et à un vrai Valkey,
