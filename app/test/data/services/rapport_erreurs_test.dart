@@ -240,9 +240,9 @@ void main() {
     });
 
     // Les formes textuelles de `FORMES_DE_POSITION` (`api/tests/test_sentry.py`),
-    // aux mêmes libellés : un diff des identifiants de tests des deux suites
-    // révèle une dérive entre les deux tables — c'est le seul garde qui relie
-    // deux motifs qu'aucun code ne partage.
+    // aux mêmes libellés. Aucune gate ne compare les deux tables : c'est la
+    // relecture du diff des identifiants de tests qui voit une dérive — le
+    // seul lien entre deux motifs qu'aucun code ne partage.
     const formesDePosition = {
       'virgule': '48.858370, 2.294481',
       'longitude négative': '48.858370, -2.294481',
@@ -304,8 +304,9 @@ void main() {
   });
 
   group('assainir — ce qu\'il ne touche pas', () {
-    // Ce qui **ressemble** à une position sans en être une — le pendant de
-    // `INTACTS` côté serveur. Un horodatage porte la forme décimale d'un
+    // Ce qui **ressemble** à une position sans en être une, comme `INTACTS`
+    // côté serveur — sans discipline de libellés : un faux positif se voit et
+    // se répare, une fuite non. Un horodatage porte la forme décimale d'un
     // degré ; deux centiles fins sont séparés par leur unité et le nom du
     // suivant ; une plage à deux décimales par un tiret.
     const textesLegitimes = {
