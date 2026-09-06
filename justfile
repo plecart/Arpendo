@@ -79,7 +79,7 @@ fmt-check-api:
 
 [working-directory('api')]
 typecheck:
-    uv run mypy --strict src
+    uv run mypy --strict src tests
 
 # ─── migrations (Alembic, jamais au démarrage — cadrage §13.9 règle 3) ────────
 

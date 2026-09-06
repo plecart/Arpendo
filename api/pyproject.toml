@@ -31,6 +31,11 @@ select = ["E", "F", "I", "UP", "B"]
 # champs en arguments — alors que c'est précisément l'environnement qui les fournit. Le greffon
 # connaît `BaseSettings` et rend ses champs facultatifs à la construction.
 plugins = ["pydantic.mypy"]
+# Un `# type: ignore` nu fait taire toute erreur présente et future sur sa ligne ; avec son code,
+# il n'en fait taire qu'une, et `--strict` le signale dès qu'elle disparaît. Hors de `--strict`,
+# d'où cette ligne. Le drapeau `--strict` lui-même et la portée (`src`, `tests`) vivent dans la
+# recette `typecheck` du justfile, comme les chemins des recettes voisines.
+enable_error_code = ["ignore-without-code"]
 
 # Le test d'intégration du worker exécute du code du paquet dans un SECOND processus. Sans cette
 # option, ses lignes ne sont pas comptées : pytest-cov 7 a retiré son support des sous-processus et

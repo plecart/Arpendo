@@ -170,7 +170,7 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 | `just test-one tests/test_health.py` | une seule cible, pour la boucle TDD |
 | `just lint-api` | `ruff check` |
 | `just fmt-api` / `just fmt-check-api` | `ruff format` |
-| `just typecheck` | `mypy --strict` sur `src/` |
+| `just typecheck` | `mypy --strict` sur `src/` et `tests/` |
 
 Les tests HTTP passent par la fixture `client` de `tests/conftest.py` : un `httpx.AsyncClient`
 branché sur l'application sans réseau. La chaîne est `settings` → `app` → `client`, et c'est
