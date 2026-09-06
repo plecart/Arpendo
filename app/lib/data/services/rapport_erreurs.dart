@@ -58,6 +58,11 @@ const String retire = '[retiré]';
 /// assumé est l'intervalle à quatre décimales (`12.345678-98.765432`),
 /// assaini pour rien, comme la paire de durées jointe par une virgule l'est
 /// déjà.
+///
+/// Le motif est identique caractère pour caractère à celui du serveur, sans
+/// être strictement équivalent : `\d` ne couvre ici que `[0-9]` (syntaxe
+/// ECMAScript), quand Python y met aussi les chiffres Unicode (catégorie
+/// `Nd`) — le serveur retire donc **plus** que l'app, jamais moins.
 final List<RegExp> _motifs = [
   RegExp(r'-?\d{1,3}\.\d{4,}[^\d]{1,20}-?\d{1,3}\.\d{4,}'),
   RegExp(r'\bBearer\s+[\w\-._~+/]+=*', caseSensitive: false),

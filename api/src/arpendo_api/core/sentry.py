@@ -60,6 +60,11 @@ entier qui est remplacé, signe compris — et laissait passer ``hote-48.858370-
 positif assumé est l'intervalle à quatre décimales (``12.345678-98.765432``), assaini pour rien,
 comme la paire de durées jointe par une virgule l'est déjà.
 
+Le motif est identique caractère pour caractère à celui de l'app, sans être strictement
+équivalent : ``\\d`` couvre ici les chiffres Unicode (catégorie ``Nd``), et seulement ``[0-9]`` en
+Dart — le serveur retire donc **plus** que l'app, jamais moins. Pas de ``re.ASCII`` pour les faire
+coïncider : ce serait réduire la protection du serveur.
+
 Une position voyage aussi sous forme de **nombres**, et le motif ne peut rien pour elle : c'est
 ``_has_coordinate_pair`` qui la reconnaît, par la même règle de la paire. Les deux natures sont
 épinglées ensemble par ``FORMES_DE_POSITION`` dans les tests.
