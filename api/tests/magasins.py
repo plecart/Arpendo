@@ -21,6 +21,7 @@ l'environnement.
 
 import asyncio
 import os
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from urllib.parse import urlsplit, urlunsplit
@@ -44,20 +45,32 @@ le serveur sur lequel la base de la suite se crée et se détruit, et la valeur 
 PREFIXE_BASE = "arpendo_test_"
 """Ce qui distingue une base de suite d'une base d'application, à l'œil et au `\\l`.
 
-Nommer les orphelines d'un préfixe commun est ce qui rend leur nettoyage manuel possible — voir le
+Nommer les orphelines d'un préfixe commun est ce qui rend leur nettoyage manuel possible — c'est la
+seule chose que leur nom ait besoin de dire, puisque le processus qui l'a créée est mort. Voir le
 README d'`api/`, section « Tester et vérifier ».
 """
 
-BASE_DE_LA_SUITE = f"{PREFIXE_BASE}{os.getpid()}"
-"""Le nom de la base de **cette** suite : le pid du processus pytest, et rien d'autre.
+JETON_DE_LA_SUITE = uuid.uuid4().hex
+"""L'identité de **cette** exécution de la suite, tirée une fois au chargement du module.
 
-Un pid est unique **parmi les processus vivants**, ce qui est exactement la garantie recherchée :
-deux suites concurrentes ne peuvent pas se choisir le même nom. Il ne l'est pas dans le temps — le
-système le recycle — d'où la création idempotente de :func:`_base_postgresql`.
+Une seule identité pour les deux magasins : elle nomme la base PostgreSQL et signe le verrou
+Valkey. Un résidu de l'un se rapproche donc d'un résidu de l'autre à l'œil, sans qu'on ait à tenir
+deux systèmes de noms.
+
+**Aléatoire et non le pid**, et c'est ce choix qui rend tout le reste simple. Un pid n'est unique
+que parmi les processus vivants **d'un même espace de nommage**, et le système le **réattribue** :
+deux suites séparées dans le temps, ou deux espaces de pid qui joignent le même serveur — WSL, un
+conteneur, un runner — peuvent porter le même. Il faudrait alors détruire avant de créer pour
+survivre à la collision, et cette destruction ne saurait pas distinguer le résidu d'une suite morte
+de la base d'une voisine **vivante**. Un jeton qui n'est jamais réattribué supprime la collision,
+donc la destruction, donc le risque : trois problèmes retirés par un identifiant mieux choisi.
 
 Écarté : un nom stable par worktree, recréé à chaque lancement. Deux terminaux du même worktree —
 le cas même que cette PR doit rendre vert — se détruiraient.
 """
+
+BASE_DE_LA_SUITE = f"{PREFIXE_BASE}{JETON_DE_LA_SUITE}"
+"""Le nom de la base de cette suite. 45 caractères, bien sous les 63 d'un identifiant PostgreSQL."""
 
 VALKEY_URL = os.environ["VALKEY_URL"]
 """L'URL Valkey de l'environnement, **captée avant que la suite ne pose la sienne**.
@@ -107,8 +120,9 @@ qui se contenterait de vérifier que l'index tiré en fait partie ne mesurerait 
 CLE_DU_VERROU = "arpendo:tests:base:{index}"
 """La clé qui dit qu'une base logique est prise, et par qui.
 
-Sa valeur est le pid du propriétaire : elle ne sert à rien au protocole — c'est ``NX`` qui tranche
-— mais elle est ce qu'on lit quand on cherche à qui appartient un verrou qui traîne.
+Sa valeur est le :data:`JETON_DE_LA_SUITE` du propriétaire : elle ne sert à rien au protocole —
+c'est ``NX`` qui tranche — mais elle est ce qu'on lit quand on cherche à qui appartient un verrou
+qui traîne, et elle **désigne la base PostgreSQL du même propriétaire**, qui porte le même jeton.
 """
 
 BAIL_DU_VERROU = 3600
@@ -172,9 +186,9 @@ def _administrer(ordre: str) -> None:
 
     Args:
         ordre: le SQL à exécuter. Il n'est **jamais** composé depuis une donnée extérieure : les
-            seuls ordres de ce module nomment :data:`BASE_DE_LA_SUITE`, dérivé du pid de ce
-            processus. Un identifiant SQL ne se paramètre pas, donc rien d'autre ne doit arriver
-            ici.
+            seuls ordres de ce module nomment :data:`BASE_DE_LA_SUITE`, dérivé d'un jeton tiré
+            par ce module. Un identifiant SQL ne se paramètre pas, donc rien d'autre ne doit
+            arriver ici.
     """
 
     async def _executer() -> None:
@@ -192,22 +206,20 @@ def _administrer(ordre: str) -> None:
 def _base_postgresql() -> Iterator[str]:
     """Crée la base de la suite pour la durée de la session, et la détruit en sortant.
 
-    **La création n'est pas idempotente, et c'est délibéré.** Un ``kill -9`` ne passe pas par la
-    sortie de ce contexte et laisse la base derrière lui ; le système finira par recycler le pid, et
-    la suite qui en hérite échoue alors au démarrage sur un ``DuplicateDatabaseError`` qui **nomme
-    l'orpheline** — le README dit comment la supprimer. Détruire d'abord pour se rendre idempotent
-    reposerait sur « aucun processus vivant ne porte notre pid », qui n'est vrai que **dans un seul
-    espace de pid** : deux espaces qui joignent le même serveur — WSL, un conteneur, un runner —
-    peuvent porter le même, et la suite détruirait la base d'une voisine **vivante** en croyant
-    balayer une morte. Échouer bruyamment coûte une commande à taper ; se tromper ici coûte la
-    suite d'à côté.
+    **Une création, une destruction, et rien entre les deux** — le nom n'étant jamais réattribué
+    (:data:`JETON_DE_LA_SUITE`), la création ne peut pas entrer en collision, et il n'y a donc ni
+    idempotence à organiser ni erreur de doublon à rattraper. Le code qui manque ici est la moitié
+    de l'intérêt du jeton.
 
-    C'est aussi ce qui rend sûr le ``DROP`` de sortie : on ne l'atteint qu'après une création
-    réussie, donc il ne porte que sur la base de cette session.
+    Un ``kill -9`` ne passe pas par la sortie de ce contexte et laisse une base derrière lui. Elle
+    est **inoffensive** au sens plein : elle ne bloque aucune suite future, puisqu'aucune ne
+    reprendra jamais son nom. En contrepartie rien ne force la main — elles s'accumulent en
+    silence, d'où la requête de balayage du README, à jouer de temps en temps.
 
-    Le balayage de toutes les bases ``arpendo_test_*`` au démarrage a été écarté à l'interrogatoire,
-    pour une raison voisine : une suite entre deux tests peut n'avoir aucune connexion ouverte, et
-    le balayage la tuerait.
+    Le ``DROP`` de sortie ne s'atteint qu'après une création réussie : il ne porte donc que sur la
+    base de cette session, jamais sur celle d'une voisine. Le balayage de toutes les bases
+    ``arpendo_test_*`` au démarrage a été écarté à l'interrogatoire, pour une raison voisine : une
+    suite entre deux tests peut n'avoir aucune connexion ouverte, et le balayage la tuerait.
 
     Yields:
         Le DSN de la base de la suite, à poser dans ``DATABASE_URL``.
@@ -252,8 +264,10 @@ async def _reserver() -> int:
     """Prend la première base logique libre, et la vide.
 
     ``SET … NX EX`` est **atomique** : deux suites qui démarrent au même instant ne peuvent pas
-    obtenir le même index, là où un tirage sur le pid les ferait entrer en collision une fois sur
-    quatorze — soit exactement l'intermittence de #94, reproduite plus rarement.
+    obtenir le même index, là où un tirage au sort les ferait entrer en collision une fois sur
+    quatorze — soit exactement l'intermittence de #94, reproduite plus rarement. C'est la
+    différence entre un jeu **borné** qu'il faut se répartir et un espace de noms assez vaste pour
+    qu'on s'y ignore : la base PostgreSQL se contente d'un jeton, l'index Valkey exige un verrou.
 
     Le ``FLUSHDB`` qui suit ne détruit rien qui ait un propriétaire : la base vient d'être réservée,
     donc ce qu'elle contient encore appartient à une suite tuée, dont plus personne n'attend rien.
@@ -268,7 +282,7 @@ async def _reserver() -> int:
     async with _client(VALKEY_URL) as verrous:
         for index in INDEX_CANDIDATS:
             pris = await verrous.set(
-                CLE_DU_VERROU.format(index=index), os.getpid(), nx=True, ex=BAIL_DU_VERROU
+                CLE_DU_VERROU.format(index=index), JETON_DE_LA_SUITE, nx=True, ex=BAIL_DU_VERROU
             )
             if pris:
                 async with _client(_url_de_index(index)) as base:
@@ -284,9 +298,9 @@ async def _reserver() -> int:
 async def _liberer(index: int) -> None:
     """Rend la base logique au jeu des candidates.
 
-    La suppression est inconditionnelle : vérifier que le verrou porte encore notre pid ne serait
+    La suppression est inconditionnelle : vérifier que le verrou porte encore notre jeton ne serait
     pas atomique de toute façon, et la seule façon de libérer celui d'une voisine est d'avoir
-    dépassé le bail — trois ordres de grandeur au-dessus de la durée d'une suite.
+    dépassé le bail — 360 fois la durée d'une suite.
 
     Args:
         index: la base logique à libérer.

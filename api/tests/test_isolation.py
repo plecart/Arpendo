@@ -89,12 +89,12 @@ def test_la_suite_tourne_sur_sa_propre_base_postgresql() -> None:
     """La suite écrit dans une base créée pour elle, jamais dans celle que l'environnement nomme.
 
     Le garde est **exact** et non préfixé, et une seule assertion suffit donc à couvrir les deux
-    moitiés du critère : le nom porte le pid de ce processus, la seule valeur qu'aucune suite
-    concurrente ne peut porter en même temps que nous — il commence donc par `arpendo_test_`, et il
-    diffère de celui qu'un environnement peut nommer. `startswith` laisserait passer la base d'une
-    voisine, qui est précisément ce dont on se sépare ; une comparaison au DSN d'origine en plus de
-    celle-ci ne pourrait rougir que si l'environnement nommait `arpendo_test_<notre pid>`, un nom
-    qui change à chaque lancement — mesuré : elle reste verte quand on la retire.
+    moitiés du critère : le nom porte le jeton tiré au chargement de `magasins`, que rien d'autre
+    ne porte — il commence donc par `arpendo_test_`, et il diffère de celui qu'un environnement
+    peut nommer. `startswith` laisserait passer la base d'une voisine, qui est précisément ce dont
+    on se sépare ; une comparaison au DSN d'origine en plus de celle-ci ne pourrait rougir que si
+    l'environnement nommait `arpendo_test_<notre jeton>`, un nom tiré au sort à chaque lancement —
+    mesuré : elle reste verte quand on la retire.
     """
     base = nom_de_base(Settings().database_url.get_secret_value())
 

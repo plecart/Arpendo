@@ -108,7 +108,7 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > vient du jeu des candidates par construction, donc le comparer ne mesurerait rien (mesuré :
 > `VALKEY_URL` sur la 0 laissait passer).
 
-> **Chaque suite crée sa propre base PostgreSQL**, `arpendo_test_<pid>`, sur le serveur et avec les
+> **Chaque suite crée sa propre base PostgreSQL**, `arpendo_test_<jeton>`, sur le serveur et avec les
 > identifiants de `DATABASE_URL` — la fixture de session `magasins` la crée avant que quoi que ce
 > soit ne lise la configuration, et la détruit à la fin. Deux suites lancées **en parallèle** depuis
 > deux worktrees visaient sinon la même base (#94) : la purge du journal, qui porte sur le préfixe
@@ -116,18 +116,16 @@ et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 > à `base` le schéma sous ses pieds. On ne partitionne pas une table par une clé de ligne quand
 > c'est la table qu'on supprime — d'où une base par suite, et non une clé de suite.
 >
-> Le nom porte le **pid**, unique parmi les processus vivants d'un même espace de pid : deux suites
-> concurrentes ne peuvent pas se choisir le même. Un `kill -9` ne passe pas par la fin de session et
-> laisse donc une base derrière lui. Elle est inoffensive tant que personne n'hérite de ce pid ; la
-> suite qui en hérite **échoue au démarrage** sur `DuplicateDatabaseError: database
-> "arpendo_test_<pid>" already exists`, et il n'y a qu'à supprimer l'orpheline qu'elle nomme.
+> Le nom porte un **jeton aléatoire** tiré au lancement, et non le pid. Un pid n'est unique que
+> parmi les processus vivants d'un même espace de nommage, et le système le **réattribue** : il
+> faudrait alors détruire avant de créer pour survivre à la collision, et cette destruction ne
+> saurait pas distinguer le résidu d'une suite morte de la base d'une voisine vivante — deux espaces
+> de pid qui joignent le même serveur (WSL, un conteneur, un runner) peuvent porter le même. Un nom
+> qui n'est jamais réattribué supprime la collision, donc la destruction, donc le risque.
 >
-> La suite ne la supprime pas elle-même, et c'est délibéré : détruire avant de créer supposerait
-> qu'aucun processus vivant ne porte ce pid, ce qui n'est vrai que dans **un seul** espace de pid —
-> deux espaces qui joignent le même serveur (WSL, un conteneur, un runner) peuvent porter le même,
-> et la suite détruirait la base d'une voisine vivante en croyant balayer une morte.
->
-> Pour les balayer à la main :
+> Conséquence : un `kill -9` ne passe pas par la fin de session et laisse une base derrière lui, mais
+> elle est **inoffensive** — aucune suite ne reprendra jamais son nom. En contrepartie rien ne force
+> la main : elles s'accumulent en silence. Pour les balayer, de temps en temps :
 >
 > ```sql
 > SELECT 'DROP DATABASE ' || quote_ident(datname) || ' WITH (FORCE);'
