@@ -243,6 +243,33 @@ void main() {
       );
     });
 
+    // Les formes textuelles de `FORMES_DE_POSITION` (`api/tests/test_sentry.py`),
+    // aux mêmes libellés : un diff des identifiants de tests des deux suites
+    // révèle une dérive entre les deux tables — c'est le seul garde qui relie
+    // deux motifs qu'aucun code ne partage.
+    const formesDePosition = {
+      'virgule': '48.858370, 2.294481',
+      'longitude négative': '48.858370, -2.294481',
+      'longitude négative, espace': '48.858370 -2.294481',
+      'query string REST': 'lat=48.858370&lon=2.294481',
+      'WKT PostGIS': 'POINT(2.294481 48.858370)',
+      'JSON sérialisé en chaîne':
+          '{"latitude": 48.858370, "longitude": 2.294481}',
+      'saut de ligne': '48.858370\n2.294481',
+      'point-virgule': '48.858370;2.294481',
+    };
+
+    for (final MapEntry(key: forme, value: texte) in formesDePosition.entries) {
+      test('la forme « $forme » est retirée', () {
+        final evenement = SentryEvent(message: SentryMessage(texte));
+
+        final rendu = assainir(evenement).message!.formatted;
+
+        expect(rendu, isNot(contains('48.85837')));
+        expect(rendu, isNot(contains('2.294481')));
+      });
+    }
+
     test('trois décimales ne localisent pas, quatre oui', () {
       final trop = SentryEvent(message: SentryMessage('48.858, 2.294'));
       final assez = SentryEvent(message: SentryMessage('48.8583, 2.2944'));

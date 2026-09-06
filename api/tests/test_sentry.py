@@ -159,6 +159,7 @@ def test_scrub_retire_la_valeur_brute_qu_une_erreur_de_validation_recopie() -> N
 FORMES_DE_POSITION = {
     "virgule": {"m": "48.858370, 2.294481"},
     "longitude négative": {"m": "48.858370, -2.294481"},
+    "longitude négative, espace": {"m": "48.858370 -2.294481"},
     "query string REST": {"request": {"query_string": "lat=48.858370&lon=2.294481"}},
     "WKT PostGIS": {"m": "POINT(2.294481 48.858370)"},
     "JSON sérialisé en chaîne": {"m": '{"latitude": 48.858370, "longitude": 2.294481}'},
@@ -173,7 +174,7 @@ FORMES_DE_POSITION = {
 atteindre Sentry.
 
 Écrite ici parce qu'un correctif de fuite se juge sur la classe entière et non sur l'occurrence
-qui l'a révélée. Les sept premières sont des chaînes, les quatre dernières des **nombres** — deux
+qui l'a révélée. Les chaînes d'abord, puis les quatre formes en **nombres** — deux
 sous-classes que rien ne rapproche à la lecture, et qui ont chacune fait fuir une position pendant
 que l'autre était couverte.
 """
@@ -195,9 +196,9 @@ restent aussi. C'est ce qui empêche l'assainissement d'avaler la moitié des no
 def test_aucune_forme_de_position_n_atteint_sentry(evenement: dict[str, Any]) -> None:
     """Le balayage de la classe : chaque forme sous laquelle une position peut voyager.
 
-    Mesuré à l'écriture : sept de ces onze formes fuyaient alors que la huitième était couverte et
-    servait de preuve. Les ajouter une à une au fil des incidents reviendrait à découvrir chacune
-    en production.
+    Mesuré à l'écriture : sept des onze formes d'alors fuyaient tandis que la huitième était
+    couverte et servait de preuve. Les ajouter une à une au fil des incidents reviendrait à
+    découvrir chacune en production.
     """
     rendu = json.dumps(scrub(evenement))
 
