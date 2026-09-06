@@ -83,6 +83,12 @@ longtemps pour l'exercer. Elle le sera par ce qui l'exercera vraiment.
 les dépendances dans la première, la seconde n'embarque que le résultat et tourne sous l'utilisateur
 `arpendo`, jamais root (cadrage §13.10).
 
+**Le code et le venv appartiennent à root** : l'utilisateur d'exécution les lit et les exécute, il
+n'y écrit pas. Un processus compromis ne peut ni altérer une dépendance ni déposer un module. Rien
+dans l'image n'a besoin d'écrire — le worker écrit son battement sous `/tmp`, et les `.pyc` sont
+compilés au build. Le job `image` de la CI construit l'image et vérifie qu'un `touch` sous `/app`,
+`/app/src` et `/app/.venv` échoue depuis le conteneur.
+
 **Toute image tirée d'un registre est épinglée `tag@sha256:…`** — les `FROM` du Dockerfile comme
 `postgres` et `valkey` du compose local. Le tag reste lisible et dit la version voulue ; l'empreinte
 fige celle qu'on a réellement eue, et le commentaire au-dessus de chaque épinglage nomme la version

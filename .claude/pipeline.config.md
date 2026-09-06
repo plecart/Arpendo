@@ -68,7 +68,8 @@ Toutes délèguent au `justfile` de la racine — **modifier une commande, c'est
 
 ## Qualité
 - seuil de couverture : 85 % côté `api/` (appliqué par `--cov-fail-under=85`) ; `n/a` côté `app/`
-- gates bloquants en CI : lint, format:check, typecheck, build, test
+- gates bloquants en CI : lint, format:check, typecheck, build, test — et le job `image`
+  (construction d'`api/Dockerfile`, code non inscriptible par l'utilisateur d'exécution)
 - services requis en CI : `postgres:17`, `valkey:8`
   - **PostgreSQL 17** — disponible chez tous les hébergeurs managés UE (la 18 ne l'est pas
     partout), supporté jusqu'en novembre 2029, et aucune fonctionnalité postérieure n'est

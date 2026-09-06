@@ -47,7 +47,10 @@ FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb
 RUN useradd --system --create-home --shell /usr/sbin/nologin arpendo
 
 WORKDIR /app
-COPY --from=build --chown=arpendo:arpendo /app /app
+# Sans `--chown` : code et venv appartiennent à root, l'utilisateur d'exécution les lit et les
+# exécute, il n'y écrit pas — rien ici n'en a besoin, le worker écrit sous `/tmp`. Le job `image`
+# de la CI le vérifie par un `touch` qui doit échouer.
+COPY --from=build /app /app
 
 # Met le venv en tête du PATH : `uvicorn` et `python` résolvent vers l'environnement du projet
 # sans avoir à préfixer chaque commande.

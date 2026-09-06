@@ -152,3 +152,25 @@ jobs:
           SENTRY_DSN: ""
           SENTRY_SAMPLE_RATE: "1.0"
         run: just test
+
+  image:
+    name: Image
+    runs-on: ubuntu-latest
+    # Même garde que `ci` : pas de run sur une draft.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # L'image que `just up` construit sur le poste, bâtie ici pour être éprouvée — le job `ci`
+      # teste le paquet depuis le runner, jamais depuis l'image.
+      - name: Build
+        run: docker build --tag arpendo-api:ci api
+
+      # Le code et le venv appartiennent à root, l'utilisateur d'exécution ne peut pas y écrire
+      # (cadrage §13.10 ; `api/Dockerfile`). Trois `touch` qui doivent échouer : `/app` seul ne
+      # prouverait rien, `WORKDIR` le crée root quoi qu'il arrive — ce sont `src` et `.venv`,
+      # copiés depuis l'étape de build, qui portaient un `--chown`. Une image qui ne démarre pas
+      # échoue aussi ce step, et c'est le sens voulu.
+      - name: Code non inscriptible par l'utilisateur d'exécution
+        run: docker run --rm arpendo-api:ci sh -c '! touch /app/verrou && ! touch /app/src/verrou && ! touch /app/.venv/verrou'
