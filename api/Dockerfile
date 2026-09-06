@@ -4,10 +4,9 @@
 #
 # Chaque image tirée est épinglée `tag@sha256:…` (§13.10, « Images épinglées par empreinte ») :
 # le tag dit ce qu'on a voulu, l'empreinte fige ce qu'on a eu. Dependabot (écosystème `docker`
-# sur `/api`) suit le tag et propose l'empreinte suivante quand il bouge — d'où **une empreinte par
-# ligne `FROM`, écrite en clair** : le parseur du bot ne lit que ces lignes, pas un `ARG` ni un
-# `COPY --from`, et une empreinte qu'il ne voit pas ne serait jamais rafraîchie. Le commentaire de
-# chaque épinglage nomme la version que le tag résolvait le jour où elle a été lue.
+# sur `/api`) suit le tag et propose l'empreinte suivante quand il bouge — et son parseur ne lit
+# que les lignes `FROM`, écrites en clair : chaque écart à cette forme est justifié sur place. Le
+# commentaire de chaque épinglage nomme la version que le tag résolvait le jour où elle a été lue.
 # `api/tests/test_images.py` refuse un `FROM` sans empreinte.
 
 # uv installe l'interpréteur et les dépendances ; sa propre image officielle évite une couche pip.

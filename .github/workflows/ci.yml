@@ -183,9 +183,10 @@ jobs:
       # parce que `exit-code` s'applique à toutes les gravités affichées : le premier montre tout
       # sans jamais bloquer, le second ne montre que ce qui bloque. Politique verrouillée au triage
       # de #45 : rouge sur une CRITICAL **corrigeable** seulement — une critique sans correctif
-      # amont laisserait la PR rouge sans geste possible. Version exacte de l'action, comme les
-      # autres, montée par Dependabot. La base de vulnérabilités est mise en cache par l'action
-      # entre les deux appels et d'un run à l'autre.
+      # amont laisserait la PR rouge sans geste possible. Version exacte de l'action : comme
+      # `setup-uv`, elle ne publie aucun tag de majeure (`v0` n'existe pas) ; Dependabot la monte.
+      # La base de vulnérabilités est mise en cache par l'action entre les deux appels et d'un run
+      # à l'autre.
       - name: Rapport de vulnérabilités (toutes gravités, informatif)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
