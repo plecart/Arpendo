@@ -41,9 +41,6 @@ def ddl(element: CreateTable | CreateIndex) -> str:
 
     Les conventions de `db.base` s'observent dans le DDL compilé : c'est là, et nulle part dans
     l'objet Python, qu'un `Mapped[int]` devient un `BIGINT`.
-
-    L'ignore porte ce seul appel : `--strict` refuse un constructeur non annoté, au niveau du
-    module comme ici — mesuré.
     """
     dialecte = postgresql.dialect()  # type: ignore[no-untyped-call]  # SQLAlchemy ne l'annote pas
     return str(element.compile(dialect=dialecte))
