@@ -14,8 +14,8 @@ import re
 from conftest import COMPOSE
 from magasins import (
     BASE_DE_LA_SUITE,
-    DATABASE_URL,
     INDEX_CANDIDATS,
+    INDEX_DES_VERROUS,
     base_logique,
     nom_de_base,
 )
@@ -34,7 +34,7 @@ rend ce garde vert en ne mesurant plus rien.
 """
 
 
-def test_la_suite_n_utilise_pas_la_base_valkey_de_l_application() -> None:
+def test_aucune_base_valkey_de_la_suite_ne_touche_celle_de_l_application() -> None:
     """Le garde porte sur la **configuration**, pas sur un comportement observé, et c'est délibéré.
 
     La séparation des bases rend le recouvrement *impossible* pour les commandes du keyspace ; un
@@ -42,6 +42,12 @@ def test_la_suite_n_utilise_pas_la_base_valkey_de_l_application() -> None:
     jamais « jamais ». Mesuré : sans ce garde et sur une base partagée, **30 exécutions de la suite
     sur 30 sont vertes** — le défaut y est entièrement invisible, et c'est ce qui l'avait laissé
     passer.
+
+    Il porte sur **l'ensemble des bases qu'une suite peut atteindre**, et non sur celle qu'elle a
+    tirée cette fois-ci : les verrous, et les quatorze index réservables. Comparer l'index obtenu
+    ne mesurerait rien — il est tiré du jeu des candidats par construction, donc l'assertion serait
+    vraie quel que soit ce jeu. Mesuré : avec la comparaison sur l'index obtenu, `VALKEY_URL` posée
+    sur la base 0 — la configuration que `.env.example` interdit — laissait les trois gardes verts.
     """
     urls = VALKEY_URL_DU_COMPOSE.findall(COMPOSE.read_text("utf-8"))
 
@@ -58,22 +64,31 @@ def test_la_suite_n_utilise_pas_la_base_valkey_de_l_application() -> None:
     )
 
     du_compose = {base_logique(url) for url in urls}
-    assert base_logique(Settings().valkey_url) not in du_compose, (
-        "la suite vise la même base logique Valkey que l'application du compose : elle effacera "
-        "les compteurs de l'application et lira les siens. Poser `VALKEY_URL` sur la base 1 dans "
-        "le `.env` (et dans le step Tests de `ci.yml`)"
+    assert INDEX_DES_VERROUS not in du_compose, (
+        "les verrous des suites se posent sur la base logique de l'application du compose, et "
+        "chaque suite y écrit une clé. Poser `VALKEY_URL` sur la base 1 dans le `.env` (et dans "
+        "le step Tests de `ci.yml`)"
+    )
+    assert not du_compose & set(INDEX_CANDIDATS), (
+        f"une suite peut se réserver la base logique de l'application du compose {du_compose} : "
+        "elle la viderait à la réservation, puis effacerait ses compteurs et lirait les siens"
+    )
+    assert INDEX_DES_VERROUS not in INDEX_CANDIDATS, (
+        f"une suite peut se réserver la base des verrous {INDEX_DES_VERROUS} : elle la viderait, "
+        "et toutes les suites voisines se croiraient alors seules sur leur index"
     )
 
 
 def test_la_suite_tourne_sur_sa_propre_base_postgresql() -> None:
     """La suite écrit dans une base créée pour elle, jamais dans celle que l'environnement nomme.
 
-    Le garde est **exact** et non préfixé : le nom porte le pid de ce processus, la seule valeur
-    qu'aucune suite concurrente ne peut porter en même temps que nous. `startswith` laisserait
-    passer la base d'une voisine, qui est précisément ce dont on se sépare.
-
-    La comparaison au DSN d'origine reste, et elle n'est pas redondante : elle est ce qui rougit si
-    quelqu'un pointe l'environnement de la suite sur une base déjà nommée `arpendo_test_…`.
+    Le garde est **exact** et non préfixé, et une seule assertion suffit donc à couvrir les deux
+    moitiés du critère : le nom porte le pid de ce processus, la seule valeur qu'aucune suite
+    concurrente ne peut porter en même temps que nous — il commence donc par `arpendo_test_`, et il
+    diffère de celui qu'un environnement peut nommer. `startswith` laisserait passer la base d'une
+    voisine, qui est précisément ce dont on se sépare ; une comparaison au DSN d'origine en plus de
+    celle-ci ne pourrait rougir que si l'environnement nommait `arpendo_test_<notre pid>`, un nom
+    qui change à chaque lancement — mesuré : elle reste verte quand on la retire.
     """
     base = nom_de_base(Settings().database_url.get_secret_value())
 
@@ -82,19 +97,16 @@ def test_la_suite_tourne_sur_sa_propre_base_postgresql() -> None:
         "journal — et son schéma — avec l'application du compose et avec toute suite voisine. La "
         "fixture `magasins` de `conftest.py` n'a pas posé l'environnement"
     )
-    assert base != nom_de_base(DATABASE_URL), (
-        "la base de la suite est celle que l'environnement nomme : le test des migrations "
-        "redescendra à `base` le schéma d'une voisine en plein test"
-    )
 
 
 def test_la_suite_tourne_sur_sa_propre_base_logique_valkey() -> None:
     """La suite compte ses requêtes sur une base logique qu'elle s'est réservée.
 
     L'index exact n'est pas prévisible — c'est le premier libre — donc le garde porte sur
-    l'**appartenance au jeu des candidats**, ce qui exclut d'un coup la 0 de l'application et la
-    base des verrous. C'est aussi ce qui rougit si la fixture `magasins` cessait de poser
-    l'environnement : elle laisserait la suite sur celle des verrous, qu'elle viderait.
+    l'appartenance au jeu des candidats. **Ce qu'il mesure, et lui seul : que la fixture `magasins`
+    a bien posé l'environnement.** Que ce jeu soit lui-même sain — disjoint de l'application et des
+    verrous — est mesuré par le garde de configuration au-dessus, et pas ici : c'est la
+    décomposition qui rend celui-ci autre chose qu'une tautologie.
     """
     index = base_logique(Settings().valkey_url)
 

@@ -99,7 +99,9 @@ dans le compose et dans la CI a été écarté, ce serait un réglage de product
 
 L'exclusion de :data:`INDEX_DES_VERROUS` ne coûte rien et retire une panne : un environnement qui
 poserait `VALKEY_URL` sur la 3 verrait la première suite vider les verrous de toutes les autres,
-sans que rien ne le signale avant la corruption.
+sans que rien ne le signale avant la corruption. Ce jeu est **gardé de l'extérieur** —
+``test_isolation`` le confronte à la base de l'application et à celle des verrous : une assertion
+qui se contenterait de vérifier que l'index tiré en fait partie ne mesurerait rien.
 """
 
 CLE_DU_VERROU = "arpendo:tests:base:{index}"

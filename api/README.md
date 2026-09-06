@@ -85,23 +85,28 @@ existe pour garantir. Ils lisent leurs coordonnées dans le `.env` de la racine,
 charge dans l'environnement des recettes. En CI, ce sont les conteneurs `services:` du workflow
 et les variables du job qui jouent ce rôle — le même code, sans `.env`.
 
-> **La suite tourne sur la base Valkey 1, l'application sur la 0.** L'application tourne *toujours*
-> pendant la suite, et celle-ci efface toutes les clés `ratelimit:*` avant et après chaque test :
-> sur une base partagée, elle effaçait les compteurs de l'application et lisait les siens. Le
-> healthcheck du conteneur `api`, qui interroge `/health` toutes les dix secondes, suffisait à
-> faire échouer un test de fenêtre, rarement et de façon illisible.
+> **L'application tourne sur la base Valkey 0, et aucune suite n'y touche.** L'application tourne
+> *toujours* pendant la suite, et celle-ci efface toutes les clés `ratelimit:*` avant et après
+> chaque test : sur une base partagée, elle effaçait les compteurs de l'application et lisait les
+> siens. Le healthcheck du conteneur `api`, qui interroge `/health` toutes les dix secondes,
+> suffisait à faire échouer un test de fenêtre, rarement et de façon illisible. `VALKEY_URL`
+> pointe la 1, qui est la base des **verrous** ; chaque suite travaille sur un index qu'elle s'y
+> réserve — voir plus bas.
 >
 > **La séparation ne vaut que pour les commandes du keyspace** — celles du limiteur : `INCR`,
 > `EXPIRE`, `TTL`, `SCAN`. Aucune ne traverse les bases logiques, et le recouvrement y devient
-> donc impossible plutôt qu'improbable. **Le pub/sub du bus, lui, les traverse** : un abonné de la
-> base 1 reçoit ce qu'on publie depuis la base 0 (mesuré). Ce qui isole le bus est le **nom de
+> donc impossible plutôt qu'improbable. **Le pub/sub du bus, lui, les traverse** : un abonné d'une
+> base reçoit ce qu'on publie depuis une autre (mesuré). Ce qui isole le bus est le **nom de
 > canal** — `game:{uuid4}`, un par partie et un par test — et rien d'autre ; c'est écrit au point
 > d'usage, dans `tests/conftest.py`. Le jour où un canal à **nom fixe** apparaîtra — canal système,
 > verrou, annonce du worker — la suite et l'application se parleront de nouveau, et il faudra le
 > traiter là où le canal se compose.
 >
-> `tests/test_isolation.py` garde la séparation des bases, qui ne vit sinon que dans `.env` et
-> `ci.yml`.
+> `tests/test_isolation.py` garde la séparation des bases, qui ne vit sinon que dans `.env`,
+> `ci.yml` et le compose. Il la garde sur **l'ensemble des bases qu'une suite peut atteindre** —
+> les verrous, et les quatorze index réservables — et non sur l'index tiré au lancement : celui-là
+> vient du jeu des candidates par construction, donc le comparer ne mesurerait rien (mesuré :
+> `VALKEY_URL` sur la 0 laissait passer).
 
 > **Chaque suite crée sa propre base PostgreSQL**, `arpendo_test_<pid>`, sur le serveur et avec les
 > identifiants de `DATABASE_URL` — la fixture de session `magasins` la crée avant que quoi que ce
