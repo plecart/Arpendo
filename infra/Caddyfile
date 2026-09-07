@@ -6,6 +6,11 @@
 # que personne ne peut joindre. Le port 80 étant fermé par le pare-feu du fournisseur (§13.10), le
 # défi ACME se fait en TLS-ALPN-01 sur 443 — Caddy essaie HTTP-01 d'abord et bascule de lui-même.
 {
+	# À l'arrêt, Caddy attend ses connexions ouvertes SANS FIN par défaut (« eternal grace period »
+	# dans son journal, mesuré) : c'est alors le SIGKILL de Docker qui trancherait, brutalement, la
+	# moitié client des flux SSE. 25 s, sous le `stop_grace_period` de 30 s du compose — le même
+	# ordre que la borne uvicorn côté api ; `api/tests/test_compose_prod.py` le garde.
+	grace_period 25s
 	servers {
 		protocols h1 h2
 	}

@@ -12,18 +12,25 @@ parce que les tests parlent aux services depuis l'hôte et jamais depuis les con
 """
 
 import re
-from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import pytest
-from conftest import COMPOSES, ENV_EXAMPLE, document_yaml, nom_du_fichier, variables_des_reglages
+from conftest import (
+    COMPOSES,
+    ENV_EXAMPLE,
+    document_yaml,
+    nom_du_fichier,
+    secondes,
+    services_du_paquet,
+    variables_des_reglages,
+)
 
 SERVICE_D_UVICORN = "api"
 """Le seul point d'entrée que le serveur uvicorn héberge — donc le seul à lire `UVICORN_*`.
 
 Nommé une fois, ici : c'est l'**exception** à la partition, et une exception se déclare. Tout ce qui
-n'est pas cette exception se dérive de l'image partagée, sans liste à tenir.
+n'est pas cette exception se dérive de l'image partagée (``services_du_paquet``), sans liste.
 """
 
 BORNE_UVICORN = "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN"
@@ -47,34 +54,12 @@ fusionnés quand `yaml.safe_load` les rend — la partition y est invisible.
 """
 
 
-def _services_du_paquet(compose: Path) -> dict[str, dict[str, Any]]:
-    """Les services d'un compose qui exécutent le paquet, par nom.
-
-    Ce sont ceux qui **partagent une même référence d'image** (cadrage §13.0 : un paquet, deux
-    entrées, une image) — `arpendo-api:dev` construite en local, `${ARPENDO_IMAGE:?…}` tirée en
-    production : la référence **brute**, telle qu'écrite, et non un littéral que ce fichier
-    connaîtrait. Un troisième point d'entrée bâti sur la même image sera couvert le jour où il
-    naîtra ; une liste de noms, elle, aurait vieilli en silence.
-
-    **Une seule chose ne se dérive pas** : le témoin positif ci-dessous énumère les points d'entrée
-    attendus — il rougit à l'arrivée du troisième pour forcer la conversation.
-
-    Lus après développement des ancres (voir `document_yaml`) : ce test dit ce que chaque conteneur
-    reçoit vraiment, quelle que soit la façon dont le compose l'écrit.
-    """
-    services: dict[str, dict[str, Any]] = document_yaml(compose)["services"]
-    partagees = {
-        image for image, n in Counter(b.get("image") for b in services.values()).items() if n > 1
-    }
-    return {nom: bloc for nom, bloc in services.items() if bloc.get("image") in partagees}
-
-
 def _par_compose_et_service(hors: frozenset[str] = frozenset()) -> list[Any]:
     """Un paramètre par (compose, point d'entrée du paquet), nommé `<fichier>-<service>`."""
     return [
         pytest.param(compose, service, id=f"{compose.name}-{service}")
         for compose in COMPOSES
-        for service in sorted(set(_services_du_paquet(compose)) - hors)
+        for service in sorted(set(services_du_paquet(compose)) - hors)
     ]
 
 
@@ -85,7 +70,7 @@ def test_le_compose_declare_les_points_d_entree_attendus(compose: Path) -> None:
     Un test paramétré sur une collection vide ne s'exécute pas — et ne rougit donc jamais. C'est
     le témoin positif qui distingue « la règle est respectée » de « la mesure ne mesure rien ».
     """
-    assert set(_services_du_paquet(compose)) == {"api", "worker"}, (
+    assert set(services_du_paquet(compose)) == {"api", "worker"}, (
         f"témoin : les points d'entrée du paquet de {compose.name} ont changé"
     )
 
@@ -143,7 +128,7 @@ def _environnement_de(compose: Path, service: str) -> dict[str, Any]:
     lisible qu'un bloc absent du service, et l'aide bâtie pour supprimer les accès directs n'en
     garde pas un pour elle-même.
     """
-    bloc = _declare(_services_du_paquet(compose), service, f"les points d'entrée de {compose.name}")
+    bloc = _declare(services_du_paquet(compose), service, f"les points d'entrée de {compose.name}")
 
     return _declare(bloc, "environment", f"le service `{service}` de {compose.name}")
 
@@ -192,18 +177,6 @@ def test_l_ancre_partagee_porte_exactement_ce_que_lisent_les_reglages(compose: P
     )
 
 
-def _secondes(duree: str) -> int:
-    """Une durée Compose exprimée en secondes — ``30s`` → 30.
-
-    Volontairement étroite : le compose n'écrit que des secondes. Toute autre unité fait échouer le
-    garde bruyamment, plutôt que d'être lue de travers — une durée mal comprise rendrait vert un
-    ordre qui ne tient plus.
-    """
-    secondes = re.fullmatch(r"(\d+)s", duree)
-    assert secondes, f"durée {duree!r} : ce garde ne lit que des secondes, pas d'autre unité"
-    return int(secondes[1])
-
-
 @pytest.mark.parametrize("compose", COMPOSES, ids=nom_du_fichier)
 def test_uvicorn_ferme_avant_que_docker_n_abrege(compose: Path) -> None:
     """L'arrêt gracieux tient à un **ordre**, et cet ordre est réparti sur deux fichiers.
@@ -223,13 +196,13 @@ def test_uvicorn_ferme_avant_que_docker_n_abrege(compose: Path) -> None:
     )
     borne = int(proposee[1])
 
-    for nom, bloc in sorted(_services_du_paquet(compose).items()):
+    for nom, bloc in sorted(services_du_paquet(compose).items()):
         delai = bloc.get("stop_grace_period")
         assert delai, (
             f"`{nom}` de {compose.name} n'a pas de `stop_grace_period` : Docker s'en tient à son "
             "défaut, trop court pour fermer proprement des flux ouverts"
         )
-        assert borne < _secondes(delai), (
+        assert borne < secondes(delai), (
             f"uvicorn attend jusqu'à {borne} s là où Docker tue `{nom}` de {compose.name} à "
             f"{delai} : le SIGKILL arrive le premier et l'arrêt n'est plus gracieux"
         )
@@ -253,7 +226,7 @@ def test_le_compose_relaie_la_borne_a_uvicorn_sous_un_garde(compose: Path) -> No
     contrôle de type, la vérification de forme lèverait un ``AttributeError`` nu au lieu de dire
     laquelle des formes fautives a été employée.
     """
-    assert SERVICE_D_UVICORN in _services_du_paquet(compose), (
+    assert SERVICE_D_UVICORN in services_du_paquet(compose), (
         f"aucun service `{SERVICE_D_UVICORN}` **parmi les points d'entrée du paquet** de "
         f"{compose.name} : soit il a été renommé, soit il ne partage plus l'image du paquet. C'est "
         "`SERVICE_D_UVICORN` qui désigne le service exécutant uvicorn ; la partition s'y adosse"

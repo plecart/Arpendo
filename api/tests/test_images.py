@@ -18,10 +18,11 @@ Trois choses que le bot ne voit pas, gardées ici parce que rien d'autre ne les 
   images que le compose fait tourner (§13.6), et seul un test peut tenir les deux à égalité.
 
 Ce qui **n'est pas** tiré n'a pas d'empreinte à porter : un service qui construit son image
-(`build:`) la nomme, il ne la tire pas ; et une référence **interpolée** (`${ARPENDO_IMAGE:?…}`)
-est l'image du paquet, publiée par #47 et désignée par le `.env` du serveur — l'empreinte n'a pas
-sa place dans le fichier. Ce sont ces deux formes, pas un nom, qui excluent : le garde suit une
-image renommée sans qu'on y pense.
+(`build:`) la nomme, il ne la tire pas ; et les services du paquet — ceux qui **partagent** une
+référence d'image, `services_du_paquet` de `conftest`, la seule définition — désignent une image
+publiée par #47 et nommée par le `.env` du serveur, dont l'empreinte n'a pas sa place dans le
+fichier. Ce sont ces deux règles, pas un nom, qui excluent : le garde suit une image renommée
+sans qu'on y pense, et une interpolation posée sur un service tiers ne l'exempte de rien.
 
 **Chaque famille porte son témoin** : un paramétrage vide ne rougit jamais, et une population qui
 rétrécit parce qu'un motif ne lit plus le fichier est un garde qui disparaît en silence. Les deux
@@ -43,6 +44,7 @@ from conftest import (
     PYTHON_VERSION,
     document_yaml,
     nom_du_fichier,
+    services_du_paquet,
 )
 
 EMPREINTE = re.compile(r"^\S+:[\w][\w.-]*@sha256:[0-9a-f]{64}$")
@@ -89,10 +91,11 @@ def _sources_des_copies() -> list[str]:
 def _images_tirees_du_compose(compose: Path) -> dict[str, str]:
     """Les images d'un compose que Docker **tire** d'un registre, par nom de service."""
     services: dict[str, dict[str, Any]] = document_yaml(compose)["services"]
+    paquet = services_du_paquet(compose)
     return {
         nom: bloc["image"]
         for nom, bloc in services.items()
-        if "build" not in bloc and not bloc["image"].startswith("${")
+        if "build" not in bloc and nom not in paquet
     }
 
 

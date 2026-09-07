@@ -16,11 +16,17 @@ environnements. Le garde va les y lire plutôt que d'exiger une redite dans le c
 """
 
 import re
-from pathlib import Path
 from typing import Any
 
 import pytest
-from conftest import COMPOSE_PROD, DOCKERFILE, document_yaml
+from conftest import (
+    CADDYFILE,
+    COMPOSE_PROD,
+    DOCKERFILE,
+    document_yaml,
+    secondes,
+    services_du_paquet,
+)
 
 UTILISATEURS_PRIVILEGIES = {"root", "0"}
 """Les écritures de `user:` (ou de `USER`) qui désignent root — interdites à chaque service."""
@@ -35,7 +41,10 @@ réajout, sur tout autre service, rougit ici : la liste est le contrat.
 """
 
 PORTS_PUBLIES = {"caddy": ["443:443"]}
-"""« Un seul port publié » : `caddy` sur 443, et rien d'autre nulle part."""
+"""« Un seul port publié » : `caddy` sur 443, rien d'autre, quelle que soit la syntaxe."""
+
+GRACE_PERIOD = re.compile(r"^\s*grace_period\s+(\d+)s\s*$", re.M)
+"""Le délai que Caddy s'accorde pour fermer ses connexions à l'arrêt, en secondes."""
 
 
 def _services() -> dict[str, dict[str, Any]]:
@@ -48,13 +57,14 @@ def _par_service() -> list[Any]:
     return [pytest.param(nom, bloc, id=nom) for nom, bloc in sorted(_services().items())]
 
 
-def _garanti_par_le_dockerfile(bloc: dict[str, Any], instruction: str) -> str | None:
-    """L'argument de `instruction` dans `api/Dockerfile`, pour un service sur l'image du paquet.
+def _garanti_par_le_dockerfile(nom: str, instruction: str) -> str | None:
+    """L'argument de `instruction` dans `api/Dockerfile`, pour un service du paquet.
 
-    Une référence interpolée (`${ARPENDO_IMAGE:?…}`) est l'image du paquet : ce que son Dockerfile
-    déclare vaut pour le service. Pour une image tirée, rien n'est garanti — `None`.
+    Un service du paquet (`services_du_paquet`, la seule règle d'identité) tourne sur l'image que
+    `api/Dockerfile` construit : ce qu'il déclare vaut pour le service. Pour une image tirée, rien
+    n'est garanti — `None`.
     """
-    if not str(bloc.get("image", "")).startswith("${"):
+    if nom not in services_du_paquet(COMPOSE_PROD):
         return None
     trouve = re.search(rf"^{instruction}\s+(.+)$", DOCKERFILE.read_text(encoding="utf-8"), re.M)
     return trouve[1].strip() if trouve else None
@@ -69,6 +79,13 @@ def _montages(bloc: dict[str, Any]) -> list[str]:
         else:
             sources.append(str(volume.get("source", "")))
     return sources
+
+
+def _port(publie: Any) -> str:
+    """Un port publié en `hôte:conteneur`, écrit court (`"443:443"`) ou long (`target:`)."""
+    if isinstance(publie, dict):
+        return f"{publie.get('published', '')}:{publie.get('target', '')}"
+    return str(publie)
 
 
 def _tmpfs(bloc: dict[str, Any]) -> list[str]:
@@ -91,7 +108,7 @@ def test_le_compose_de_production_declare_les_services_attendus() -> None:
 
 def test_seul_caddy_publie_un_port_et_c_est_443() -> None:
     """« Un seul port publié » — lu sur tous les services à la fois, pas seulement sur `caddy`."""
-    publies = {nom: [str(p) for p in bloc.get("ports", [])] for nom, bloc in _services().items()}
+    publies = {nom: [_port(p) for p in bloc.get("ports", [])] for nom, bloc in _services().items()}
     assert {nom: ports for nom, ports in publies.items() if ports} == PORTS_PUBLIES, (
         f"ports publiés : {publies} ; attendu {PORTS_PUBLIES}, et rien d'autre"
     )
@@ -100,7 +117,7 @@ def test_seul_caddy_publie_un_port_et_c_est_443() -> None:
 @pytest.mark.parametrize(("nom", "bloc"), _par_service())
 def test_chaque_service_tourne_sous_un_utilisateur_non_root(nom: str, bloc: dict[str, Any]) -> None:
     """« Jamais de conteneur applicatif en root » : `user:` ici, ou `USER` dans le Dockerfile."""
-    utilisateur = str(bloc.get("user") or _garanti_par_le_dockerfile(bloc, "USER") or "")
+    utilisateur = str(bloc.get("user") or _garanti_par_le_dockerfile(nom, "USER") or "")
     assert utilisateur, (
         f"`{nom}` n'a ni `user:` ni `USER` d'image : l'image tirée décide, et c'est root"
     )
@@ -136,7 +153,7 @@ def test_chaque_service_est_borne_redemarre_et_sonde(nom: str, bloc: dict[str, A
     )
     assert bloc.get("cpus"), f"`{nom}` n'a pas de `cpus`"
     assert bloc.get("restart") == "unless-stopped", f"`{nom}` n'a pas `restart: unless-stopped`"
-    assert bloc.get("healthcheck") or _garanti_par_le_dockerfile(bloc, "HEALTHCHECK"), (
+    assert bloc.get("healthcheck") or _garanti_par_le_dockerfile(nom, "HEALTHCHECK"), (
         f"`{nom}` n'a pas de `healthcheck`, ni ici ni dans le Dockerfile du paquet"
     )
 
@@ -182,7 +199,38 @@ def test_le_caddyfile_vide_le_flux_sans_attendre() -> None:
     de Caddy (vidage sur `text/event-stream` seulement) est une heuristique qu'on ne veut pas
     devoir connaître. Lu tel quel, le Caddyfile n'étant pas du YAML.
     """
-    caddyfile = (Path(COMPOSE_PROD).parent / "Caddyfile").read_text(encoding="utf-8")
+    caddyfile = CADDYFILE.read_text(encoding="utf-8")
     assert re.search(r"^\s*flush_interval\s+-1\s*$", caddyfile, re.M), (
         "le Caddyfile ne pose pas `flush_interval -1` : la SSE arriverait par paquets en production"
+    )
+
+
+@pytest.mark.parametrize(("nom", "bloc"), _par_service())
+def test_chaque_service_porte_un_delai_d_arret_explicite(nom: str, bloc: dict[str, Any]) -> None:
+    """§13.7 : « à porter explicitement dans le fichier compose », jamais le défaut de Docker.
+
+    Le défaut de Docker dépend de la version — 1 s sur 29.2.1, mesuré. `test_compose.py` garde
+    l'ordre borne uvicorn / délai pour les points d'entrée du paquet ; ceci garde la **présence**
+    du délai sur chaque service, `caddy` compris : il tient la moitié client de chaque flux SSE.
+    """
+    assert bloc.get("stop_grace_period"), (
+        f"`{nom}` n'a pas de `stop_grace_period` : Docker s'en tient à son défaut, 1 s sur 29.2.1"
+    )
+
+
+def test_caddy_ferme_ses_connexions_avant_que_docker_n_abrege() -> None:
+    """Même ordre que borne uvicorn / délai Docker, côté proxy : `grace_period` sous le délai.
+
+    Sans `grace_period`, Caddy attend ses connexions ouvertes **indéfiniment** (« eternal grace
+    period » dans son journal, mesuré) : c'est le SIGKILL de Docker qui trancherait, et les flux
+    SSE côté client tomberaient brutalement au lieu d'être fermés proprement.
+    """
+    grace = GRACE_PERIOD.search(CADDYFILE.read_text(encoding="utf-8"))
+    assert grace, (
+        "le Caddyfile ne pose pas de `grace_period` : Caddy attendrait ses connexions sans fin"
+    )
+    delai = str(_services()["caddy"].get("stop_grace_period", ""))
+    assert delai, "`stop_grace_period` de caddy absent"
+    assert int(grace[1]) < secondes(delai), (
+        f"Caddy s'accorde {grace[1]} s là où Docker le tue à {delai} : le SIGKILL arrive le premier"
     )

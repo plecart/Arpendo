@@ -1,6 +1,8 @@
 import json
 import logging
+import re
 import uuid
+from collections import Counter
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping
 from pathlib import Path
 from typing import Any
@@ -82,11 +84,8 @@ un seul port publié, la table de durcissement du cadrage §13.10 — est gardé
 COMPOSES = [COMPOSE, COMPOSE_PROD]
 """Les deux piles, pour les paramétrages ; `ids=nom_du_fichier` les nomme dans les rapports."""
 
-
-def nom_du_fichier(chemin: Path) -> str:
-    """L'identifiant pytest d'un chemin paramétré — `docker-compose.yml` plutôt qu'un `compose0`."""
-    return chemin.name
-
+CADDYFILE = RACINE / "infra" / "Caddyfile"
+"""La configuration de Caddy en production — pas du YAML, lue telle quelle par ses gardes."""
 
 DOCKERFILE = RACINE / "api" / "Dockerfile"
 """L'image du paquet, telle qu'elle se construit — lue par le garde des images épinglées."""
@@ -126,6 +125,45 @@ def document_yaml(chemin: Path) -> dict[str, Any]:
     document = yaml.safe_load(chemin.read_text(encoding="utf-8"))
     assert isinstance(document, dict), f"{chemin.name} ne rend pas un objet YAML"
     return document
+
+
+def nom_du_fichier(chemin: Path) -> str:
+    """L'identifiant pytest d'un chemin paramétré — `docker-compose.yml` plutôt qu'un `compose0`."""
+    return chemin.name
+
+
+def secondes(duree: str) -> int:
+    """Une durée Compose ou Caddy exprimée en secondes — ``30s`` → 30.
+
+    Volontairement étroite : les fichiers gardés n'écrivent que des secondes. Toute autre unité
+    fait échouer le garde bruyamment, plutôt que d'être lue de travers — une durée mal comprise
+    rendrait vert un ordre qui ne tient plus.
+    """
+    lu = re.fullmatch(r"(\d+)s", duree)
+    assert lu, f"durée {duree!r} : ce garde ne lit que des secondes, pas d'autre unité"
+    return int(lu[1])
+
+
+def services_du_paquet(compose: Path) -> dict[str, dict[str, Any]]:
+    """Les services d'un compose qui exécutent le paquet, par nom — **la** règle d'identité.
+
+    Ce sont ceux qui **partagent une même référence d'image** (cadrage §13.0 : un paquet, deux
+    entrées, une image) — `arpendo-api:dev` construite en local, `${ARPENDO_IMAGE:?…}` tirée en
+    production : la référence **brute**, telle qu'écrite, et non un littéral que la suite
+    connaîtrait. Un troisième point d'entrée bâti sur la même image sera couvert le jour où il
+    naîtra ; une liste de noms, elle, aurait vieilli en silence.
+
+    Une seule définition pour les trois gardes qui en dépendent — partition de la configuration,
+    épinglage des images tirées, mesures héritées d'`api/Dockerfile` : trois définitions
+    divergentes laisseraient un service tiers, référencé par une interpolation à lui, être exempté
+    d'empreinte **et** crédité du `USER` du paquet (mesuré à la relecture du lot 2 de #45).
+
+    Lus après développement des ancres (voir `document_yaml`) : les gardes disent ce que chaque
+    conteneur reçoit vraiment, quelle que soit la façon dont le compose l'écrit.
+    """
+    services: dict[str, dict[str, Any]] = document_yaml(compose)["services"]
+    references = Counter(str(bloc.get("image")) for bloc in services.values())
+    return {nom: bloc for nom, bloc in services.items() if references[str(bloc.get("image"))] > 1}
 
 
 def variables_des_reglages() -> set[str]:

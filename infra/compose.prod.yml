@@ -15,6 +15,11 @@
 # des réservations — la somme dépasse 2 à dessein, chaque service peut prendre le sien quand les
 # autres dorment ; aucun ne peut prendre la machine.
 
+# Nom de projet : sans lui, Compose prendrait celui du répertoire — `infra`, le même que la pile
+# de développement lancée par `just up` ; un `down` sur ce fichier viserait alors ses conteneurs.
+# `COMPOSE_PROJECT_NAME` le surcharge : c'est ainsi que #47 distingue la préproduction (§13.7).
+name: arpendo
+
 # L'environnement commun aux deux points d'entrée du paquet — même règle qu'en local, tenue par
 # `api/tests/test_compose.py` : ce que lit `Settings` est ici, ce que lit uvicorn reste sur `api`.
 # Une différence avec le compose local : `DATABASE_URL` est interpolée, sous `:?` — c'est l'URL de
@@ -41,6 +46,14 @@ x-durci: &durci
   # Aucun binaire setuid ne peut redonner ce qu'on vient de retirer.
   security_opt: ["no-new-privileges:true"]
   restart: unless-stopped
+  # Le délai avant SIGKILL, explicite sur CHAQUE service (§13.7 : le défaut de Docker « dépend de
+  # la version — mesuré à 1 seconde sur Docker 29.2.1 » ; « ne jamais s'en remettre au défaut »).
+  # Pour `api` c'est le temps qu'uvicorn a pour laisser partir les flux ouverts, pour `caddy`
+  # celui de fermer la moitié client de ces mêmes flux (`grace_period` du Caddyfile, en dessous),
+  # pour `worker` celui de finir le tour de tâche en cours (#44). `valkey` n'a rien à fermer, mais
+  # la règle est « explicite partout », pas « là où ça compte ». `api/tests/test_compose_prod.py`
+  # vérifie la présence sur chaque service, `test_compose.py` l'ordre avec la borne uvicorn.
+  stop_grace_period: 30s
 
 networks:
   default:
@@ -48,10 +61,13 @@ networks:
       config:
         # Sous-réseau FIXÉ, et non laissé au choix de Docker : `api` ne croit le `X-Forwarded-For`
         # que d'un pair de ce CIDR (voir `FORWARDED_ALLOW_IPS`), et une valeur littérale ne tient
-        # que si le réseau ne change pas d'adresse à sa prochaine création. Pris dans le pool
-        # par défaut de Docker (172.16.0.0/12) : #47 ne doit pas donner ce CIDR au Private
-        # Network Scaleway, sinon la base managée deviendrait injoignable depuis les conteneurs.
-        - subnet: 172.28.45.0/24
+        # que si le réseau ne change pas d'adresse à sa prochaine création. Pris HORS du pool que
+        # Docker distribue lui-même (172.17–172.31.0.0/16 et 192.168.0.0/16) : un /24 posé dedans
+        # entre en collision avec tout autre projet — la préproduction du §13.7 sur le même
+        # serveur, ou n'importe quelle pile voisine — qui aurait décroché ce /16 (« Pool overlaps
+        # with other one », mesuré). #47 ne doit pas non plus donner ce CIDR au Private Network
+        # Scaleway, sinon la base managée deviendrait injoignable depuis les conteneurs.
+        - subnet: 10.89.45.0/24
 
 services:
   caddy:
@@ -85,7 +101,8 @@ services:
       - caddy-data:/data
       # La configuration active et son autosave : en mémoire. `mode` explicite parce qu'un tmpfs
       # hérite sinon des droits du répertoire de l'image, `root 755` ici — mesuré, `nobody` n'y
-      # écrirait pas.
+      # écrirait pas. `0o1777` et non `1777` : Compose lit un octal (YAML 1.2) et rend 1023, le
+      # bon motif de bits ; `1777` serait lu en décimal, soit 0o3361.
       - type: tmpfs
         target: /config
         tmpfs:
@@ -94,7 +111,12 @@ services:
     cpus: 0.5
     depends_on:
       api:
-        condition: service_healthy
+        # `service_started`, et non `service_healthy` : un reverse proxy n'a rien à attendre de
+        # son amont, il réessaie à chaque requête. Conditionner `caddy` à la santé d'`api`
+        # empêcherait le certificat TLS d'être émis tant que l'api ne joint pas sa base — au
+        # premier déploiement, exactement quand le câblage est le moins sûr : site noir au lieu
+        # d'un 502.
+        condition: service_started
     healthcheck:
       # L'API d'administration de Caddy, sur la boucle locale du conteneur seulement : elle répond
       # dès que la configuration est chargée. `wget` est celui de BusyBox, présent dans l'image.
@@ -148,14 +170,11 @@ services:
       # d'entrée »). Littéral égal au sous-réseau fixé plus haut — `api/tests/test_compose_prod.py`
       # compare les deux. Jamais `*` : uvicorn croirait alors le premier hôte de l'en-tête, écrit
       # par le client, et le limiteur par adresse deviendrait contournable.
-      FORWARDED_ALLOW_IPS: 172.28.45.0/24
+      FORWARDED_ALLOW_IPS: 10.89.45.0/24
       # Même chaîne qu'en local : la borne vit dans le `.env`, sous `:?` (une valeur vide serait
       # ignorée en silence par uvicorn), et doit rester sous le `stop_grace_period` ci-dessous —
       # `api/tests/test_compose.py` garde l'ordre.
       UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN: ${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:?UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN est requis}
-    # Le temps qu'uvicorn a pour laisser partir les flux ouverts avant le SIGKILL (§13.7, §13.9
-    # règle 6) — le défaut de Docker est trop court et dépend de la version.
-    stop_grace_period: 30s
     tmpfs:
       # Le seul répertoire inscriptible : `/tmp`, hérité 1777 de l'image.
       - /tmp
@@ -172,8 +191,6 @@ services:
     environment:
       <<: *env
     command: ["python", "-m", "arpendo_api.worker"]
-    # Même délai qu'`api` : le tour de tâche en cours doit pouvoir finir (#44).
-    stop_grace_period: 30s
     tmpfs:
       # `/tmp` porte le fichier de battement — le seul chemin que le worker écrit.
       - /tmp
