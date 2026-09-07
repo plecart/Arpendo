@@ -162,11 +162,11 @@ def services_du_paquet(compose: Path) -> dict[str, dict[str, Any]]:
     conteneur reçoit vraiment, quelle que soit la façon dont le compose l'écrit.
     """
     services: dict[str, dict[str, Any]] = document_yaml(compose)["services"]
-    references = Counter(str(bloc["image"]) for bloc in services.values() if "image" in bloc)
+    references = Counter(str(bloc["image"]) for bloc in services.values() if bloc.get("image"))
     return {
         nom: bloc
         for nom, bloc in services.items()
-        if "image" in bloc and references[str(bloc["image"])] > 1
+        if bloc.get("image") and references[str(bloc["image"])] > 1
     }
 
 

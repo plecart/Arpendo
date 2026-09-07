@@ -47,8 +47,12 @@ Le protocole fait partie du contrat : un UDP 443 publié « en plus » annoncera
 Caddyfile désactive, et une normalisation qui l'oublierait laisserait passer cette écriture-là.
 """
 
-GRACE_PERIOD = re.compile(r"^\s*grace_period\s+(\S+)\s*$", re.M)
-"""Le délai que Caddy s'accorde pour fermer ses connexions à l'arrêt — unité lue par `secondes`."""
+GRACE_PERIOD = re.compile(r"^\s*grace_period\s+(\S+)(?:\s+#.*)?\s*$", re.M)
+"""Le délai que Caddy s'accorde pour fermer ses connexions à l'arrêt — unité lue par `secondes`.
+
+Un commentaire de fin de ligne est du Caddyfile légal : le motif le tolère, sinon une écriture
+valide produirait le message « ne pose pas de grace_period », faux.
+"""
 
 
 def _services() -> dict[str, dict[str, Any]]:
@@ -86,14 +90,16 @@ def _montages(bloc: dict[str, Any]) -> list[str]:
 
 
 def _port(publie: Any) -> str:
-    """Un port publié en `hôte:conteneur/protocole`, écrit court (`"443:443"`) ou long (`target:`).
+    """Un port publié en `[ip:]hôte:conteneur/protocole`, écrit court (`"443:443"`) ou long.
 
-    Le protocole est toujours rendu — `tcp` à défaut, comme Compose — pour que les deux syntaxes
-    convergent vers la même chaîne et qu'un `/udp` ne s'évapore dans aucune des deux.
+    Tout ce qui distingue deux publications est rendu — `host_ip` s'il y en a une, le protocole
+    toujours, `tcp` à défaut comme Compose — pour que les deux syntaxes convergent vers la même
+    chaîne : ni un `/udp` ni une boucle locale ne s'évaporent dans l'une des deux.
     """
     if isinstance(publie, dict):
+        hote = f"{publie['host_ip']}:" if publie.get("host_ip") else ""
         protocole = publie.get("protocol", "tcp")
-        return f"{publie.get('published', '')}:{publie.get('target', '')}/{protocole}"
+        return f"{hote}{publie.get('published', '')}:{publie.get('target', '')}/{protocole}"
     court = str(publie)
     return court if "/" in court else f"{court}/tcp"
 
