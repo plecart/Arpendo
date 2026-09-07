@@ -44,14 +44,19 @@ SENSIBLES = (COORDONNEES, JETON, EMAIL)
 INTACTS = (
     "2026-09-03T08:41:35.751365Z",
     "8a2a1072b59ffff",
+    "3f2c9a4e-1b7d-4c8e-9a0f-5d6e7f8a9b0c",
     "1.0.0+42",
     "arpendo_api.core.bus",
+    "p50=12.345678ms p99=98.765432ms",
+    "12.50-13.75",
 )
 """Ce qui **ressemble** à une donnée sensible sans en être une.
 
 Un horodatage ISO porte une décimale à six chiffres, un index H3 une longue chaîne hexadécimale,
-un numéro de build un point. Un assainissement qui les emporte rend les journaux Sentry inutiles
-au diagnostic — et personne ne s'en aperçoit avant d'en avoir besoin.
+un UUID des tirets, un numéro de build un point ; deux centiles fins sont séparés par leur unité
+et le nom du suivant, une plage à deux décimales par un tiret. Un assainissement qui les emporte
+rend les journaux Sentry inutiles au diagnostic — et personne ne s'en aperçoit avant d'en avoir
+besoin.
 """
 
 
@@ -95,11 +100,19 @@ def _evenement_complet() -> dict[str, Any]:
             ]
         },
         "breadcrumbs": {"values": [{"data": {"trace": f"position {COORDONNEES}"}}]},
-        "extra": {"contexte": f"{EMAIL} depuis {COORDONNEES}"},
+        "extra": {
+            "contexte": f"{EMAIL} depuis {COORDONNEES}",
+            "latences": "p50=12.345678ms p99=98.765432ms",
+            "plage": "12.50-13.75",
+        },
         "request": {"headers": {"Authorization": JETON}, "query_string": f"pos={COORDONNEES}"},
         "release": "1.0.0+42",
         "timestamp": "2026-09-03T08:41:35.751365Z",
-        "tags": {"request_id": "8a2a1072b59ffff", "logger": "arpendo_api.core.bus"},
+        "tags": {
+            "request_id": "8a2a1072b59ffff",
+            "trace_id": "3f2c9a4e-1b7d-4c8e-9a0f-5d6e7f8a9b0c",
+            "logger": "arpendo_api.core.bus",
+        },
     }
 
 
@@ -159,6 +172,9 @@ def test_scrub_retire_la_valeur_brute_qu_une_erreur_de_validation_recopie() -> N
 FORMES_DE_POSITION = {
     "virgule": {"m": "48.858370, 2.294481"},
     "longitude négative": {"m": "48.858370, -2.294481"},
+    "longitude négative, espace": {"m": "48.858370 -2.294481"},
+    "tiret nu": {"m": "hote-48.858370-2.294481"},
+    "tiret espacé": {"m": "48.858370 - 2.294481"},
     "query string REST": {"request": {"query_string": "lat=48.858370&lon=2.294481"}},
     "WKT PostGIS": {"m": "POINT(2.294481 48.858370)"},
     "JSON sérialisé en chaîne": {"m": '{"latitude": 48.858370, "longitude": 2.294481}'},
@@ -173,9 +189,13 @@ FORMES_DE_POSITION = {
 atteindre Sentry.
 
 Écrite ici parce qu'un correctif de fuite se juge sur la classe entière et non sur l'occurrence
-qui l'a révélée. Les sept premières sont des chaînes, les quatre dernières des **nombres** — deux
-sous-classes que rien ne rapproche à la lecture, et qui ont chacune fait fuir une position pendant
-que l'autre était couverte.
+qui l'a révélée. Les chaînes d'abord, puis les quatre formes en **nombres** — deux sous-classes
+que rien ne rapproche à la lecture, et qui ont chacune fait fuir une position pendant que l'autre
+était couverte.
+
+Les formes en chaînes sont **recopiées, aux mêmes libellés**, dans la suite de l'app
+(`app/test/data/services/rapport_erreurs_test.dart`) : aucune gate ne compare les deux tables,
+c'est la relecture du diff des identifiants de tests qui voit une dérive.
 """
 
 NOMBRES_LEGITIMES = {
@@ -195,9 +215,10 @@ restent aussi. C'est ce qui empêche l'assainissement d'avaler la moitié des no
 def test_aucune_forme_de_position_n_atteint_sentry(evenement: dict[str, Any]) -> None:
     """Le balayage de la classe : chaque forme sous laquelle une position peut voyager.
 
-    Mesuré à l'écriture : sept de ces onze formes fuyaient alors que la huitième était couverte et
-    servait de preuve. Les ajouter une à une au fil des incidents reviendrait à découvrir chacune
-    en production.
+    Dénombrement, à compléter à chaque forme ajoutée : à l'écriture (#42), onze formes, dont sept
+    fuyaient pendant qu'une forme couverte servait de preuve ; #102 en ajoute trois, dont deux
+    fuyaient (« tiret nu », « tiret espacé »). Les ajouter une à une au fil des incidents
+    reviendrait à découvrir chacune en production.
     """
     rendu = json.dumps(scrub(evenement))
 

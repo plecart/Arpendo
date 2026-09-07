@@ -162,11 +162,7 @@ void main() {
       transaction: 'GET /joueur@exemple.fr',
       culprit: 'appel Bearer abc.def_ghi',
       logger: 'arpendo.joueur@exemple.fr',
-      // Séparateur `, ` et non `-` : le motif partagé avec le serveur exclut
-      // `-` d'entre les deux nombres, pour ne pas confondre un séparateur avec
-      // le signe de la seconde composante. Lacune connue et commune aux deux
-      // langages — voir la doc de `_motifs`.
-      serverName: 'hote 48.858370, 2.294481',
+      serverName: 'hote-48.858370-2.294481',
       fingerprint: ['joueur@exemple.fr'],
       modules: {'paquet': 'joueur@exemple.fr'},
       tags: {'compte': 'joueur@exemple.fr'},
@@ -243,6 +239,35 @@ void main() {
       );
     });
 
+    // Les formes textuelles de `FORMES_DE_POSITION` (`api/tests/test_sentry.py`),
+    // aux mêmes libellés. Aucune gate ne compare les deux tables : c'est la
+    // relecture du diff des identifiants de tests qui voit une dérive — le
+    // seul lien entre deux motifs qu'aucun code ne partage.
+    const formesDePosition = {
+      'virgule': '48.858370, 2.294481',
+      'longitude négative': '48.858370, -2.294481',
+      'longitude négative, espace': '48.858370 -2.294481',
+      'tiret nu': 'hote-48.858370-2.294481',
+      'tiret espacé': '48.858370 - 2.294481',
+      'query string REST': 'lat=48.858370&lon=2.294481',
+      'WKT PostGIS': 'POINT(2.294481 48.858370)',
+      'JSON sérialisé en chaîne':
+          '{"latitude": 48.858370, "longitude": 2.294481}',
+      'saut de ligne': '48.858370\n2.294481',
+      'point-virgule': '48.858370;2.294481',
+    };
+
+    for (final MapEntry(key: forme, value: texte) in formesDePosition.entries) {
+      test('la forme « $forme » est retirée', () {
+        final evenement = SentryEvent(message: SentryMessage(texte));
+
+        final rendu = assainir(evenement).message!.formatted;
+
+        expect(rendu, isNot(contains('48.85837')));
+        expect(rendu, isNot(contains('2.294481')));
+      });
+    }
+
     test('trois décimales ne localisent pas, quatre oui', () {
       final trop = SentryEvent(message: SentryMessage('48.858, 2.294'));
       final assez = SentryEvent(message: SentryMessage('48.8583, 2.2944'));
@@ -279,15 +304,25 @@ void main() {
   });
 
   group('assainir — ce qu\'il ne touche pas', () {
-    test('laisse un horodatage, qui a la forme décimale d\'un degré', () {
-      final evenement = SentryEvent(
-        message: SentryMessage('échec à 2026-09-05T12:35.751365Z'),
-      );
+    // Ce qui **ressemble** à une position sans en être une, comme `INTACTS`
+    // côté serveur — sans discipline de libellés : un faux positif se voit et
+    // se répare, une fuite non. Un horodatage porte la forme décimale d'un
+    // degré ; deux centiles fins sont séparés par leur unité et le nom du
+    // suivant ; une plage à deux décimales par un tiret.
+    const textesLegitimes = {
+      'un horodatage': 'échec à 2026-09-05T12:35.751365Z',
+      'un UUID': 'trace 3f2c9a4e-1b7d-4c8e-9a0f-5d6e7f8a9b0c',
+      'deux latences': 'p50=12.345678ms p99=98.765432ms',
+      'une plage à deux décimales': 'entre 12.50-13.75',
+    };
 
-      final assaini = assainir(evenement);
+    for (final MapEntry(key: nom, value: texte) in textesLegitimes.entries) {
+      test('laisse $nom', () {
+        final evenement = SentryEvent(message: SentryMessage(texte));
 
-      expect(assaini.message!.formatted, contains('35.751365'));
-    });
+        expect(assainir(evenement).message!.formatted, texte);
+      });
+    }
 
     test('laisse un flottant fin qui n\'a pas de voisin de même forme', () {
       final evenement = SentryEvent(
