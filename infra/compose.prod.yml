@@ -75,11 +75,12 @@ services:
     # caddy:2 → 2.11.4 (lu le 7 septembre 2026). Le seul conteneur exposé (§13.10) : TLS
     # automatique, reverse proxy vers `api` — voir `Caddyfile`.
     image: caddy:2@sha256:df7f1c2fb114453b951de51a98efc010db1655a92c2e86be6706714e2417a78d
-    # `nobody` de l'image (uid 65534) : l'image officielle tourne root par défaut. Le volume
-    # `caddy-data` doit lui appartenir AVANT le premier démarrage — sinon Caddy ne peut pas
-    # stocker ses certificats et s'arrête aussitôt ; c'est le script d'amorçage de #47 qui le
-    # crée ainsi (voir `infra/README.md`). Un volume nommé neuf hérite `root:root 755` de l'image :
-    # mesuré, rien dans ce fichier ne peut le changer sans un conteneur root.
+    # `nobody` de l'image (uid 65534) : l'image officielle tourne root par défaut. Elle livre
+    # `/data/caddy` et `/config/caddy` en `1777` (sticky), et c'est ce qui rend le non-root
+    # possible sans rien préparer : un volume NOMMÉ neuf est initialisé depuis l'image et hérite
+    # de ces droits — mesuré, Caddy y crée `certificates/`, `pki/`, `locks/` en `700 nobody` à
+    # son premier démarrage. Jamais un bind vers un répertoire de l'hôte : il n'hériterait de
+    # rien, et Caddy ne pourrait pas y écrire.
     user: "65534:65534"
     cap_add:
       # L'UNIQUE réajout de ce fichier — et pas pour le port : dans un conteneur Docker, 443 n'est
@@ -100,9 +101,10 @@ services:
       # Le perdre à chaque redéploiement épuiserait la limite d'émission de Let's Encrypt.
       - caddy-data:/data
       # La configuration active et son autosave : en mémoire. `mode` explicite parce qu'un tmpfs
-      # hérite sinon des droits du répertoire de l'image, `root 755` ici — mesuré, `nobody` n'y
-      # écrirait pas. `0o1777` et non `1777` : Compose lit un octal (YAML 1.2) et rend 1023, le
-      # bon motif de bits ; `1777` serait lu en décimal, soit 0o3361.
+      # est VIDE — il n'hérite pas du `/config/caddy` en 1777 de l'image, à la différence d'un
+      # volume nommé — et prendrait sinon les droits du point de montage, `root 755` : mesuré,
+      # `nobody` n'y écrirait pas. `0o1777` et non `1777` : Compose lit un octal (YAML 1.2) et
+      # rend 1023, le bon motif de bits ; `1777` serait lu en décimal, soit 0o3361.
       - type: tmpfs
         target: /config
         tmpfs:
@@ -211,5 +213,6 @@ services:
 
 volumes:
   # Le seul état de la machine qui ne se reconstruit pas depuis le dépôt : les certificats de
-  # Caddy. Doit appartenir à l'uid 65534 (voir le service `caddy`) — posé par l'amorçage de #47.
+  # Caddy. Volume nommé, initialisé depuis l'image (`/data/caddy` en 1777) : rien à préparer,
+  # `nobody` y écrit dès le premier démarrage — voir le service `caddy`.
   caddy-data:

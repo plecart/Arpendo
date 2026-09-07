@@ -66,25 +66,25 @@ mesuré, un `bind` sous un uid quelconque sans aucune capacité réussit). La ra
 noyau refuse l'`exec` d'un tel binaire quand la capacité manque à l'ensemble *bounding* :
 `operation not permitted`, avant la première ligne de journal.
 
-## Le volume de Caddy appartient à l'uid 65534 — à poser avant le premier `up`
+## Le volume de Caddy — nommé, jamais un bind, et rien à préparer
 
 Caddy doit **persister** `/data` (certificats, clés, compte ACME — la doc officielle : « must not be
 treated as a cache » ; le perdre à chaque redéploiement épuiserait la limite d'émission de Let's
-Encrypt). C'est le volume nommé `caddy-data`. Or un volume nommé neuf hérite `root:root 755` de
-l'image, et `caddy` tourne sous `65534` : **sans chown préalable, Caddy ne peut pas écrire ses
-certificats et s'arrête à son premier démarrage** — visible aussitôt dans `docker compose ps` et
-ses journaux. Rien dans `compose.prod.yml` ne peut le corriger sans un conteneur root, ce que le
-fichier s'interdit ; c'est le **script d'amorçage de #47** qui crée le volume et le donne à 65534,
-une fois par machine, et à rejouer après tout `docker volume rm` :
+Encrypt). C'est le volume nommé `caddy-data`, et `caddy` tourne sous `65534` sans qu'aucun `chown`
+soit nécessaire : l'image officielle livre `/data/caddy` en **`1777`** (sticky), un volume **nommé**
+neuf est initialisé depuis l'image et en hérite, et Caddy y crée `certificates/`, `pki/`, `locks/`
+en `700 nobody` à son premier démarrage — mesuré. Le répertoire `/data` lui-même reste `root 755`,
+Caddy n'y écrit jamais. Un **bind** vers un répertoire de l'hôte n'hériterait de rien : Caddy ne
+pourrait pas y écrire, d'où le volume nommé et pas autre chose. `/config`, en tmpfs, est vide au
+montage et porte pour cela un `mode` explicite.
+
+Le constater, sur une machine où le volume existe (`arpendo_` est le nom de projet, `COMPOSE_PROJECT_NAME`
+le change pour la préproduction) :
 
 ```
-docker volume create arpendo_caddy-data
-docker run --rm -v arpendo_caddy-data:/data caddy:2@sha256:<empreinte du compose> chown -R 65534:65534 /data
+docker run --rm -v arpendo_caddy-data:/data <image caddy du compose> stat -c '%u %a %n' /data/caddy /data/caddy/certificates
+# → 0 1777 /data/caddy, puis 65534 700 /data/caddy/certificates après le premier démarrage
 ```
-
-Le constater : `docker run --rm -v arpendo_caddy-data:/data alpine stat -c %u /data` → `65534`.
-`/config` n'a pas besoin de ce geste : tmpfs en mode 1777. Le préfixe `arpendo_` est le nom de
-projet ; il change avec `COMPOSE_PROJECT_NAME` (préproduction).
 
 ## Comment vérifier, sans rien lever
 
@@ -119,7 +119,7 @@ docker inspect <conteneur> --format \
 ## Ce que #47 vérifie sur la machine — et que rien ici ne prouve
 
 - **TLS** : un certificat public émis pour `API_DOMAIN`, renouvelé sans intervention — donc le
-  volume `caddy-data` bien possédé par 65534 et conservé entre deux déploiements.
+  volume `caddy-data` conservé entre deux déploiements, `certificates/` sous 65534.
 - **SSE sans tampon** : un flux ouvert à travers `caddy` reçoit chaque événement à l'instant où
   `api` l'émet, pas par paquets.
 - **IP réelle** : le limiteur de #41 compte l'adresse du client, pas celle de `caddy` — clé

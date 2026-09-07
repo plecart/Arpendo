@@ -11,6 +11,11 @@
 	# moitié client des flux SSE. 25 s, sous le `stop_grace_period` de 30 s du compose — le même
 	# ordre que la borne uvicorn côté api ; `api/tests/test_compose_prod.py` le garde.
 	grace_period 25s
+	# Dès qu'une CA interne existe — `localhost`, donc le `caddy validate` de la CI et tout poste —
+	# Caddy tente d'installer sa racine dans le magasin système et journalise une erreur sur le
+	# système de fichiers en lecture seule (mesuré : `open /tmp/truststore.*.pem: read-only file
+	# system`). Sans objet avec un domaine public ; retiré pour ne pas laisser un faux positif.
+	skip_install_trust
 	servers {
 		protocols h1 h2
 	}
