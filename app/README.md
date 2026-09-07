@@ -535,10 +535,10 @@ conteneur qui la porte en contient une seconde de même forme. Le faux positif a
 conteneur de deux mesures fines, assaini pour rien — perdre un centile se voit et se répare,
 laisser fuir une position ne se voit pas et ne se répare pas.
 
-**Lacune connue, et commune aux deux langages** : le séparateur du motif exclut le tiret, pour ne
-pas le confondre avec le signe de la seconde composante — une paire jointe par un tiret nu
-(`48.858370-2.294481`) passe donc. Aucun encodage du projet ne produit cette forme, et la corriger
-devrait se faire **des deux côtés à la fois**.
+Côté chaînes, le séparateur de la paire accepte **n'importe quoi de court et non numérique, tiret
+compris** : `hote-48.858370-2.294481` est retiré. Le faux positif assumé est l'intervalle à quatre
+décimales joint par un tiret (`12.345678-98.765432`), assaini pour rien — la même asymétrie que
+pour les nombres.
 
 ### Où il les retire
 

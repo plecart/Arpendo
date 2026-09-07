@@ -44,7 +44,7 @@ qu'on ne lui passe pas et dont le défaut est faux ; ce n'est pas l'option homon
 """
 
 PATTERNS = (
-    re.compile(r"-?\d{1,3}\.\d{4,}[^\d\-]{1,20}-?\d{1,3}\.\d{4,}"),
+    re.compile(r"-?\d{1,3}\.\d{4,}[^\d]{1,20}-?\d{1,3}\.\d{4,}"),
     re.compile(r"\bBearer\s+[\w\-._~+/]+=*", re.IGNORECASE),
     re.compile(r"\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b"),
 )
@@ -54,7 +54,16 @@ La coordonnée se reconnaît à la **paire**, jamais à un nombre isolé : un ho
 (``…:35.751365Z``) porte exactement la même forme décimale, et un motif à un seul nombre les
 emporterait tous — on assainirait alors la seule chose qui permet de dater une erreur. Le
 séparateur, lui, est délibérément large : la virgule seule laissait passer ``lat=…&lon=…``, un WKT
-``POINT(… …)``, un JSON sérialisé et un saut de ligne, tous mesurés.
+``POINT(… …)``, un JSON sérialisé et un saut de ligne, tous mesurés. Le **tiret** en fait partie :
+l'exclure pour préserver le signe d'une longitude négative ne protégeait de rien — c'est le passage
+entier qui est remplacé, signe compris — et laissait passer ``hote-48.858370-2.294481``. Le faux
+positif assumé est l'intervalle à quatre décimales (``12.345678-98.765432``), assaini pour rien,
+comme la paire de durées jointe par une virgule l'est déjà.
+
+Le motif est identique caractère pour caractère à celui de l'app, sans être strictement
+équivalent : ``\\d`` couvre ici les chiffres Unicode (catégorie ``Nd``), et seulement ``[0-9]`` en
+Dart — le serveur retire donc **plus** que l'app, jamais moins. Pas de ``re.ASCII`` pour les faire
+coïncider : ce serait réduire la protection du serveur.
 
 Une position voyage aussi sous forme de **nombres**, et le motif ne peut rien pour elle : c'est
 ``_has_coordinate_pair`` qui la reconnaît, par la même règle de la paire. Les deux natures sont

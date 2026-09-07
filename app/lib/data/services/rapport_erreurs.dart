@@ -51,16 +51,20 @@ const String retire = '[retiré]';
 /// un motif à un seul nombre les emporterait tous — on assainirait alors la
 /// seule chose qui permet de dater une erreur. Le séparateur est délibérément
 /// large : la virgule seule laisserait passer `lat=…&lon=…`, un WKT
-/// `POINT(… …)`, un JSON sérialisé et un saut de ligne.
+/// `POINT(… …)`, un JSON sérialisé et un saut de ligne. Le **tiret** en fait
+/// partie : l'exclure pour préserver le signe d'une longitude négative ne
+/// protégeait de rien — c'est le passage entier qui est remplacé, signe
+/// compris — et laissait passer `hote-48.858370-2.294481`. Le faux positif
+/// assumé est l'intervalle à quatre décimales (`12.345678-98.765432`),
+/// assaini pour rien, comme la paire de durées jointe par une virgule l'est
+/// déjà.
 ///
-/// **Lacune connue, et commune aux deux langages** : le séparateur exclut le
-/// tiret, pour ne pas le confondre avec le signe de la seconde composante —
-/// si bien qu'une paire jointe par un tiret nu (`48.858370-2.294481`) passe.
-/// Aucun encodage du projet ne produit cette forme, et la corriger devrait se
-/// faire **des deux côtés à la fois**, sous peine de créer précisément la
-/// divergence que ce module refuse.
+/// Le motif est identique caractère pour caractère à celui du serveur, sans
+/// être strictement équivalent : `\d` ne couvre ici que `[0-9]` (syntaxe
+/// ECMAScript), quand Python y met aussi les chiffres Unicode (catégorie
+/// `Nd`) — le serveur retire donc **plus** que l'app, jamais moins.
 final List<RegExp> _motifs = [
-  RegExp(r'-?\d{1,3}\.\d{4,}[^\d\-]{1,20}-?\d{1,3}\.\d{4,}'),
+  RegExp(r'-?\d{1,3}\.\d{4,}[^\d]{1,20}-?\d{1,3}\.\d{4,}'),
   RegExp(r'\bBearer\s+[\w\-._~+/]+=*', caseSensitive: false),
   RegExp(r'\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b'),
 ];
