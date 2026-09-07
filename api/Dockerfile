@@ -17,7 +17,7 @@
 FROM ghcr.io/astral-sh/uv:0.12@sha256:2bb3ebca0a796a155094a27773d290c4b074572e6107f171d88d086682fd2500 AS uv
 
 # python:3.13-slim → Python 3.13.15 (lu le 6 septembre 2026).
-FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285 AS build
+FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6 AS build
 
 COPY --from=uv /uv /usr/local/bin/uv
 
@@ -41,7 +41,7 @@ RUN uv sync --locked --no-dev
 # factoriserait, mais Dependabot ne résout pas les `ARG` et cesserait de les suivre. Le bot les
 # monte ensemble, dans la même PR, puisque c'est la même dépendance.
 # python:3.13-slim → Python 3.13.15 (lu le 6 septembre 2026).
-FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285
+FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6
 
 # `--system` : pas de mot de passe, pas d'expiration. Le shell est refusé — ce compte sert à
 # exécuter un processus, jamais à ouvrir une session.
