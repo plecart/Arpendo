@@ -23,8 +23,8 @@ garde suit une image renommée sans qu'on y pense.
 
 **Chaque famille porte son témoin** : un paramétrage vide ne rougit jamais, et une population qui
 rétrécit parce qu'un motif ne lit plus le fichier est un garde qui disparaît en silence. Les deux
-familles paramétrées ont un témoin séparé ; les trois autres tests sont écrits en une égalité
-d'ensembles, où l'ensemble vide est un rouge.
+familles paramétrées et l'inclusion des `COPY --from` ont un témoin séparé ; les deux autres tests
+sont écrits en une égalité d'ensembles, où l'ensemble vide est un rouge.
 """
 
 import re
@@ -131,15 +131,20 @@ def test_tout_copy_from_nomme_une_etape_du_dockerfile() -> None:
 
     Une source qui n'est pas une étape est une image tirée en douce, que Dependabot ne suivra
     jamais. L'inclusion seule : la réciproque (« toute étape nommée est copiée ») interdirait
-    l'idiome `AS runtime` sur l'étape finale, dont rien ne copie. Le témoin est à part — la liste
-    exacte des sources, qui rougit si le motif cesse de lire un `COPY` ou si une étape apparaît.
+    l'idiome `AS runtime` sur l'étape finale, dont rien ne copie. Le témoin est le test suivant.
     """
     etapes_nommees = {etape for _, etape in _etapes_du_dockerfile() if etape}
     sources = set(_sources_des_copies())
     assert sources <= etapes_nommees, (
         f"`COPY --from` depuis {sorted(sources - etapes_nommees)} : Dependabot ne les suivra pas"
     )
-    assert sources == {"uv", "build"}, "témoin : les sources de `COPY --from` attendues ont changé"
+
+
+def test_le_dockerfile_copie_depuis_les_etapes_attendues() -> None:
+    """Témoin positif du test précédent — rougit si le motif cesse de lire un `COPY --from`."""
+    assert set(_sources_des_copies()) == {"uv", "build"}, (
+        "témoin : les sources de `COPY --from` attendues ont changé"
+    )
 
 
 def test_l_image_python_est_celle_que_le_projet_epingle() -> None:
@@ -151,8 +156,11 @@ def test_l_image_python_est_celle_que_le_projet_epingle() -> None:
     """
     assert PYTHON_VERSION.exists(), f"{PYTHON_VERSION.name} manque sous api/ : qui choisit Python ?"
     version = PYTHON_VERSION.read_text(encoding="utf-8").strip()
-    noms_et_tags = [_nom_et_tag(image) for image, _ in _etapes_du_dockerfile()]
-    versions = {tag.split("-", 1)[0] for nom, tag in noms_et_tags if nom == "python"}
+    versions = {
+        tag.split("-", 1)[0]
+        for nom, tag in map(_nom_et_tag, (image for image, _ in _etapes_du_dockerfile()))
+        if nom == "python"
+    }
     assert versions == {version}, (
         f"le Dockerfile livre Python {sorted(versions)}, `api/.python-version` dit {version} : "
         "les monter ensemble"
