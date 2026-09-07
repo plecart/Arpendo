@@ -66,11 +66,27 @@ RACINE = Path(__file__).resolve().parent.parent.parent
 COMPOSE = RACINE / "infra" / "docker-compose.yml"
 """Le compose **local**, en chemin absolu — la suite peut être lancée d'ailleurs que d'`api/`.
 
-Celui-là et pas un autre : les invariants qui le lisent portent sur l'application qui tourne
-**sur le poste, pendant la suite** — la partition de sa configuration entre points d'entrée, et la
-séparation de sa base Valkey d'avec celle des tests. Un compose de production (#45) décrira une
-pile que personne ne lève ici.
+Les invariants qui ne lisent que lui portent sur l'application qui tourne **sur le poste, pendant
+la suite** : la séparation de sa base Valkey d'avec celle des tests, et la parité de ses images
+avec les `services:` de la CI. Le compose de production décrit une pile que personne ne lève ici.
 """
+
+COMPOSE_PROD = RACINE / "infra" / "compose.prod.yml"
+"""Le compose de **production** — lu par les gardes qui valent pour les deux piles.
+
+La partition de la configuration entre points d'entrée, l'ordre borne uvicorn / délai Docker et
+l'épinglage des images tirées y sont les mêmes règles qu'en local ; ce qui lui est propre —
+un seul port publié, la table de durcissement du cadrage §13.10 — est gardé à part.
+"""
+
+COMPOSES = [COMPOSE, COMPOSE_PROD]
+"""Les deux piles, pour les paramétrages ; `ids=nom_du_fichier` les nomme dans les rapports."""
+
+
+def nom_du_fichier(chemin: Path) -> str:
+    """L'identifiant pytest d'un chemin paramétré — `docker-compose.yml` plutôt qu'un `compose0`."""
+    return chemin.name
+
 
 DOCKERFILE = RACINE / "api" / "Dockerfile"
 """L'image du paquet, telle qu'elle se construit — lue par le garde des images épinglées."""

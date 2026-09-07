@@ -36,8 +36,9 @@ plutôt que de les ouvrir, pour que toutes les tâches partagent un seul moteur 
 HEARTBEAT = Path("/tmp/arpendo-worker-battement")
 """Le fichier dont la fraîcheur dit que le worker tourne encore.
 
-Sous ``/tmp`` : c'est le seul chemin qui reste inscriptible quand #45 posera un système de fichiers
-en lecture seule et un ``tmpfs``. Une clé Valkey ferait la même chose, mais la sonde du conteneur
+Sous ``/tmp`` : c'est le seul chemin qui reste inscriptible en production, où le compose pose un
+système de fichiers en lecture seule et un ``tmpfs`` sur ``/tmp`` (``infra/compose.prod.yml``).
+Une clé Valkey ferait la même chose, mais la sonde du conteneur
 devrait alors embarquer un client et un mot de passe pour la lire — là, un ``stat`` suffit.
 """
 

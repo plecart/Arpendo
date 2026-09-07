@@ -11,9 +11,9 @@
 # Les images tirées sont épinglées `tag@sha256:…` (§13.10) : le tag dit la version voulue,
 # l'empreinte fige celle qu'on a eue, et Dependabot (écosystème `docker-compose` sur `/infra`)
 # propose la suivante quand le tag bouge. `api/tests/test_images.py` refuse une image tirée sans
-# empreinte. Le reste du durcissement (`read_only`, `cap_drop`, limites de ressources) est celui
-# du compose de production, périmètre du lot 2 de #45 ; cette pile de développement ne l'anticipe
-# pas.
+# empreinte. Le reste du durcissement (`read_only`, `cap_drop`, limites de ressources) vit dans
+# `compose.prod.yml`, la pile de production ; cette pile de développement ne le reprend pas —
+# écart assumé, comme les ports publiés.
 
 # L'environnement commun aux deux points d'entrée du paquet. La partition est une **règle**, pas
 # une liste à tenir : ce que lit `Settings` est ici, parce que la classe valide la configuration
@@ -121,7 +121,7 @@ services:
       # Lue par uvicorn, pas par `Settings` — d'où un défaut ici, à l'inverse des seuils : cette
       # pile n'a pas de reverse proxy, donc personne n'est de confiance, `X-Forwarded-For` est
       # ignoré et `request.client` reste le pair réel. L'api démarre même si le `.env` est muet.
-      # En production, ce sera le réseau de caddy (#45).
+      # En production : le sous-réseau de `caddy`, littéral dans `compose.prod.yml`.
       FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
       # Le temps qu'uvicorn accorde aux connexions déjà ouvertes avant de les fermer lui-même.
       # Sans elle il attend **sans borne**, et c'est Docker qui tranche au SIGKILL — une SSE,
@@ -129,8 +129,8 @@ services:
       # sinon uvicorn ne ferme jamais le premier et la marge ne sert à rien ; `--reload` compris.
       # La valeur est dans le `.env`, l'ordre est gardé par `api/tests/test_compose.py`.
       #
-      # `:?` et non un défaut : la valeur est déclarée une seule fois, dans le `.env` (le poste, ce
-      # compose et #45 la lisent là). Et **mesuré** : click ignore silencieusement une valeur vide
+      # `:?` et non un défaut : la valeur est déclarée une seule fois, dans le `.env` (le poste et
+      # les deux composes la lisent là). Et **mesuré** : click ignore silencieusement une valeur vide
       # et retombe sur « sans borne » — un `.env` antérieur à ce lot perdrait la borne sans un mot.
       # Ce garde le dit à voix haute, comme celui de `VALKEY_PASSWORD`.
       UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN: ${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:?UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN est requis — copier .env.example en .env}
