@@ -40,11 +40,15 @@ REAJOUTS_DE_CAPACITE = {"caddy": ["NET_BIND_SERVICE"]}
 réajout, sur tout autre service, rougit ici : la liste est le contrat.
 """
 
-PORTS_PUBLIES = {"caddy": ["443:443"]}
-"""« Un seul port publié » : `caddy` sur 443, rien d'autre, quelle que soit la syntaxe."""
+PORTS_PUBLIES = {"caddy": ["443:443/tcp"]}
+"""« Un seul port publié » : `caddy` sur 443, en TCP, rien d'autre — quelle que soit la syntaxe.
 
-GRACE_PERIOD = re.compile(r"^\s*grace_period\s+(\d+)s\s*$", re.M)
-"""Le délai que Caddy s'accorde pour fermer ses connexions à l'arrêt, en secondes."""
+Le protocole fait partie du contrat : un UDP 443 publié « en plus » annoncerait un HTTP/3 que le
+Caddyfile désactive, et une normalisation qui l'oublierait laisserait passer cette écriture-là.
+"""
+
+GRACE_PERIOD = re.compile(r"^\s*grace_period\s+(\S+)\s*$", re.M)
+"""Le délai que Caddy s'accorde pour fermer ses connexions à l'arrêt — unité lue par `secondes`."""
 
 
 def _services() -> dict[str, dict[str, Any]]:
@@ -82,10 +86,16 @@ def _montages(bloc: dict[str, Any]) -> list[str]:
 
 
 def _port(publie: Any) -> str:
-    """Un port publié en `hôte:conteneur`, écrit court (`"443:443"`) ou long (`target:`)."""
+    """Un port publié en `hôte:conteneur/protocole`, écrit court (`"443:443"`) ou long (`target:`).
+
+    Le protocole est toujours rendu — `tcp` à défaut, comme Compose — pour que les deux syntaxes
+    convergent vers la même chaîne et qu'un `/udp` ne s'évapore dans aucune des deux.
+    """
     if isinstance(publie, dict):
-        return f"{publie.get('published', '')}:{publie.get('target', '')}"
-    return str(publie)
+        protocole = publie.get("protocol", "tcp")
+        return f"{publie.get('published', '')}:{publie.get('target', '')}/{protocole}"
+    court = str(publie)
+    return court if "/" in court else f"{court}/tcp"
 
 
 def _tmpfs(bloc: dict[str, Any]) -> list[str]:
@@ -231,6 +241,6 @@ def test_caddy_ferme_ses_connexions_avant_que_docker_n_abrege() -> None:
     )
     delai = str(_services()["caddy"].get("stop_grace_period", ""))
     assert delai, "`stop_grace_period` de caddy absent"
-    assert int(grace[1]) < secondes(delai), (
-        f"Caddy s'accorde {grace[1]} s là où Docker le tue à {delai} : le SIGKILL arrive le premier"
+    assert secondes(grace[1]) < secondes(delai), (
+        f"Caddy s'accorde {grace[1]} là où Docker le tue à {delai} : le SIGKILL arrive le premier"
     )

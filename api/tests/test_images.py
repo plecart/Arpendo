@@ -93,7 +93,7 @@ def _images_tirees_du_compose(compose: Path) -> dict[str, str]:
     services: dict[str, dict[str, Any]] = document_yaml(compose)["services"]
     paquet = services_du_paquet(compose)
     return {
-        nom: bloc["image"]
+        nom: str(bloc.get("image", ""))
         for nom, bloc in services.items()
         if "build" not in bloc and nom not in paquet
     }

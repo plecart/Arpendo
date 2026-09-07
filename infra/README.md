@@ -125,5 +125,8 @@ docker inspect <conteneur> --format \
 - **IP réelle** : le limiteur de #41 compte l'adresse du client, pas celle de `caddy` — clé
   `ratelimit:ip:<adresse publique>` dans Valkey, jamais une adresse en `10.89.45.`.
 - **Arrêt gracieux** : `docker compose stop api` et `… stop caddy` rendent 0 dans le délai, jamais
-  137 — mesuré sur le poste pour `caddy` seul (`grace period initiated, duration 25`, code 0),
-  jamais encore avec un flux SSE ouvert à travers lui.
+  137. Mesuré sur le poste avec un flux `text/event-stream` tenu ouvert **à travers** `caddy` :
+  sans `grace_period`, `docker stop -t 30` tue au SIGKILL après 29 s (code 137) ; avec
+  `grace_period 25s`, arrêt propre en 24 s (code 0). Caddy journalise alors une ligne de niveau
+  `error` — `server graceful shutdown 25s timeout` — tout en sortant en 0 : c'est le comportement
+  attendu à chaque déploiement avec des flux ouverts, pas une alerte à câbler.
