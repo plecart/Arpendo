@@ -550,8 +550,9 @@ seul endroit. Les nuances qui se paient cher :
 - **La liste accepte les IP, les CIDR et les littéraux.** Une IP mal écrite ne lève rien : elle
   devient un littéral, qui ne correspondra jamais à personne.
 
-**En production**, y poser le réseau de Caddy — périmètre de #45 — et **ne pas s'en remettre au
-défaut**. Derrière un reverse proxy dont l'adresse n'est pas déclarée, aucun en-tête n'est cru et
+**En production**, c'est le sous-réseau du compose où vit Caddy, littéral dans
+`infra/compose.prod.yml` et comparé au réseau déclaré par `tests/test_compose_prod.py` — **jamais
+le défaut**. Derrière un reverse proxy dont l'adresse n'est pas déclarée, aucun en-tête n'est cru et
 le limiteur compte l'adresse interne de Caddy pour *tous* les joueurs : le quota par adresse
 devient un plafond global, « et le premier joueur actif bloquerait les autres » (cadrage §13.7).
 Sûr du côté de l'usurpation, dégradé du côté de la disponibilité — pas un état où l'on s'installe.
@@ -604,8 +605,9 @@ Il ouvre les ressources partagées par le même `open_resources` que l'api, dér
 tâches, et s'arrête sur SIGTERM en libérant tout.
 
 **Contrairement à l'api, il ne se lance pas sur un poste Windows** : son fichier de battement est
-un chemin POSIX absolu (`/tmp/…`). C'est voulu — ce chemin est le seul qui restera inscriptible
-quand #45 posera un système de fichiers en lecture seule.
+un chemin POSIX absolu (`/tmp/…`). C'est voulu — ce chemin est le seul qui reste inscriptible
+en production, où `infra/compose.prod.yml` pose un système de fichiers en lecture seule et un
+`tmpfs` sur `/tmp`.
 
 **Un tour de tâche qui échoue ne fait pas tomber le worker** : le tour est perdu, l'erreur part sur
 le journal de la stdlib — donc en JSON, comme le reste — en nommant la tâche fautive, et le suivant

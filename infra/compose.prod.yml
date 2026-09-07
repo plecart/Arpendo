@@ -1,0 +1,218 @@
+# Pile de production — le serveur unique du cadrage §13.0 et §13.7 : `caddy`, `api`, `worker` et
+# `valkey` en conteneurs, PostgreSQL managé à côté (aucun service `postgres` ici). Seul `caddy`
+# publie un port ; les autres ne se joignent que par le réseau interne. Chaque service applique la
+# table « Durcissement des conteneurs » du §13.10 — `api/tests/test_compose_prod.py` la relit ligne
+# à ligne, et `api/tests/test_compose.py` comme `test_images.py` jouent ici les mêmes règles qu'en
+# local (partition de la configuration, ordre borne uvicorn / délai Docker, images épinglées).
+#
+# Personne ne lève cette pile sur le poste. Pour la relire interpolée avec les valeurs de poste :
+#   docker compose -f infra/compose.prod.yml --env-file .env config
+# Le déploiement, le `.env` du serveur (registre, balise, domaine, secrets) et l'amorçage de la
+# machine sont le périmètre de #47 — voir `infra/README.md`.
+#
+# Dimensionnement — DEV1-S, 2 vCPU / 2 Go (§13.7). Mémoire : api 512 + worker 256 + valkey 256 +
+# caddy 128 = 1 152 Mo, le reste à l'hôte, au démon Docker et à la marge. CPU : des plafonds, pas
+# des réservations — la somme dépasse 2 à dessein, chaque service peut prendre le sien quand les
+# autres dorment ; aucun ne peut prendre la machine.
+
+# Nom de projet : sans lui, Compose prendrait celui du répertoire — `infra`, le même que la pile
+# de développement lancée par `just up` ; un `down` sur ce fichier viserait alors ses conteneurs.
+# `COMPOSE_PROJECT_NAME` le surcharge : c'est ainsi que #47 distingue la préproduction (§13.7).
+name: arpendo
+
+# L'environnement commun aux deux points d'entrée du paquet — même règle qu'en local, tenue par
+# `api/tests/test_compose.py` : ce que lit `Settings` est ici, ce que lit uvicorn reste sur `api`.
+# Une différence avec le compose local : `DATABASE_URL` est interpolée, sous `:?` — c'est l'URL de
+# la base managée, réseau privé, mot de passe compris, qui vit dans le `.env` du serveur (#47).
+# `VALKEY_URL` reste un littéral : nom de service, base logique 0.
+x-env: &env
+  DATABASE_URL: ${DATABASE_URL:?DATABASE_URL est requis — l'URL de la base managée, dans le .env du serveur}
+  VALKEY_URL: redis://valkey:6379/0
+  VALKEY_PASSWORD: ${VALKEY_PASSWORD:?VALKEY_PASSWORD est requis}
+  RATE_LIMIT_IP_REQUESTS: ${RATE_LIMIT_IP_REQUESTS}
+  RATE_LIMIT_IP_WINDOW_SECONDS: ${RATE_LIMIT_IP_WINDOW_SECONDS}
+  CLIENT_BUILD_MIN: ${CLIENT_BUILD_MIN}
+  CLIENT_BUILD_RECOMMENDED: ${CLIENT_BUILD_RECOMMENDED}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_SAMPLE_RATE: ${SENTRY_SAMPLE_RATE}
+
+# Le durcissement commun à tous les services (§13.10), écrit une fois et fusionné dans chacun.
+# Le reste de la table est propre à chaque service : `user:`, `tmpfs`, limites, sonde.
+x-durci: &durci
+  # Rien d'écrit hors des `tmpfs` déclarés service par service.
+  read_only: true
+  # Toutes les capacités abandonnées ; un seul réajout dans ce fichier, sur `caddy`, justifié là.
+  cap_drop: [ALL]
+  # Aucun binaire setuid ne peut redonner ce qu'on vient de retirer.
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  # Le délai avant SIGKILL, explicite sur CHAQUE service (§13.7 : le défaut de Docker « dépend de
+  # la version — mesuré à 1 seconde sur Docker 29.2.1 » ; « ne jamais s'en remettre au défaut »).
+  # Pour `api` c'est le temps qu'uvicorn a pour laisser partir les flux ouverts, pour `caddy`
+  # celui de fermer la moitié client de ces mêmes flux (`grace_period` du Caddyfile, en dessous),
+  # pour `worker` celui de finir le tour de tâche en cours (#44). `valkey` n'a rien à fermer, mais
+  # la règle est « explicite partout », pas « là où ça compte ». `api/tests/test_compose_prod.py`
+  # vérifie la présence sur chaque service, `test_compose.py` l'ordre avec la borne uvicorn.
+  stop_grace_period: 30s
+
+networks:
+  default:
+    ipam:
+      config:
+        # Sous-réseau FIXÉ, et non laissé au choix de Docker : `api` ne croit le `X-Forwarded-For`
+        # que d'un pair de ce CIDR (voir `FORWARDED_ALLOW_IPS`), et une valeur littérale ne tient
+        # que si le réseau ne change pas d'adresse à sa prochaine création. Pris HORS du pool que
+        # Docker distribue lui-même (172.17–172.31.0.0/16 et 192.168.0.0/16) : un /24 posé dedans
+        # entre en collision avec tout autre projet — la préproduction du §13.7 sur le même
+        # serveur, ou n'importe quelle pile voisine — qui aurait décroché ce /16 (« Pool overlaps
+        # with other one », mesuré). #47 ne doit pas non plus donner ce CIDR au Private Network
+        # Scaleway, sinon la base managée deviendrait injoignable depuis les conteneurs.
+        - subnet: 10.89.45.0/24
+
+services:
+  caddy:
+    <<: *durci
+    # caddy:2 → 2.11.4 (lu le 7 septembre 2026). Le seul conteneur exposé (§13.10) : TLS
+    # automatique, reverse proxy vers `api` — voir `Caddyfile`.
+    image: caddy:2@sha256:df7f1c2fb114453b951de51a98efc010db1655a92c2e86be6706714e2417a78d
+    # `nobody` de l'image (uid 65534) : l'image officielle tourne root par défaut. Elle livre
+    # `/data/caddy` et `/config/caddy` en `1777` (sticky), et c'est ce qui rend le non-root
+    # possible sans rien préparer : un volume NOMMÉ neuf est initialisé depuis l'image et hérite
+    # de ces droits — mesuré, Caddy y crée `certificates/`, `pki/`, `locks/` en `700 nobody` à
+    # son premier démarrage. Jamais un bind vers un répertoire de l'hôte : il n'hériterait de
+    # rien, et Caddy ne pourrait pas y écrire.
+    user: "65534:65534"
+    cap_add:
+      # L'UNIQUE réajout de ce fichier — et pas pour le port : dans un conteneur Docker, 443 n'est
+      # pas privilégié (`ip_unprivileged_port_start=0` dans l'espace réseau ; mesuré, un `bind`
+      # sous uid 1000 sans aucune capacité réussit). La raison est ailleurs : `/usr/bin/caddy`
+      # porte une capacité de fichier (`getcap` → `cap_net_bind_service=ep`), et le noyau refuse
+      # l'`exec` d'un tel binaire quand la capacité manque à l'ensemble *bounding* — « operation
+      # not permitted » avant la première ligne de journal. Ne pas « simplifier » cette ligne.
+      - NET_BIND_SERVICE
+    ports:
+      # Le seul port publié de la pile. TCP seulement : pas de HTTP/3 (voir `Caddyfile`).
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN est requis — le site que Caddy sert ; localhost sur le poste}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificats et clés : PERSISTANT (la doc officielle : « must not be treated as a cache »).
+      # Le perdre à chaque redéploiement épuiserait la limite d'émission de Let's Encrypt.
+      - caddy-data:/data
+      # La configuration active et son autosave : en mémoire. `mode` explicite parce qu'un tmpfs
+      # est VIDE — il n'hérite pas du `/config/caddy` en 1777 de l'image, à la différence d'un
+      # volume nommé — et prendrait sinon les droits du point de montage, `root 755` : mesuré,
+      # `nobody` n'y écrirait pas. `0o1777` et non `1777` : Compose lit un octal (YAML 1.2) et
+      # rend 1023, le bon motif de bits ; `1777` serait lu en décimal, soit 0o3361.
+      - type: tmpfs
+        target: /config
+        tmpfs:
+          mode: 0o1777
+    mem_limit: 128m
+    cpus: 0.5
+    depends_on:
+      api:
+        # `service_started`, et non `service_healthy` : un reverse proxy n'a rien à attendre de
+        # son amont, il réessaie à chaque requête. Conditionner `caddy` à la santé d'`api`
+        # empêcherait le certificat TLS d'être émis tant que l'api ne joint pas sa base — au
+        # premier déploiement, exactement quand le câblage est le moins sûr : site noir au lieu
+        # d'un 502.
+        condition: service_started
+    healthcheck:
+      # L'API d'administration de Caddy, sur la boucle locale du conteneur seulement : elle répond
+      # dès que la configuration est chargée. `wget` est celui de BusyBox, présent dans l'image.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:2019/config/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  valkey:
+    <<: *durci
+    # valkey/valkey:8 → 8.1.10 (lu le 6 septembre 2026) — même image et même empreinte que le
+    # compose local, que Dependabot monte ensemble ; `api/tests/test_images.py` tient les deux.
+    image: valkey/valkey:8@sha256:98c6217ccc2fe5e6c4b5dcd5c40eef4de2a68924e7ecef50d5a0a30b57dfaef6
+    # L'utilisateur `valkey` de l'image (uid 999) — posé ici parce que l'image démarre root et ne
+    # se rabat sur lui que par son script d'entrée ; en le nommant, il n'y a plus de passage par
+    # root du tout. Mesuré : `/data` en tmpfs lui reste inscriptible.
+    user: "999:999"
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?VALKEY_PASSWORD est requis}
+      # `--requirepass` : authentifié même sans port publié (§13.10). `--save ""` : AUCUNE
+      # persistance — tout ce que Valkey porte ici (pub/sub, cache, compteurs, verrous, §13.0) se
+      # reconstruit ; et avec un système de fichiers en lecture seule, un `bgsave` en échec ferait
+      # refuser les écritures. À rouvrir si un usage persistant apparaît.
+      VALKEY_EXTRA_FLAGS: --requirepass ${VALKEY_PASSWORD} --save ""
+    tmpfs:
+      # Le répertoire de travail que l'image déclare : en mémoire, perdu à l'arrêt, et c'est voulu.
+      - /data
+    mem_limit: 256m
+    cpus: 0.5
+    healthcheck:
+      # Même sonde qu'en local et en CI : `$$` laisse le shell du conteneur lire la variable.
+      test: ["CMD-SHELL", "valkey-cli --no-auth-warning -a \"$$VALKEY_PASSWORD\" ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *durci
+    # L'image du paquet, publiée par #47 et désignée par le `.env` du serveur — la même pour `api`
+    # et `worker` (cadrage §13.0). Pas d'empreinte ici : la référence est une décision de
+    # déploiement, la balise de version celle de #39. `api/tests/test_compose.py` reconnaît les
+    # deux points d'entrée à cette référence partagée.
+    image: ${ARPENDO_IMAGE:?ARPENDO_IMAGE est requis — la référence de l'image publiée ; arpendo-api:dev sur le poste}
+    # L'utilisateur vient de l'image : `USER arpendo` dans `api/Dockerfile`, code et venv possédés
+    # par root — rien à redire ici, et le redire créerait deux déclarations du même uid.
+    environment:
+      <<: *env
+      # Le seul pair dont on croit le `X-Forwarded-For` : le réseau de ce compose, où vit `caddy`
+      # (cadrage §13.7 : l'en-tête n'est fiable « que parce que caddy est le seul point
+      # d'entrée »). Littéral égal au sous-réseau fixé plus haut — `api/tests/test_compose_prod.py`
+      # compare les deux. Jamais `*` : uvicorn croirait alors le premier hôte de l'en-tête, écrit
+      # par le client, et le limiteur par adresse deviendrait contournable.
+      FORWARDED_ALLOW_IPS: 10.89.45.0/24
+      # Même chaîne qu'en local : la borne vit dans le `.env`, sous `:?` (une valeur vide serait
+      # ignorée en silence par uvicorn), et doit rester sous le `stop_grace_period` ci-dessous —
+      # `api/tests/test_compose.py` garde l'ordre.
+      UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN: ${UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN:?UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN est requis}
+    tmpfs:
+      # Le seul répertoire inscriptible : `/tmp`, hérité 1777 de l'image.
+      - /tmp
+    mem_limit: 512m
+    cpus: 1.0
+    depends_on:
+      valkey:
+        condition: service_healthy
+    # Sonde héritée de `api/Dockerfile` : une seule déclaration pour tous les environnements.
+
+  worker:
+    <<: *durci
+    image: ${ARPENDO_IMAGE:?ARPENDO_IMAGE est requis — la référence de l'image publiée ; arpendo-api:dev sur le poste}
+    environment:
+      <<: *env
+    command: ["python", "-m", "arpendo_api.worker"]
+    tmpfs:
+      # `/tmp` porte le fichier de battement — le seul chemin que le worker écrit.
+      - /tmp
+    mem_limit: 256m
+    cpus: 0.5
+    depends_on:
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      # La sonde de l'image est HTTP ; le worker n'écoute sur aucun port et la remplace par la
+      # fraîcheur de son battement. 20 = deux fois `arpendo_api.worker.HEARTBEAT_INTERVAL`,
+      # recopié : Compose ne lit pas une constante Python (même duplication qu'en local).
+      test: ["CMD", "python", "-c", "import os, sys, time; sys.exit(0 if time.time() - os.stat('/tmp/arpendo-worker-battement').st_mtime < 20 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  # Le seul état de la machine qui ne se reconstruit pas depuis le dépôt : les certificats de
+  # Caddy. Volume nommé, initialisé depuis l'image (`/data/caddy` en 1777) : rien à préparer,
+  # `nobody` y écrit dès le premier démarrage — voir le service `caddy`.
+  caddy-data:

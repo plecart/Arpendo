@@ -154,7 +154,7 @@ jobs:
         run: just test
 
   image:
-    name: Image + scan
+    name: Image, scan, compose de production
     runs-on: ubuntu-latest
     # Même garde que `ci` : pas de run sur une draft.
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
@@ -200,3 +200,21 @@ jobs:
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+
+      # Le compose de production n'est levé nulle part avant #47 : au moins le relire interpolé,
+      # avec les valeurs de poste de `.env.example`, pour qu'une clé mal écrite ou une variable
+      # sans garde ne se découvre pas au premier déploiement. `api/tests/test_compose_prod.py` lit
+      # le YAML brut ; ceci est la lecture de Compose lui-même.
+      - name: Compose de production — `config` passe avec les valeurs de poste
+        run: docker compose -f infra/compose.prod.yml --env-file .env.example config --quiet
+
+      # Le Caddyfile, validé par l'image épinglée dans le compose — lue là, jamais recopiée ici —
+      # sous l'utilisateur et les contraintes du service (`caddy validate` provisionne une CA
+      # interne pour `localhost`, d'où des tmpfs inscriptibles à la place du volume).
+      - name: Caddyfile valide, par l'image du compose
+        run: |
+          IMAGE_CADDY=$(docker compose -f infra/compose.prod.yml --env-file .env.example config --images | grep '^caddy')
+          docker run --rm --user 65534:65534 --cap-drop ALL --cap-add NET_BIND_SERVICE --read-only \
+            --tmpfs /data:mode=1777 --tmpfs /config:mode=1777 \
+            -v "$PWD/infra/Caddyfile:/etc/caddy/Caddyfile:ro" -e API_DOMAIN=localhost \
+            "$IMAGE_CADDY" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile

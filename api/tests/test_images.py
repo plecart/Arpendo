@@ -18,8 +18,11 @@ Trois choses que le bot ne voit pas, gardées ici parce que rien d'autre ne les 
   images que le compose fait tourner (§13.6), et seul un test peut tenir les deux à égalité.
 
 Ce qui **n'est pas** tiré n'a pas d'empreinte à porter : un service qui construit son image
-(`build:`) la nomme, il ne la tire pas. C'est la clé `build`, pas le nom, qui l'exclut — ainsi le
-garde suit une image renommée sans qu'on y pense.
+(`build:`) la nomme, il ne la tire pas ; et les services du paquet — ceux qui **partagent** une
+référence d'image, `services_du_paquet` de `conftest`, la seule définition — désignent une image
+publiée par #47 et nommée par le `.env` du serveur, dont l'empreinte n'a pas sa place dans le
+fichier. Ce sont ces deux règles, pas un nom, qui excluent : le garde suit une image renommée
+sans qu'on y pense, et une interpolation posée sur un service tiers ne l'exempte de rien.
 
 **Chaque famille porte son témoin** : un paramétrage vide ne rougit jamais, et une population qui
 rétrécit parce qu'un motif ne lit plus le fichier est un garde qui disparaît en silence. Les deux
@@ -28,10 +31,21 @@ sont écrits en une égalité d'ensembles, où l'ensemble vide est un rouge.
 """
 
 import re
+from pathlib import Path
 from typing import Any
 
 import pytest
-from conftest import CI, COMPOSE, DOCKERFILE, PYTHON_VERSION, document_yaml
+from conftest import (
+    CI,
+    COMPOSE,
+    COMPOSE_PROD,
+    COMPOSES,
+    DOCKERFILE,
+    PYTHON_VERSION,
+    document_yaml,
+    nom_du_fichier,
+    services_du_paquet,
+)
 
 EMPREINTE = re.compile(r"^\S+:[\w][\w.-]*@sha256:[0-9a-f]{64}$")
 """La forme `image:tag@sha256:<64 hexadécimaux>` : le tag reste, lisible, l'empreinte fige.
@@ -74,10 +88,15 @@ def _sources_des_copies() -> list[str]:
     return COPIE_DEPUIS.findall(_dockerfile())
 
 
-def _images_tirees_du_compose() -> dict[str, str]:
-    """Les images du compose local que Docker **tire**, par nom de service."""
-    services: dict[str, dict[str, Any]] = document_yaml(COMPOSE)["services"]
-    return {nom: bloc["image"] for nom, bloc in services.items() if "build" not in bloc}
+def _images_tirees_du_compose(compose: Path) -> dict[str, str]:
+    """Les images d'un compose que Docker **tire** d'un registre, par nom de service."""
+    services: dict[str, dict[str, Any]] = document_yaml(compose)["services"]
+    paquet = services_du_paquet(compose)
+    return {
+        nom: str(bloc.get("image", ""))
+        for nom, bloc in services.items()
+        if "build" not in bloc and nom not in paquet
+    }
 
 
 def _sans_empreinte(image: str) -> str:
@@ -109,10 +128,15 @@ def test_le_dockerfile_declare_les_etapes_attendues() -> None:
     )
 
 
-def test_le_compose_tire_les_images_attendues() -> None:
+IMAGES_TIREES_ATTENDUES = {COMPOSE: {"postgres", "valkey"}, COMPOSE_PROD: {"caddy", "valkey"}}
+"""Témoin par compose : la production tire `caddy` et n'a pas de `postgres` (managé, §13.7)."""
+
+
+@pytest.mark.parametrize("compose", COMPOSES, ids=nom_du_fichier)
+def test_le_compose_tire_les_images_attendues(compose: Path) -> None:
     """Témoin positif du compose — rougit à tout service tiré en plus, pour forcer la discussion."""
-    assert set(_images_tirees_du_compose()) == {"postgres", "valkey"}, (
-        "témoin : les services tirés du compose ont changé"
+    assert set(_images_tirees_du_compose(compose)) == IMAGES_TIREES_ATTENDUES[compose], (
+        f"témoin : les services tirés de {compose.name} ont changé"
     )
 
 
@@ -121,9 +145,18 @@ def test_chaque_image_de_base_du_dockerfile_porte_une_empreinte(image: str) -> N
     assert EMPREINTE.match(image), f"le Dockerfile tire {image!r} sans empreinte"
 
 
-@pytest.mark.parametrize(("service", "image"), sorted(_images_tirees_du_compose().items()))
-def test_chaque_image_tiree_du_compose_porte_une_empreinte(service: str, image: str) -> None:
-    assert EMPREINTE.match(image), f"{service} tire {image!r} sans empreinte"
+@pytest.mark.parametrize(
+    ("compose", "service", "image"),
+    [
+        pytest.param(compose, service, image, id=f"{compose.name}-{service}")
+        for compose in COMPOSES
+        for service, image in sorted(_images_tirees_du_compose(compose).items())
+    ],
+)
+def test_chaque_image_tiree_du_compose_porte_une_empreinte(
+    compose: Path, service: str, image: str
+) -> None:
+    assert EMPREINTE.match(image), f"{service} de {compose.name} tire {image!r} sans empreinte"
 
 
 def test_tout_copy_from_nomme_une_etape_du_dockerfile() -> None:
@@ -183,7 +216,7 @@ def test_la_ci_teste_sur_les_images_que_le_compose_fait_tourner() -> None:
     assert "services" in jobs["ci"], "le job `ci` ne lève plus aucun service"
     services_de_la_ci = {nom: bloc["image"] for nom, bloc in jobs["ci"]["services"].items()}
     services_du_compose = {
-        nom: _sans_empreinte(image) for nom, image in _images_tirees_du_compose().items()
+        nom: _sans_empreinte(image) for nom, image in _images_tirees_du_compose(COMPOSE).items()
     }
     assert services_de_la_ci == services_du_compose, (
         f"CI {services_de_la_ci} ≠ compose {services_du_compose} : monter les deux ensemble"

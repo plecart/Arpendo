@@ -1,0 +1,32 @@
+# Caddy en production (cadrage §13.7, §13.10) — un site, TLS automatique, un reverse proxy vers
+# l'api. Le service `caddy` de `compose.prod.yml` le monte en lecture seule ; le domaine vient du
+# `.env` du serveur (#47), `localhost` sur le poste. Validation sans rien lever : `infra/README.md`.
+#
+# Seul TCP 443 est publié : pas de HTTP/3, sinon Caddy annoncerait par `Alt-Svc` un h3 sur UDP 443
+# que personne ne peut joindre. Le port 80 étant fermé par le pare-feu du fournisseur (§13.10), le
+# défi ACME se fait en TLS-ALPN-01 sur 443 — Caddy essaie HTTP-01 d'abord et bascule de lui-même.
+{
+	# À l'arrêt, Caddy attend ses connexions ouvertes SANS FIN par défaut (« eternal grace period »
+	# dans son journal, mesuré) : c'est alors le SIGKILL de Docker qui trancherait, brutalement, la
+	# moitié client des flux SSE. 25 s, sous le `stop_grace_period` de 30 s du compose — le même
+	# ordre que la borne uvicorn côté api ; `api/tests/test_compose_prod.py` le garde.
+	grace_period 25s
+	# Dès qu'une CA interne existe — `localhost`, donc le `caddy validate` de la CI et tout poste —
+	# Caddy tente d'installer sa racine dans le magasin système et journalise une erreur sur le
+	# système de fichiers en lecture seule (mesuré : `open /tmp/truststore.*.pem: read-only file
+	# system`). Sans objet avec un domaine public ; retiré pour ne pas laisser un faux positif.
+	skip_install_trust
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$API_DOMAIN} {
+	reverse_proxy api:8000 {
+		# §13.7 : « Caddy ne doit pas tamponner le flux SSE » — vidage immédiat, sur tout le proxy
+		# et sans matcher de chemin : la route SSE n'a pas encore de chemin, et le défaut de Caddy
+		# (vider sur `text/event-stream` seulement) est une heuristique, pas une configuration.
+		# Caddy pose lui-même `X-Forwarded-For` ; `api` ne le croit que venant de ce réseau.
+		flush_interval -1
+	}
+}
