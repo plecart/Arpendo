@@ -1434,9 +1434,11 @@ transversal le jour où une seconde machine devient nécessaire.
    Les `healthcheck` du fichier compose et les délais d'arrêt sont réglés en conséquence.
 
 **Note sur le déploiement à chaud.** Un `docker compose up -d` interrompt le service quelques
-secondes. C'est **invisible pour le joueur** : la SSE se reconnecte nativement (§13.3) et le
-service d'arrière-plan réessaie avec espacement progressif (§10) — l'architecture hors ligne
-couvre déjà des coupures bien plus longues.
+secondes — et jusqu'à une trentaine quand des flux SSE sont ouverts : Caddy et uvicorn les
+laissent se fermer proprement avant de s'arrêter (§13.7), et n'acceptent plus de connexion
+nouvelle pendant ce temps. C'est **invisible pour le joueur** : la SSE se reconnecte nativement
+(§13.3) et le service d'arrière-plan réessaie avec espacement progressif (§10) — l'architecture
+hors ligne couvre déjà des coupures bien plus longues.
 
 **Multi-région : rien n'est construit, rien n'est payé, la porte reste ouverte.** Si le sujet
 revenait un jour, ce serait pour des raisons de **conformité**, jamais de performance — le client
@@ -1751,6 +1753,7 @@ Ces décisions de l'ancien document ont été **remplacées**. Ne pas s'y réfé
 | Nombre de joueurs « paramétrable par le créateur » | **Supprimé.** 10 en dur, aucun curseur — cohérent avec l'absence de rôles (§8.1) |
 | « le plafond de 50 km/h exclut la voiture » | **Faux, corrigé.** Il exclut route, autoroute et train ; la conduite urbaine passe (§4.3) |
 | « Le délai d'arrêt Docker par défaut est de 10 secondes » (§13.7) | **Faux sur la chaîne d'outils du projet, corrigé.** Le défaut dépend de la version — mesuré à 1 seconde sur Docker 29.2.1. La conclusion est inchangée et renforcée : porter le délai explicitement dans le compose |
+| « Un `docker compose up -d` interrompt le service quelques secondes » (§13.9) | **Précisé.** Jusqu'à une trentaine de secondes quand des flux SSE sont ouverts — le temps que Caddy et uvicorn les ferment proprement (§13.7) ; mesuré le 7 septembre 2026, lot 2 de #45 : 24 s et code 0 avec `grace_period`, 29 s et SIGKILL sans. La conclusion « invisible pour le joueur » est inchangée |
 
 ### 18.1 Révision d'architecture du 10 août 2026, après chiffrage
 
