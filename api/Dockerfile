@@ -2,14 +2,24 @@
 # étape et ne pèse pas sur l'image livrée. Utilisateur non privilégié — cadrage §13.10,
 # « Jamais de conteneur applicatif en root ».
 #
-# Épinglage par TAG de version, pas par empreinte : le §13.10 vise l'empreinte, #45 la posera en
-# même temps que `read_only`, `cap_drop`, les limites de ressources et le scan d'images. Un digest
-# isolé ici, sans le reste du durcissement, donnerait l'illusion que le sujet est traité.
+# Chaque image tirée est épinglée `tag@sha256:…` (§13.10, « Images épinglées par empreinte ») :
+# le tag dit ce qu'on a voulu, l'empreinte fige ce qu'on a eu. Dependabot (écosystème `docker`
+# sur `/api`) suit le tag et propose l'empreinte suivante quand il bouge — et son parseur ne lit
+# que les lignes `FROM`, écrites en clair : chaque écart à cette forme est justifié sur place. Le
+# commentaire de chaque épinglage nomme la version que le tag résolvait le jour où elle a été lue.
+# `api/tests/test_images.py` refuse un `FROM` sans empreinte.
 
-FROM python:3.13-slim AS build
+# uv installe les dépendances sur l'interpréteur de l'image de base ; sa propre image officielle
+# évite une couche pip.
+# Étape nommée, et non `COPY --from=<image>` : c'est ce qui met l'empreinte sur une ligne `FROM`,
+# la seule que Dependabot lise. L'image ne contient que le binaire, l'étape ne construit rien.
+# ghcr.io/astral-sh/uv:0.12 → uv 0.12.10 (lu le 6 septembre 2026).
+FROM ghcr.io/astral-sh/uv:0.12@sha256:2bb3ebca0a796a155094a27773d290c4b074572e6107f171d88d086682fd2500 AS uv
 
-# uv installe l'interpréteur et les dépendances ; sa propre image officielle évite une couche pip.
-COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
+# python:3.13-slim → Python 3.13.15 (lu le 6 septembre 2026).
+FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285 AS build
+
+COPY --from=uv /uv /usr/local/bin/uv
 
 # `COMPILE_BYTECODE` paie le coût du .pyc une fois au build plutôt qu'au premier appel de chaque
 # module. `LINK_MODE=copy` : le cache d'uv et /app ne sont pas sur le même montage, les liens durs
@@ -27,14 +37,21 @@ RUN uv sync --locked --no-install-project --no-dev
 COPY src ./src
 RUN uv sync --locked --no-dev
 
-FROM python:3.13-slim
+# Même image et même empreinte que l'étape `build`, écrites deux fois : un `ARG` les
+# factoriserait, mais Dependabot ne résout pas les `ARG` et cesserait de les suivre. Le bot les
+# monte ensemble, dans la même PR, puisque c'est la même dépendance.
+# python:3.13-slim → Python 3.13.15 (lu le 6 septembre 2026).
+FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285
 
 # `--system` : pas de mot de passe, pas d'expiration. Le shell est refusé — ce compte sert à
 # exécuter un processus, jamais à ouvrir une session.
 RUN useradd --system --create-home --shell /usr/sbin/nologin arpendo
 
 WORKDIR /app
-COPY --from=build --chown=arpendo:arpendo /app /app
+# Sans `--chown` : code et venv appartiennent à root, l'utilisateur d'exécution les lit et les
+# exécute, il n'y écrit pas — rien ici n'en a besoin, le worker écrit sous `/tmp`. Le job `image`
+# de la CI le vérifie par un `touch` qui doit échouer.
+COPY --from=build /app /app
 
 # Met le venv en tête du PATH : `uvicorn` et `python` résolvent vers l'environnement du projet
 # sans avoir à préfixer chaque commande.
@@ -43,9 +60,10 @@ ENV PATH="/app/.venv/bin:$PATH"
 USER arpendo
 EXPOSE 8000
 
-# La sonde vit dans l'image, pas dans un fichier compose : elle vaut pour tous les environnements
-# et #45 n'aura pas à la redéclarer. Pas de `curl` à installer — la stdlib fait l'appel, et un
-# `/health` en 503 lève une `HTTPError`, donc marque le conteneur `unhealthy`.
+# La sonde vit dans l'image, pas dans un fichier compose : elle vaut pour `api` dans tous les
+# environnements. Seul le `worker`, qui n'écoute sur aucun port, la remplace dans chaque compose
+# par la fraîcheur de son fichier de battement. Pas de `curl` à installer — la stdlib fait
+# l'appel, et un `/health` en 503 lève une `HTTPError`, donc marque le conteneur `unhealthy`.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=5 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
 

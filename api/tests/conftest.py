@@ -3,9 +3,11 @@ import logging
 import uuid
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping
 from pathlib import Path
+from typing import Any
 
 import pytest
 import structlog
+import yaml
 from alembic import command
 from alembic.config import Config
 from evenements import PREFIXE
@@ -70,6 +72,19 @@ séparation de sa base Valkey d'avec celle des tests. Un compose de production (
 pile que personne ne lève ici.
 """
 
+DOCKERFILE = RACINE / "api" / "Dockerfile"
+"""L'image du paquet, telle qu'elle se construit — lue par le garde des images épinglées."""
+
+CI = RACINE / ".github" / "workflows" / "ci.yml"
+"""Le workflow de CI — lu pour ses `services:`, les seules images du dépôt qu'aucun bot ne suit."""
+
+PYTHON_VERSION = RACINE / "api" / ".python-version"
+"""Le fichier qui choisit la version de Python — source unique, que `uv` lit en local et en CI.
+
+Un chemin, jamais son contenu : lu par le test qui le compare, pour qu'un fichier absent rende un
+rouge nommé et non une panne de session à l'import de ce module.
+"""
+
 ENV_EXAMPLE = RACINE / ".env.example"
 """Le modèle de `.env` — la seule déclaration des valeurs que le poste et le compose se partagent.
 
@@ -77,6 +92,24 @@ Lu par les gardes qui portent sur un invariant **réparti** entre lui et `infra/
 une valeur proposée ici et relayée là-bas n'est cohérente nulle part ailleurs, et un commentaire de
 chaque côté ne la tient pas.
 """
+
+
+def document_yaml(chemin: Path) -> dict[str, Any]:
+    """Un fichier YAML du dépôt tel que `yaml.safe_load` le rend — un objet, pas une liste.
+
+    Les ancres sont **développées** au chargement : dans le compose, les blocs `environment`
+    factorisés dans `x-env` sont rendus fusionnés, tels que chaque conteneur les reçoit.
+
+    Appelée à la **collecte** par les paramétrisations de `test_compose.py` et `test_images.py` :
+    une assertion qui échouerait ici avorterait le module entier, d'où la seule garde
+    structurelle, celle sans laquelle rien d'autre ne peut être lu.
+
+    Args:
+        chemin: le fichier à lire, l'une des constantes ci-dessus.
+    """
+    document = yaml.safe_load(chemin.read_text(encoding="utf-8"))
+    assert isinstance(document, dict), f"{chemin.name} ne rend pas un objet YAML"
+    return document
 
 
 def variables_des_reglages() -> set[str]:

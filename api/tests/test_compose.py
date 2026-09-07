@@ -1,8 +1,8 @@
 """Le compose donne-t-il à chaque point d'entrée ce qu'il exige — pour tourner, et pour s'arrêter ?
 
-Seul fichier de la suite qui lise `infra/`. Il ne teste pas Docker : il garde ce que **rien
-d'autre** ne peut voir, parce que les tests parlent aux services depuis l'hôte et jamais depuis les
-conteneurs `api` et `worker`.
+Avec `test_images.py`, l'un des deux fichiers de la suite qui lisent `infra/`. Il ne teste pas
+Docker : il garde ce que **rien d'autre** ne peut voir, parce que les tests parlent aux services
+depuis l'hôte et jamais depuis les conteneurs `api` et `worker`.
 
 - **Pour tourner** : un bloc `environment` amputé laisse la suite entièrement verte et fait partir
   le conteneur en boucle de redémarrage. Mesuré.
@@ -14,8 +14,7 @@ import re
 from typing import Any
 
 import pytest
-import yaml
-from conftest import COMPOSE, ENV_EXAMPLE, variables_des_reglages
+from conftest import COMPOSE, ENV_EXAMPLE, document_yaml, variables_des_reglages
 
 IMAGE_DU_PAQUET = "arpendo-api:dev"
 """L'image que partagent les points d'entrée du paquet (cadrage §13.0 : un paquet, deux entrées).
@@ -58,21 +57,13 @@ fusionnés quand `yaml.safe_load` les rend — la partition y est invisible.
 """
 
 
-def _document() -> dict[str, Any]:
-    """Le compose local, tel que YAML le rend — et c'est un objet, pas une liste ni un scalaire."""
-    document = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
-    assert isinstance(document, dict)
-    return document
-
-
 def _services_du_paquet() -> dict[str, dict[str, Any]]:
     """Les services du compose qui exécutent le paquet, par nom.
 
-    `yaml.safe_load` **développe les ancres** au chargement : les blocs `environment` étant
-    factorisés dans `x-env`, ce test lit le résultat de la fusion et non la référence — il dit donc
-    ce que chaque conteneur reçoit vraiment, quelle que soit la façon dont le compose l'écrit.
+    Lus après développement des ancres (voir `document_yaml`) : ce test dit ce que chaque
+    conteneur reçoit vraiment, quelle que soit la façon dont le compose l'écrit.
     """
-    services: dict[str, dict[str, Any]] = _document()["services"]
+    services: dict[str, dict[str, Any]] = document_yaml(COMPOSE)["services"]
     return {nom: bloc for nom, bloc in services.items() if bloc.get("image") == IMAGE_DU_PAQUET}
 
 
@@ -94,10 +85,11 @@ def _declare(fragment: dict[str, Any], cle: str, dans: str) -> dict[str, Any]:
     panne de l'outil plutôt que comme un défaut du fichier lu. On la remplace donc par une
     assertion, qui nomme la clé et le fragment.
 
-    **Jamais depuis une aide appelée à l'import.** ``_document`` et ``_services_du_paquet`` le
-    sont, par les décorateurs de paramétrisation : une assertion qui remonterait jusqu'à elles
-    tomberait à la **collecte** et avorterait le module entier — pire que le ``KeyError`` qu'on
-    remplace. Le caveat vaut par transitivité pour toute aide qui appelle celle-ci.
+    **Jamais depuis une aide appelée à l'import.** ``document_yaml`` et
+    ``_services_du_paquet`` le sont, par les décorateurs de paramétrisation : une assertion qui
+    remonterait jusqu'à elles tomberait à la **collecte** et avorterait le module entier — pire que
+    le ``KeyError`` qu'on remplace. Le caveat vaut par transitivité pour toute aide qui appelle
+    celle-ci.
 
     Deux formes valides du compose échouent ici plutôt que plus loin, et c'est le point :
 
@@ -132,7 +124,7 @@ def _ancre() -> dict[str, Any]:
     Returns:
         Le contenu de l'ancre.
     """
-    return _declare(_document(), ANCRE_PARTAGEE, "son en-tête")
+    return _declare(document_yaml(COMPOSE), ANCRE_PARTAGEE, "son en-tête")
 
 
 def _environnement_de(service: str) -> dict[str, Any]:
