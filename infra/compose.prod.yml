@@ -74,7 +74,7 @@ services:
     <<: *durci
     # caddy:2 → 2.11.4 (lu le 7 septembre 2026). Le seul conteneur exposé (§13.10) : TLS
     # automatique, reverse proxy vers `api` — voir `Caddyfile`.
-    image: caddy:2@sha256:df7f1c2fb114453b951de51a98efc010db1655a92c2e86be6706714e2417a78d
+    image: caddy:2@sha256:13ba145cba2f3e28fa801994876e4c086d1b95d5aa2a520a734765ffb6b12017
     # `nobody` de l'image (uid 65534) : l'image officielle tourne root par défaut. Elle livre
     # `/data/caddy` et `/config/caddy` en `1777` (sticky), et c'est ce qui rend le non-root
     # possible sans rien préparer : un volume NOMMÉ neuf est initialisé depuis l'image et hérite
