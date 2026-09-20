@@ -35,7 +35,7 @@ dependencies:
   # `lib/data/services/rapport_erreurs.dart` l'importe — c'est lui qui décide
   # d'initialiser le SDK ou de n'y toucher jamais, et qui assainit chaque
   # événement avant l'envoi.
-  sentry_flutter: ^9.29.0
+  sentry_flutter: ^9.30.0
   # Ouvre la fiche du magasin depuis l'écran bloquant et le bandeau 12
   # (UX §11.2). Seul `lib/data/services/magasin_service.dart` l'importe.
   url_launcher: ^6.3.2
