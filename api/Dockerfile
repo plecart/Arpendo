@@ -14,7 +14,7 @@
 # Étape nommée, et non `COPY --from=<image>` : c'est ce qui met l'empreinte sur une ligne `FROM`,
 # la seule que Dependabot lise. L'image ne contient que le binaire, l'étape ne construit rien.
 # ghcr.io/astral-sh/uv:0.12 → uv 0.12.10 (lu le 6 septembre 2026).
-FROM ghcr.io/astral-sh/uv:0.12@sha256:2bb3ebca0a796a155094a27773d290c4b074572e6107f171d88d086682fd2500 AS uv
+FROM ghcr.io/astral-sh/uv:0.13@sha256:cdc6093146eb3ff6a40107b38f008b789e050e77ad87865e381d9917da55a168 AS uv
 
 # python:3.13-slim → Python 3.13.15 (lu le 6 septembre 2026).
 FROM python:3.13-slim@sha256:9d2e5553305c7c7b0097999bb17187c69b921ccd6bc9d40e4bb5ebe652c00285 AS build
