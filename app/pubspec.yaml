@@ -7,12 +7,12 @@ environment:
   sdk: ^3.13.1
 
 dependencies:
-  connectivity_plus: ^7.3.1
+  connectivity_plus: ^7.3.2
   flutter:
     sdk: flutter
   # Rend le signe de la marque (`assets/signe-arpendo.svg`) teinté par le
   # thème. Seul `lib/ui/core/marque/bloc_de_marque.dart` l'importe.
-  flutter_svg: ^2.2.0
+  flutter_svg: ^2.3.2
   # Délégués `Global*Localizations` du SDK, montés par la classe générée depuis
   # `lib/l10n/app_fr.arb` (cadrage §12.6 : aucune chaîne en dur).
   flutter_localizations:
@@ -24,7 +24,7 @@ dependencies:
   # Version installée (`version: x.y.z+N` du pubspec) : source unique du
   # numéro de build comparé aux seuils de `/version`. Seul `main.dart`
   # l'importe.
-  package_info_plus: ^10.2.1
+  package_info_plus: ^10.2.2
   # Jeu d'icônes unique de l'interface, graisse Regular (spec UX §1.8). Seul
   # `lib/ui/core/theme/icones.dart` l'importe.
   phosphor_icons: ^3.0.1
@@ -38,7 +38,7 @@ dependencies:
   sentry_flutter: ^9.29.0
   # Ouvre la fiche du magasin depuis l'écran bloquant et le bandeau 12
   # (UX §11.2). Seul `lib/data/services/magasin_service.dart` l'importe.
-  url_launcher: ^6.3.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   # Déjà dans l'arbre en transitive de `connectivity_plus` ; déclarée ici pour
