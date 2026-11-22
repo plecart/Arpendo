@@ -83,7 +83,7 @@ services:
 
   valkey:
     # valkey/valkey:8 → 8.1.10 (lu le 6 septembre 2026).
-    image: valkey/valkey:8@sha256:98c6217ccc2fe5e6c4b5dcd5c40eef4de2a68924e7ecef50d5a0a30b57dfaef6
+    image: valkey/valkey:8@sha256:5032c4dd7abe08d6fd9382054608183e2bf1f7e3895ef619b8784698454325f7
     environment:
       # Mot de passe obligatoire même sans port publié (§13.10, « Valkey authentifié »).
       # `VALKEY_EXTRA_FLAGS` plutôt qu'un `command:` qui réécrirait la ligne de commande de
