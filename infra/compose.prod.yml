@@ -132,7 +132,7 @@ services:
     <<: *durci
     # valkey/valkey:8 → 8.1.10 (lu le 6 septembre 2026) — même image et même empreinte que le
     # compose local, que Dependabot monte ensemble ; `api/tests/test_images.py` tient les deux.
-    image: valkey/valkey:8@sha256:98c6217ccc2fe5e6c4b5dcd5c40eef4de2a68924e7ecef50d5a0a30b57dfaef6
+    image: valkey/valkey:8@sha256:5032c4dd7abe08d6fd9382054608183e2bf1f7e3895ef619b8784698454325f7
     # L'utilisateur `valkey` de l'image (uid 999) — posé ici parce que l'image démarre root et ne
     # se rabat sur lui que par son script d'entrée ; en le nommant, il n'y a plus de passage par
     # root du tout. Mesuré : `/data` en tmpfs lui reste inscriptible.
